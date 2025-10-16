@@ -58,6 +58,9 @@ typedef struct M7_RasterizerArgs {
     M7_RasterScanner scan;
 } M7_RasterizerArgs;
 
+xform3 M7_Entity_GetXform(ECS_Handle *self);
+void M7_Entity_Xform(ECS_Handle *self, xform3 lhs);
+
 SD_DECLARE(M7_Mesh *, M7_Mesh_Create, vec3 *, ws_verts, vec3 *, ws_norms, vec2 *, ts_verts, M7_MeshFace *, faces, size_t, nverts, size_t, nts_verts, size_t, nfaces)
 void M7_Mesh_Free(M7_Mesh *mesh);
 

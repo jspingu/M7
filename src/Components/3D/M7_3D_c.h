@@ -47,7 +47,7 @@ typedef struct M7_Rasterizer {
     M7_Canvas *target;
     M7_VertexProjector project;
     M7_RasterScanner scan;
-    List(size_t [2]) *scanlines;
+    size_t (*scanlines)[2];
     sd_vec3 *ss_verts;
     size_t ssv_capacity;
 } M7_Rasterizer;
