@@ -1,0 +1,31 @@
+#include <M7/ECS.h>
+#include <M7/M7_ECS.h>
+#include <M7/Math/stride.h>
+
+#include "M7_3D_c.h"
+
+void M7_3D_RegisterToECS(ECS *ecs) {
+    M7_Components.Canvas = ECS_RegisterComponent(ecs, M7_Canvas, {
+        .attach = SD_SELECT(M7_Canvas_Attach),
+        .init = SD_SELECT(M7_Canvas_Init),
+        .free = M7_Canvas_Free
+    });
+
+    M7_Components.World = ECS_RegisterComponent(ecs, M7_World, {
+        .init = M7_World_Init,
+        .free = M7_World_Free,
+    });
+
+    M7_Components.Model = ECS_RegisterComponent(ecs, M7_Model, {
+        .attach = M7_Model_Attach,
+        .detach = M7_Model_Detach,
+        .init = M7_Model_Init,
+        .free = M7_Model_Free
+    });
+
+    M7_Components.XformComposer = ECS_RegisterComponent(ecs, M7_XformComposer, {});
+    M7_Components.Position = ECS_RegisterComponent(ecs, vec3, {});
+    M7_Components.Basis = ECS_RegisterComponent(ecs, mat3x3, {});
+
+    ECS_SystemGroup_RegisterSystem(M7_SystemGroups.RenderPresent, M7_Canvas_Present, M7_Components.Viewport, M7_Components.Canvas);
+}
