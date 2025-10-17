@@ -26,8 +26,8 @@
     for (size_t i = 0, n = ECS_SystemGroup_Length(group); i < n; ++i) {                                             \
         typeof(*group) callback = (typeof(*group))(ECS_SystemGroup_GetCallback(group, i));                          \
         ECS *ecs = ECS_SystemGroup_GetECS(group);                                                                   \
-        for (ECS_Handle *e = ECS_GetRoot(ecs); e && ECS_Entity_MatchesSystem(e, group, i); e = ECS_Entity_Next(e))  \
-            callback(e __VA_OPT__(,) __VA_ARGS__);                                                                  \
+        for (ECS_Handle *e = ECS_GetRoot(ecs); e ; e = ECS_Entity_Next(e))                                          \
+            if (ECS_Entity_MatchesSystem(e, group, i)) callback(e __VA_OPT__(,) __VA_ARGS__);                       \
     }                                                                                                               \
 } while (0)
 
@@ -35,8 +35,8 @@
     for (size_t i = 0, n = ECS_SystemGroup_Length(group); i < n; ++i) {                                             \
         typeof(*group) callback = (typeof(*group))(ECS_SystemGroup_GetCallback(group, i));                          \
         ECS *ecs = ECS_SystemGroup_GetECS(group);                                                                   \
-        for (ECS_Handle *e = ECS_GetLast(ecs); e && ECS_Entity_MatchesSystem(e, group, i); e = ECS_Entity_Prev(e))  \
-            callback(e __VA_OPT__(,) __VA_ARGS__);                                                                  \
+        for (ECS_Handle *e = ECS_GetLast(ecs); e ; e = ECS_Entity_Prev(e))                                          \
+            if (ECS_Entity_MatchesSystem(e, group, i)) callback(e __VA_OPT__(,) __VA_ARGS__);                       \
     }                                                                                                               \
 } while (0)
 
