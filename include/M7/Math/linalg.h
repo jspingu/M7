@@ -123,6 +123,13 @@ static inline float vec3_dot(vec3 lhs, vec3 rhs) {
     return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z;
 }
 
+static inline vec2 vec2_orthogonal(vec2 v) {
+    return (vec2) {
+        .x = -v.y,
+        .y = v.x
+    };
+}
+
 static inline vec3 vec3_cross(vec3 lhs, vec3 rhs) {
     return (vec3) {
         .x = lhs.y * rhs.z - lhs.z * rhs.y,

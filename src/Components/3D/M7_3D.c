@@ -16,6 +16,12 @@ void M7_3D_RegisterToECS(ECS *ecs) {
         .free = M7_World_Free,
     });
 
+    M7_Components.Rasterizer = ECS_RegisterComponent(ecs, M7_Rasterizer, {
+        .attach = M7_Rasterizer_Attach,
+        .init = M7_Rasterizer_Init,
+        .free = M7_Rasterizer_Free
+    });
+
     M7_Components.Model = ECS_RegisterComponent(ecs, M7_Model, {
         .attach = M7_Model_Attach,
         .detach = M7_Model_Detach,
@@ -27,5 +33,9 @@ void M7_3D_RegisterToECS(ECS *ecs) {
     M7_Components.Position = ECS_RegisterComponent(ecs, vec3, {});
     M7_Components.Basis = ECS_RegisterComponent(ecs, mat3x3, {});
 
-    ECS_SystemGroup_RegisterSystem(M7_SystemGroups.RenderPresent, M7_Canvas_Present, M7_Components.Viewport, M7_Components.Canvas);
+    ECS_SystemGroup_RegisterSystem(M7_SystemGroups.Render, SD_SELECT(M7_Rasterizer_Render), M7_Components.Rasterizer);
+    ECS_SystemGroup_RegisterSystem(M7_SystemGroups.RenderPresent, SD_SELECT(M7_Canvas_Present), M7_Components.Viewport, M7_Components.Canvas);
+    ECS_SystemGroup_RegisterSystem(M7_SystemGroups.OnXform, M7_Model_OnXform, M7_Components.Model);
+
+    ECS_SystemGroup_RegisterSystem(M7_SystemGroups.Update, M7_Model_Update, M7_Components.Model, M7_Components.Basis);
 }

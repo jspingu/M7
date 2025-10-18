@@ -20,7 +20,8 @@ typedef struct M7_WorldGeometry {
     M7_Mesh *mesh;
     sd_vec3 *vs_verts;
     sd_vec3 *vs_nrmls;
-    xform3 transform;
+    sd_vec2 *ss_verts;
+    xform3 xform;
 } M7_WorldGeometry;
 
 typedef struct M7_RenderInstance {
@@ -30,8 +31,7 @@ typedef struct M7_RenderInstance {
     M7_RasterizerFlags flags;
 } M7_RenderInstance;
 
-typedef struct M7_World {
-    List(M7_WorldGeometry *) *geometry;
+typedef struct M7_World { List(M7_WorldGeometry *) *geometry;
     // List of arrays of Lists of RenderInstance
     List(List(M7_RenderInstance *) *[M7_RASTERIZER_FLAG_COMBINATIONS]) *render_batches;
 } M7_World;
@@ -43,17 +43,17 @@ typedef struct M7_Model {
 } M7_Model;
 
 typedef struct M7_Rasterizer {
-    M7_World *world;
-    M7_Canvas *target;
+    ECS_Handle *world;
+    ECS_Handle *target;
     M7_VertexProjector project;
     M7_RasterScanner scan;
-    size_t (*scanlines)[2];
-    sd_vec3 *ss_verts;
-    size_t ssv_capacity;
+    int (*scanlines)[2];
 } M7_Rasterizer;
 
 void M7_3D_RegisterToECS(ECS *ecs);
 
+void M7_Model_Update(ECS_Handle *self, double delta);
+void M7_Model_OnXform(ECS_Handle *self, xform3 composed);
 void M7_Model_Attach(ECS_Handle *self);
 void M7_Model_Detach(ECS_Handle *self);
 void M7_Model_Init(void *component, void *args);
@@ -61,6 +61,11 @@ void M7_Model_Free(void *component);
 
 void M7_World_Init(void *component, void *args);
 void M7_World_Free(void *component);
+
+SD_DECLARE_VOID_RETURN(M7_Rasterizer_Render, ECS_Handle *, self)
+void M7_Rasterizer_Attach(ECS_Handle *self);
+void M7_Rasterizer_Init(void *component, void *args);
+void M7_Rasterizer_Free(void *component);
 
 SD_DECLARE_VOID_RETURN(M7_Canvas_Present, ECS_Handle *, self)
 SD_DECLARE_VOID_RETURN(M7_Canvas_Attach, ECS_Handle *, self)

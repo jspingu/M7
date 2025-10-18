@@ -1,6 +1,29 @@
 #include <M7/ECS.h>
 #include <M7/M7_ECS.h>
 #include <M7/Math/linalg.h>
+#include <M7/Math/stride.h>
+
+sd_vec2 SD_VARIANT(M7_ProjectStub)(ECS_Handle *self, sd_vec3 pos, sd_vec2 midpoint) {
+    (void)self;
+
+    return sd_vec2_add(midpoint, (sd_vec2) {
+        .x = pos.x,
+        .y = sd_float_mul(pos.y, sd_float_set(-1))
+    });
+}
+
+sd_vec2 SD_VARIANT(M7_ProjectPerspective)(ECS_Handle *self, sd_vec3 pos, sd_vec2 midpoint) {
+    (void)self;
+
+    sd_vec2 normalized = sd_vec2_div((sd_vec2) {
+        .x = pos.x,
+        .y = sd_float_mul(pos.y, sd_float_set(-1))
+    }, pos.z);
+
+    return sd_vec2_add(midpoint, sd_vec2_mul(normalized, midpoint.x));;
+}
+
+#ifndef SD_VECTORIZE
 
 xform3 M7_Entity_GetXform(ECS_Handle *self) {
     mat3x3 *basis = ECS_Entity_GetComponent(self, M7_Components.Basis);
@@ -42,3 +65,5 @@ xform3 M7_XformComposeAbsolute(ECS_Handle *self, xform3 lhs) {
         local.translation
     };
 }
+
+#endif /* UNVECTORIZED */

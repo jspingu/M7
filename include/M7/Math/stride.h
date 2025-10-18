@@ -8,7 +8,9 @@
 #define STRIDE_H
 
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_stdinc.h>
 #include <immintrin.h>
+#include <limits.h>
 
 #define SD_VECTORIZE_AVX2  1
 #define SD_VECTORIZE_SSE2  2
@@ -99,6 +101,18 @@ static inline size_t sd_bounding_size(size_t n) {
     return n ? (n - 1) / SD_LENGTH + 1 : 0;
 }
 
+// __m128i mullo_SSE2(__m128i a, __m128i b) {
+//     __m128i shufa = _mm_shuffle_epi32(a, 0b00'11'00'01);
+//     __m128i shufb = _mm_shuffle_epi32(b, 0b00'11'00'01);
+// 
+//     __m128i mul20 = _mm_mul_epu32(a, b);
+//             mul20 = _mm_shuffle_epi32(mul20, 0b00'00'10'00);
+//     __m128i mul31 = _mm_mul_epu32(shufa, shufb);
+//             mul31 = _mm_shuffle_epi32(mul31, 0b00'00'10'00);
+// 
+//     return _mm_unpacklo_epi32(mul20, mul31);
+// }
+
 static inline sd_float sd_float_add(sd_float lhs, sd_float rhs) {
 #if SD_VECTORIZE == SD_VECTORIZE_AVX2
     return (sd_float){_mm256_add_ps(lhs.val, rhs.val)};
@@ -149,13 +163,11 @@ static inline sd_float sd_float_rcp(sd_float f) {
 #endif
 }
 
-static inline sd_float sd_float_fmadd(sd_float multiplier, sd_float multiplicand, sd_float addend) {
+static inline sd_float sd_float_fmadd(sd_float multiplicand, sd_float multiplier, sd_float addend) {
 #if SD_VECTORIZE == SD_VECTORIZE_AVX2
-    return (sd_float){_mm256_fmadd_ps(multiplier.val, multiplicand.val, addend.val)};
-#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
-    return sd_float_add(sd_float_mul(multiplier, multiplicand), addend);
+    return (sd_float){_mm256_fmadd_ps(multiplicand.val, multiplier.val, addend.val)};
 #else
-    return (sd_float){multiplier.val * multiplicand.val + addend.val};
+    return sd_float_add(sd_float_mul(multiplicand, multiplier), addend);
 #endif
 }
 
@@ -176,6 +188,67 @@ static inline sd_float sd_float_rsqrt(sd_float f) {
     return (sd_float){_mm_rsqrt_ps(f.val)};
 #else
     return (sd_float){1 / SDL_sqrtf(f.val)};
+#endif
+}
+
+static inline sd_float sd_float_clamp_mask(sd_float f, float min, float max) {
+#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+    __m256 mask_gt = _mm256_cmp_ps(f.val, _mm256_set1_ps(min), _CMP_GT_OQ);
+    __m256 mask_lt = _mm256_cmp_ps(f.val, _mm256_set1_ps(max), _CMP_LT_OQ);
+    return (sd_float){_mm256_and_ps(mask_gt, mask_lt)};
+#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+    __m128 mask_gt = _mm_cmpgt_ps(f.val, _mm_set1_ps(min));
+    __m128 mask_lt = _mm_cmplt_ps(f.val, _mm_set1_ps(max));
+    return (sd_float){_mm_and_ps(mask_gt, mask_lt)};
+#else
+    SDL_memset(&f, UCHAR_MAX * (f.val > min && f.val < max), sizeof(float));
+    return f;
+#endif
+}
+
+static inline sd_float sd_float_mask_blend(sd_float bg, sd_float fg, sd_float mask) {
+#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+    return (sd_float){_mm256_blendv_ps(bg.val, fg.val, mask.val)};
+#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+    __m128 select_bg = _mm_andnot_ps(mask.val, bg.val);
+    __m128 select_fg = _mm_and_ps(mask.val, fg.val);
+    return (sd_float){_mm_or_ps(select_bg, select_fg)};
+#else
+    uint32_t bg_i, fg_i, mask_i;
+    SDL_memcpy(&bg_i, &bg, sizeof(float));
+    SDL_memcpy(&fg_i, &fg, sizeof(float));
+    SDL_memcpy(&mask_i, &mask, sizeof(float));
+
+    sd_float out;
+    uint32_t res = (bg_i & ~mask_i) | (fg_i & mask_i);
+    SDL_memcpy(&out, &res, sizeof(float));
+    
+    return out;
+#endif
+}
+
+static inline sd_vec2 sd_vec2_mask_blend(sd_vec2 bg, sd_vec2 fg, sd_float mask) {
+    return (sd_vec2) {
+        .x = sd_float_mask_blend(bg.x, fg.x, mask),
+        .y = sd_float_mask_blend(bg.y, fg.y, mask)
+    };
+}
+
+static inline sd_vec3 sd_vec3_mask_blend(sd_vec3 bg, sd_vec3 fg, sd_float mask) {
+    return (sd_vec3) {
+        .x = sd_float_mask_blend(bg.x, fg.x, mask),
+        .y = sd_float_mask_blend(bg.y, fg.y, mask),
+        .z = sd_float_mask_blend(bg.z, fg.z, mask)
+    };
+}
+
+static inline sd_float sd_float_range(void) {
+#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+    return (sd_float){_mm256_set_ps(7, 6, 5, 4, 3, 2, 1, 0)};
+#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+    return (sd_float){_mm_set_ps(3, 2, 1, 0)};
+#else
+    return (sd_float){0};
 #endif
 }
 
@@ -203,18 +276,6 @@ static inline sd_vec3 sd_vec3_set(float x, float y, float z) {
         .z = sd_float_set(z)
     };
 }
-
-// __m128i mullo_SSE2(__m128i a, __m128i b) {
-//     __m128i shufa = _mm_shuffle_epi32(a, 0b00'11'00'01);
-//     __m128i shufb = _mm_shuffle_epi32(b, 0b00'11'00'01);
-// 
-//     __m128i mul20 = _mm_mul_epu32(a, b);
-//             mul20 = _mm_shuffle_epi32(mul20, 0b00'00'10'00);
-//     __m128i mul31 = _mm_mul_epu32(shufa, shufb);
-//             mul31 = _mm_shuffle_epi32(mul31, 0b00'00'10'00);
-// 
-//     return _mm_unpacklo_epi32(mul20, mul31);
-// }
 
 static inline sd_float_scalar sd_float_arr_get(sd_float *arr, size_t index) {
     return (sd_float_scalar) { arr[index / SD_LENGTH].elems[index % SD_LENGTH] };
@@ -295,11 +356,11 @@ static inline sd_vec3 sd_vec3_mul(sd_vec3 v, sd_float f) {
     };
 }
 
-static inline sd_vec3 sd_vec3_fmadd(sd_float multiplier, sd_vec3 multiplicand, sd_vec3 addend) {
+static inline sd_vec3 sd_vec3_fmadd(sd_vec3 multiplicand, sd_float multiplier, sd_vec3 addend) {
     return (sd_vec3) {
-        .x = sd_float_fmadd(multiplier, multiplicand.x, addend.x),
-        .y = sd_float_fmadd(multiplier, multiplicand.y, addend.y),
-        .z = sd_float_fmadd(multiplier, multiplicand.z, addend.z)
+        .x = sd_float_fmadd(multiplicand.x, multiplier, addend.x),
+        .y = sd_float_fmadd(multiplicand.y, multiplier, addend.y),
+        .z = sd_float_fmadd(multiplicand.z, multiplier, addend.z)
     };
 }
 

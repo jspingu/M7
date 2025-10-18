@@ -15,6 +15,7 @@ void M7_RegisterToECS(ECS *ecs) {
     M7_SystemGroups.PostUpdate = ECS_RegisterSystemGroup(ecs);
     M7_SystemGroups.Render = ECS_RegisterSystemGroup(ecs);
     M7_SystemGroups.RenderPresent = ECS_RegisterSystemGroup(ecs);
+    M7_SystemGroups.OnXform = ECS_RegisterSystemGroup(ecs);
 
     M7_Components.Viewport = ECS_RegisterComponent(ecs, M7_Viewport, {
         .init = M7_Viewport_Init,

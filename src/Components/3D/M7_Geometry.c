@@ -31,16 +31,17 @@ M7_Mesh *SD_VARIANT(M7_Mesh_Create)(vec3 *ws_verts, vec3 *ws_norms, vec2 *ts_ver
 
 M7_WorldGeometry *SD_VARIANT(M7_World_RegisterGeometry)(ECS_Handle *self, M7_Mesh *mesh) {
     M7_World *world = ECS_Entity_GetComponent(self, M7_Components.World);
-
     M7_WorldGeometry *geometry = SDL_malloc(sizeof(M7_WorldGeometry));
+    size_t sd_count = sd_bounding_size(mesh->nverts);
 
     *geometry = (M7_WorldGeometry) {
         .world = world,
         .instances = List_Create(M7_RenderInstance *),
         .mesh = mesh,
-        .vs_verts = SDL_aligned_alloc(SD_ALIGN, sizeof(sd_vec3) * sd_bounding_size(mesh->nverts)),
-        .vs_nrmls = SDL_aligned_alloc(SD_ALIGN, sizeof(sd_vec3) * sd_bounding_size(mesh->nverts)),
-        .transform = { mat3x3_identity, vec3_zero }
+        .vs_verts = SDL_aligned_alloc(SD_ALIGN, sizeof(sd_vec3) * sd_count),
+        .vs_nrmls = SDL_aligned_alloc(SD_ALIGN, sizeof(sd_vec3) * sd_count),
+        .ss_verts = SDL_aligned_alloc(SD_ALIGN, sizeof(sd_vec2) * sd_count),
+        .xform = { mat3x3_identity, vec3_zero }
     };
 
     List_Push(world->geometry, geometry);
@@ -80,6 +81,16 @@ M7_RenderInstance *M7_WorldGeometry_Instance(M7_WorldGeometry *geometry, M7_Frag
     return instance;
 }
 
+void M7_Model_OnXform(ECS_Handle *self, xform3 composed) {
+    M7_Model *model = ECS_Entity_GetComponent(self, M7_Components.Model);
+    model->geometry->xform = composed;
+}
+
+void M7_Model_Update(ECS_Handle *self, double delta) {
+    mat3x3 *basis = ECS_Entity_GetComponent(self, M7_Components.Basis);
+    *basis = mat3x3_rotate(*basis, vec3_normalize((vec3){ .x=0, .y=1 }), 4 * delta);
+}
+
 void M7_Model_Attach(ECS_Handle *self) {
     M7_Model *mdl = ECS_Entity_GetComponent(self, M7_Components.Model);
     ECS_Handle *world = ECS_Entity_AncestorWithComponent(self, M7_Components.World, true);
@@ -87,15 +98,15 @@ void M7_Model_Attach(ECS_Handle *self) {
     mdl->geometry = M7_World_RegisterGeometry(world, mdl->mesh);
     mdl->instance = M7_WorldGeometry_Instance(mdl->geometry, nullptr, 0, M7_RASTERIZER_CULL_BACKFACE);
 
-    M7_World *c_world = ECS_Entity_GetComponent(world, M7_Components.World);
-    SDL_Log("Registered geometry: %zu", List_Length(c_world->geometry));
-    for (size_t i = 0; i < List_Length(c_world->render_batches); ++i) {
-        for (int j = 0; j < M7_RASTERIZER_FLAG_COMBINATIONS; ++j) {
-            List(M7_RenderInstance *) *flag_batch = List_Get(c_world->render_batches, i)[j];
-            if (flag_batch)
-                SDL_Log("Render batch %zu, Flag batch %i: %zu", i, j, List_Length(flag_batch));
-        }
-    }
+    // M7_World *c_world = ECS_Entity_GetComponent(world, M7_Components.World);
+    // SDL_Log("Registered geometry: %zu", List_Length(c_world->geometry));
+    // for (size_t i = 0; i < List_Length(c_world->render_batches); ++i) {
+    //     for (int j = 0; j < M7_RASTERIZER_FLAG_COMBINATIONS; ++j) {
+    //         List(M7_RenderInstance *) *flag_batch = List_Get(c_world->render_batches, i)[j];
+    //         if (flag_batch)
+    //             SDL_Log("Render batch %zu, Flag batch %i: %zu", i, j, List_Length(flag_batch));
+    //     }
+    // }
 }
 
 void M7_Model_Detach(ECS_Handle *self) {
@@ -116,9 +127,9 @@ void M7_Model_Init(void *component, void *args) {
     M7_Model *mdl = component;
 
     vec3 verts[3] = {
-        { .x=-1, .y=-1, .z=4 },
-        { .x=0, .y=1, .z=4 },
-        { .x=1, .y=-1, .z=4 },
+        { .x=-100, .y=-100, .z=0 },
+        { .x=0, .y=100, .z=0 },
+        { .x=100, .y=-100, .z=0 },
     };
 
     vec3 nrmls[3] = {

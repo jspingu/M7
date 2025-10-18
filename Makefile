@@ -3,7 +3,7 @@ rwildcard = $(foreach d,$1,$(wildcard $d/$2) $(call rwildcard,$(wildcard $d/*),$
 PREFIX ?= /usr/local
 CC ?= gcc
 CFLAGS += -Iinclude -Wall -Wextra -Wpedantic -std=c23
-OPTFLAGS += -O1
+OPTFLAGS += -O2
 DEPFLAGS += -MMD -MP
 LDFLAGS += -lSDL3
 
@@ -18,6 +18,7 @@ BIN = out
 SRCS_VECTORIZE += $(SRCDIR)/Components/3D/M7_Rasterization.c
 SRCS_VECTORIZE += $(SRCDIR)/Components/3D/M7_Geometry.c
 SRCS_VECTORIZE += $(SRCDIR)/Components/3D/M7_Canvas.c
+SRCS_VECTORIZE += $(SRCDIR)/Components/3D/M7_Xform.c
 
 SRCS_VECTORIZE_OBJS = $(SRCS_VECTORIZE:%.c=$(BLDDIR)/%.o)
 

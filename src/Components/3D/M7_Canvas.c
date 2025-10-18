@@ -5,22 +5,22 @@
 
 void SD_VARIANT(M7_Canvas_Present)(ECS_Handle *self) {
     M7_Canvas *canvas = ECS_Entity_GetComponent(self, M7_Components.Canvas);
-    M7_Viewport *vp = canvas->target;
+    M7_Viewport *vp = canvas->vp;
 
     uint32_t *pixels;
     int pitch;
 
     SDL_LockTexture(vp->texture, nullptr, (void **)&pixels, &pitch);
 
-    for (int i = 0; i < canvas->target->height; ++i) {
-        sd_vec3 *base = canvas->color + i * sd_bounding_size(canvas->target->width);
+    for (int i = 0; i < canvas->vp->height; ++i) {
+        sd_vec3 *base = canvas->color + i * sd_bounding_size(canvas->vp->width);
 
-        for (int j = 0; j < canvas->target->width; ++j) {
+        for (int j = 0; j < canvas->vp->width; ++j) {
             sd_vec3_scalar col = sd_vec3_arr_get(base, j);
             uint8_t r = col.x.val * 255;
             uint8_t g = col.y.val * 255;
             uint8_t b = col.z.val * 255;
-            pixels[i * canvas->target->width + j] = (r << 16) | (g << 8) | b;
+            pixels[i * canvas->vp->width + j] = (r << 16) | (g << 8) | b;
         }
     }
 
@@ -34,7 +34,7 @@ void SD_VARIANT(M7_Canvas_Attach)(ECS_Handle *self) {
     M7_Canvas *canvas = ECS_Entity_GetComponent(self, M7_Components.Canvas);
     ECS_Handle *e_vp = ECS_Entity_AncestorWithComponent(self, M7_Components.Viewport, true);
     
-    canvas->target = ECS_Entity_GetComponent(e_vp, M7_Components.Viewport);
+    canvas->vp = ECS_Entity_GetComponent(e_vp, M7_Components.Viewport);
 }
 
 void SD_VARIANT(M7_Canvas_Init)(void *component, void *args) {
@@ -46,9 +46,6 @@ void SD_VARIANT(M7_Canvas_Init)(void *component, void *args) {
     size_t sd_count = sd_bounding_size(canvas->width) * canvas->height;
     canvas->color = SDL_aligned_alloc(SD_ALIGN, sizeof(sd_vec3) * sd_count);
     canvas->depth = SDL_aligned_alloc(SD_ALIGN, sizeof(sd_float) * sd_count);
-
-    for (size_t i = 0; i < sd_count; ++i)
-        canvas->color[i] = sd_vec3_set(0.5, 0.1, 0.1);
 }
 
 #ifndef SD_VECTORIZE

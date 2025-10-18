@@ -28,17 +28,26 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
             .height=720
         }},
         { M7_Components.World, nullptr },
+        { M7_Components.Rasterizer, &(M7_RasterizerArgs) {
+            .project = SD_SELECT(M7_ProjectPerspective)
+        }},
+        { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault} }
     );
 
     ECS_Entity_AddChildren(root, 
         {
             ECS_Components(
-                { M7_Components.Model, nullptr }
+                { M7_Components.Position, &(vec3){ .y=20, .z=250 } },
+                { M7_Components.Basis, &mat3x3_identity },
+                { M7_Components.Model, nullptr },
+                { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault} }
             )
         }
     );
 
     ECS_Update(ecs);
+
+    ECS_SystemGroup_ProcessReverse(M7_SystemGroups.Render);
 
     count = SDL_GetPerformanceCounter();
     *appstate = ecs;
