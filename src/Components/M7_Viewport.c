@@ -22,6 +22,7 @@ void M7_Viewport_Init(void *component, void *args) {
     );
 
     SDL_SetRenderVSync(vp->renderer, 1);
+    SDL_SetWindowRelativeMouseMode(vp->window, true);
 
     vp->texture = SDL_CreateTexture(
         vp->renderer,

@@ -27,8 +27,16 @@ void M7_RegisterToECS(ECS *ecs) {
         .free = M7_InputState_Free
     });
 
+    M7_Components.CameraMovement = ECS_RegisterComponent(ecs, CameraMovement, {});
+
     ECS_SystemGroup_RegisterSystem(M7_SystemGroups.OnSDLEvent, M7_InputState_OnSDLEvent, M7_Components.InputState);
     ECS_SystemGroup_RegisterSystem(M7_SystemGroups.PostUpdate, M7_InputState_Step, M7_Components.InputState);
 
     M7_3D_RegisterToECS(ecs);
+
+    ECS_SystemGroup_RegisterSystem(M7_SystemGroups.Update, CameraMovement_Update,
+        M7_Components.CameraMovement,
+        M7_Components.Position,
+        M7_Components.Basis
+    );
 }

@@ -5,6 +5,7 @@
 #include "Components/M7_InputState.h"
 #include "Components/M7_Viewport.h"
 #include "Components/M7_3D.h"
+#include "Components/CameraMovement.h"
 
 typedef void (*M7_Entity_OnSDLEvent)(ECS_Handle *, SDL_Event *);
 typedef void (*M7_Entity_Update)(ECS_Handle *, double);
@@ -16,6 +17,8 @@ typedef void (*M7_Entity_OnXform)(ECS_Handle *, xform3);
 struct M7_Components {
     ECS_Component(M7_Viewport) *Viewport;
     ECS_Component(M7_InputState) *InputState;
+
+    ECS_Component(CameraMovement) *CameraMovement;
 
     // 3D
     ECS_Component(M7_Canvas) *Canvas;
