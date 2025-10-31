@@ -31,19 +31,29 @@ static void M7_Rasterizer_Trace(M7_RasterContext ctx, vec2 line[2]) {
 }
 
 static void M7_Rasterizer_SimpleScan(M7_RasterContext ctx, int high, int low) {
+    vec3 unit_nrml = vec3_normalize(vec3_cross(
+        vec3_sub(ctx.vs_verts[1], ctx.vs_verts[0]),
+        vec3_sub(ctx.vs_verts[2], ctx.vs_verts[0])
+    ));
+
+    sd_vec3 col = sd_vec3_set(
+        -unit_nrml.z,
+        -unit_nrml.z,
+        -unit_nrml.z
+    );
+
     for (int i = high; i < low; ++i) {
         int base = i * sd_bounding_size(ctx.target->width);
         int sd_left = ctx.scanlines[i][0] / SD_LENGTH;
         int sd_right = sd_bounding_size(ctx.scanlines[i][1]);
 
         for (int j = sd_left; j < sd_right; ++j) {
-            sd_vec3 white = sd_vec3_set(1, 1, 1);
             sd_vec3 bg = ctx.target->color[base + j];
 
             sd_float fragment_x = sd_float_add(sd_float_range(), sd_float_set(0.5));
                      fragment_x = sd_float_add(fragment_x, sd_float_set(j * SD_LENGTH));
 
-            ctx.target->color[base + j] = sd_vec3_mask_blend(bg, white, sd_float_clamp_mask(fragment_x, ctx.scanlines[i][0], ctx.scanlines[i][1]));
+            ctx.target->color[base + j] = sd_vec3_mask_blend(bg, col, sd_float_clamp_mask(fragment_x, ctx.scanlines[i][0], ctx.scanlines[i][1]));
         }
     }
 }
@@ -162,10 +172,6 @@ void SD_VARIANT(M7_Rasterizer_Render)(ECS_Handle *self) {
                     M7_Rasterizer_Trace(ctx, (vec2 [2]) { ss_verts[0], ss_verts[1 + !ss_verts_cw] });
                     M7_Rasterizer_Trace(ctx, (vec2 [2]) { ss_verts[1 + !ss_verts_cw], ss_verts[1 + ss_verts_cw] });
                     M7_Rasterizer_Trace(ctx, (vec2 [2]) { ss_verts[1 + ss_verts_cw], ss_verts[0] });
-
-                    // Looks good
-                    // for (int scan_idx = high; scan_idx < low; ++scan_idx)
-                    //     SDL_Log("left: %i, right: %i", ctx.scanlines[scan_idx][0], ctx.scanlines[scan_idx][1]);
 
                     M7_Rasterizer_SimpleScan(ctx, high, low);
                 }

@@ -8,7 +8,6 @@
 #define STRIDE_H
 
 #include <SDL3/SDL.h>
-#include <SDL3/SDL_stdinc.h>
 #include <immintrin.h>
 #include <limits.h>
 
@@ -123,6 +122,21 @@ static inline sd_float sd_float_add(sd_float lhs, sd_float rhs) {
 #endif
 }
 
+static inline sd_vec2 sd_vec2_add(sd_vec2 lhs, sd_vec2 rhs) {
+    return (sd_vec2) {
+        .x = sd_float_add(lhs.x, rhs.x),
+        .y = sd_float_add(lhs.y, rhs.y)
+    };
+}
+
+static inline sd_vec3 sd_vec3_add(sd_vec3 lhs, sd_vec3 rhs) {
+    return (sd_vec3) {
+        .x = sd_float_add(lhs.x, rhs.x),
+        .y = sd_float_add(lhs.y, rhs.y),
+        .z = sd_float_add(lhs.z, rhs.z)
+    };
+}
+
 static inline sd_float sd_float_sub(sd_float lhs, sd_float rhs) {
 #if SD_VECTORIZE == SD_VECTORIZE_AVX2
     return (sd_float){_mm256_sub_ps(lhs.val, rhs.val)};
@@ -131,6 +145,21 @@ static inline sd_float sd_float_sub(sd_float lhs, sd_float rhs) {
 #else
     return (sd_float){lhs.val - rhs.val};
 #endif
+}
+
+static inline sd_vec2 sd_vec2_sub(sd_vec2 lhs, sd_vec2 rhs) {
+    return (sd_vec2) {
+        .x = sd_float_sub(lhs.x, rhs.x),
+        .y = sd_float_sub(lhs.y, rhs.y)
+    };
+}
+
+static inline sd_vec3 sd_vec3_sub(sd_vec3 lhs, sd_vec3 rhs) {
+    return (sd_vec3) {
+        .x = sd_float_sub(lhs.x, rhs.x),
+        .y = sd_float_sub(lhs.y, rhs.y),
+        .z = sd_float_sub(lhs.z, rhs.z)
+    };
 }
 
 static inline sd_float sd_float_mul(sd_float lhs, sd_float rhs) {
@@ -143,6 +172,21 @@ static inline sd_float sd_float_mul(sd_float lhs, sd_float rhs) {
 #endif
 }
 
+static inline sd_vec2 sd_vec2_mul(sd_vec2 v, sd_float f) {
+    return (sd_vec2) {
+        .x = sd_float_mul(v.x, f),
+        .y = sd_float_mul(v.y, f)
+    };
+}
+
+static inline sd_vec3 sd_vec3_mul(sd_vec3 v, sd_float f) {
+    return (sd_vec3) {
+        .x = sd_float_mul(v.x, f),
+        .y = sd_float_mul(v.y, f),
+        .z = sd_float_mul(v.z, f)
+    };
+}
+
 static inline sd_float sd_float_div(sd_float lhs, sd_float rhs) {
 #if SD_VECTORIZE == SD_VECTORIZE_AVX2
     return (sd_float){_mm256_div_ps(lhs.val, rhs.val)};
@@ -151,6 +195,21 @@ static inline sd_float sd_float_div(sd_float lhs, sd_float rhs) {
 #else
     return (sd_float){lhs.val / rhs.val};
 #endif
+}
+
+static inline sd_vec2 sd_vec2_div(sd_vec2 v, sd_float f) {
+    return (sd_vec2) {
+        .x = sd_float_div(v.x, f),
+        .y = sd_float_div(v.y, f)
+    };
+}
+
+static inline sd_vec3 sd_vec3_div(sd_vec3 v, sd_float f) {
+    return (sd_vec3) {
+        .x = sd_float_div(v.x, f),
+        .y = sd_float_div(v.y, f),
+        .z = sd_float_div(v.z, f)
+    };
 }
 
 static inline sd_float sd_float_rcp(sd_float f) {
@@ -171,6 +230,14 @@ static inline sd_float sd_float_fmadd(sd_float multiplicand, sd_float multiplier
 #endif
 }
 
+static inline sd_vec3 sd_vec3_fmadd(sd_vec3 multiplicand, sd_float multiplier, sd_vec3 addend) {
+    return (sd_vec3) {
+        .x = sd_float_fmadd(multiplicand.x, multiplier, addend.x),
+        .y = sd_float_fmadd(multiplicand.y, multiplier, addend.y),
+        .z = sd_float_fmadd(multiplicand.z, multiplier, addend.z)
+    };
+}
+
 static inline sd_float sd_float_sqrt(sd_float f) {
 #if SD_VECTORIZE == SD_VECTORIZE_AVX2
     return (sd_float){_mm256_sqrt_ps(f.val)};
@@ -189,6 +256,30 @@ static inline sd_float sd_float_rsqrt(sd_float f) {
 #else
     return (sd_float){1 / SDL_sqrtf(f.val)};
 #endif
+}
+
+static inline sd_float sd_float_min(sd_float f, sd_float min) {
+#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+    return (sd_float){_mm256_min_ps(f.val, min.val)};
+#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+    return (sd_float){_mm_min_ps(f.val, min.val)};
+#else
+    return (sd_float){SDL_min(f.val, min.val)};
+#endif
+}
+
+static inline sd_float sd_float_max(sd_float f, sd_float max) {
+#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+    return (sd_float){_mm256_max_ps(f.val, max.val)};
+#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+    return (sd_float){_mm_max_ps(f.val, max.val)};
+#else
+    return (sd_float){SDL_max(f.val, max.val)};
+#endif
+}
+
+static inline sd_float sd_float_clamp(sd_float f, sd_float min, sd_float max) {
+    return sd_float_min(sd_float_max(f, min), max);
 }
 
 static inline sd_float sd_float_clamp_mask(sd_float f, float min, float max) {
@@ -252,6 +343,26 @@ static inline sd_float sd_float_range(void) {
 #endif
 }
 
+static inline sd_float sd_float_zero(void) {
+#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+    return (sd_float){_mm256_set1_ps(0)};
+#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+    return (sd_float){_mm_set1_ps(0)};
+#else
+    return (sd_float){0};
+#endif
+}
+
+static inline sd_float sd_float_one(void) {
+#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+    return (sd_float){_mm256_set1_ps(1)};
+#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+    return (sd_float){_mm_set1_ps(1)};
+#else
+    return (sd_float){1};
+#endif
+}
+
 static inline sd_float sd_float_set(float f) {
 #if SD_VECTORIZE == SD_VECTORIZE_AVX2
     return (sd_float){_mm256_set1_ps(f)};
@@ -278,7 +389,7 @@ static inline sd_vec3 sd_vec3_set(float x, float y, float z) {
 }
 
 static inline sd_float_scalar sd_float_arr_get(sd_float *arr, size_t index) {
-    return (sd_float_scalar) { arr[index / SD_LENGTH].elems[index % SD_LENGTH] };
+    return (sd_float_scalar){arr[index / SD_LENGTH].elems[index % SD_LENGTH]};
 }
 
 static inline sd_vec2_scalar sd_vec2_arr_get(sd_vec2 *arr, size_t index) {
@@ -309,74 +420,6 @@ static inline void sd_vec3_arr_set(sd_vec3 *arr, size_t index, float x, float y,
     arr[index / SD_LENGTH].x.elems[index % SD_LENGTH] = x;
     arr[index / SD_LENGTH].y.elems[index % SD_LENGTH] = y;
     arr[index / SD_LENGTH].z.elems[index % SD_LENGTH] = z;
-}
-
-static inline sd_vec2 sd_vec2_add(sd_vec2 lhs, sd_vec2 rhs) {
-    return (sd_vec2) {
-        .x = sd_float_add(lhs.x, rhs.x),
-        .y = sd_float_add(lhs.y, rhs.y)
-    };
-}
-
-static inline sd_vec3 sd_vec3_add(sd_vec3 lhs, sd_vec3 rhs) {
-    return (sd_vec3) {
-        .x = sd_float_add(lhs.x, rhs.x),
-        .y = sd_float_add(lhs.y, rhs.y),
-        .z = sd_float_add(lhs.z, rhs.z)
-    };
-}
-
-static inline sd_vec2 sd_vec2_sub(sd_vec2 lhs, sd_vec2 rhs) {
-    return (sd_vec2) {
-        .x = sd_float_sub(lhs.x, rhs.x),
-        .y = sd_float_sub(lhs.y, rhs.y)
-    };
-}
-
-static inline sd_vec3 sd_vec3_sub(sd_vec3 lhs, sd_vec3 rhs) {
-    return (sd_vec3) {
-        .x = sd_float_sub(lhs.x, rhs.x),
-        .y = sd_float_sub(lhs.y, rhs.y),
-        .z = sd_float_sub(lhs.z, rhs.z)
-    };
-}
-
-static inline sd_vec2 sd_vec2_mul(sd_vec2 v, sd_float f) {
-    return (sd_vec2) {
-        .x = sd_float_mul(v.x, f),
-        .y = sd_float_mul(v.y, f)
-    };
-}
-
-static inline sd_vec3 sd_vec3_mul(sd_vec3 v, sd_float f) {
-    return (sd_vec3) {
-        .x = sd_float_mul(v.x, f),
-        .y = sd_float_mul(v.y, f),
-        .z = sd_float_mul(v.z, f)
-    };
-}
-
-static inline sd_vec3 sd_vec3_fmadd(sd_vec3 multiplicand, sd_float multiplier, sd_vec3 addend) {
-    return (sd_vec3) {
-        .x = sd_float_fmadd(multiplicand.x, multiplier, addend.x),
-        .y = sd_float_fmadd(multiplicand.y, multiplier, addend.y),
-        .z = sd_float_fmadd(multiplicand.z, multiplier, addend.z)
-    };
-}
-
-static inline sd_vec2 sd_vec2_div(sd_vec2 v, sd_float f) {
-    return (sd_vec2) {
-        .x = sd_float_div(v.x, f),
-        .y = sd_float_div(v.y, f)
-    };
-}
-
-static inline sd_vec3 sd_vec3_div(sd_vec3 v, sd_float f) {
-    return (sd_vec3) {
-        .x = sd_float_div(v.x, f),
-        .y = sd_float_div(v.y, f),
-        .z = sd_float_div(v.z, f)
-    };
 }
 
 static inline sd_float sd_vec2_dot(sd_vec2 lhs, sd_vec2 rhs) {

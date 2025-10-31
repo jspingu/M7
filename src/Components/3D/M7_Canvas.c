@@ -12,15 +12,53 @@ void SD_VARIANT(M7_Canvas_Present)(ECS_Handle *self) {
 
     SDL_LockTexture(vp->texture, nullptr, (void **)&pixels, &pitch);
 
-    for (int i = 0; i < canvas->vp->height; ++i) {
-        sd_vec3 *base = canvas->color + i * sd_bounding_size(canvas->vp->width);
+    for (int i = 0; i < canvas->height; ++i) {
+        sd_vec3 *base = canvas->color + i * sd_bounding_size(canvas->width);
+        int sd_qot = canvas->width / SD_LENGTH;
+        int sd_rem = canvas->width % SD_LENGTH;
 
-        for (int j = 0; j < canvas->vp->width; ++j) {
-            sd_vec3_scalar col = sd_vec3_arr_get(base, j);
+        for (int j = 0; j < sd_qot; ++j) {
+            sd_vec3 col = base[j];
+
+            col = (sd_vec3) {
+                .x = sd_float_clamp(col.x, sd_float_zero(), sd_float_one()),
+                .z = sd_float_clamp(col.y, sd_float_zero(), sd_float_one()),
+                .y = sd_float_clamp(col.z, sd_float_zero(), sd_float_one())
+            };
+
+            col = sd_vec3_mul(col, sd_float_set(255));
+#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+            __m256i r = _mm256_cvtps_epi32(col.x.val);
+                    r = _mm256_slli_epi32(r, 16);
+            __m256i g = _mm256_cvtps_epi32(col.y.val);
+                    g = _mm256_slli_epi32(g, 8);
+            __m256i b = _mm256_cvtps_epi32(col.z.val);
+
+            __m256i col_out = _mm256_or_si256(_mm256_or_si256(r, g), b);
+            _mm256_storeu_si256((__m256i *)(pixels + i * vp->width) + j, col_out);
+#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+            __m128i r = _mm_cvtps_epi32(col.x.val);
+                    r = _mm_slli_epi32(r, 16);
+            __m128i g = _mm_cvtps_epi32(col.y.val);
+                    g = _mm_slli_epi32(g, 8);
+            __m128i b = _mm_cvtps_epi32(col.z.val);
+                  
+            __m128i col_out = _mm_or_si128(_mm_or_si128(r, g), b);
+            _mm_storeu_si128((__m128i *)(pixels + i * vp->width) + j, col_out);
+#else
+            uint8_t r = col.x.val;
+            uint8_t g = col.y.val;
+            uint8_t b = col.z.val;
+            pixels[i * vp->width + j] = (r << 16) | (g << 8) | b;
+#endif
+        }
+
+        for (int j = 0; j < sd_rem; ++j) {
+            sd_vec3_scalar col = sd_vec3_arr_get(base + sd_qot, j);
             uint8_t r = col.x.val * 255;
             uint8_t g = col.y.val * 255;
             uint8_t b = col.z.val * 255;
-            pixels[i * canvas->vp->width + j] = (r << 16) | (g << 8) | b;
+            pixels[i * vp->width + j] = (r << 16) | (g << 8) | b;
         }
     }
 

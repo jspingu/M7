@@ -87,8 +87,8 @@ void M7_Model_OnXform(ECS_Handle *self, xform3 composed) {
 }
 
 void M7_Model_Update(ECS_Handle *self, double delta) {
-    mat3x3 *basis = ECS_Entity_GetComponent(self, M7_Components.Basis);
-    *basis = mat3x3_rotate(*basis, vec3_normalize((vec3){ .x=0, .y=1 }), 4 * delta);
+    // mat3x3 *basis = ECS_Entity_GetComponent(self, M7_Components.Basis);
+    // *basis = mat3x3_rotate(*basis, vec3_normalize((vec3){ .x=0, .y=1 }), 4 * delta);
 }
 
 void M7_Model_Attach(ECS_Handle *self) {
