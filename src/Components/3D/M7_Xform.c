@@ -3,21 +3,12 @@
 #include <M7/Math/linalg.h>
 #include <M7/Math/stride.h>
 
-sd_vec2 SD_VARIANT(M7_ProjectStub)(ECS_Handle *self, sd_vec3 pos, sd_vec2 midpoint) {
-    (void)self;
-
-    return sd_vec2_add(midpoint, (sd_vec2) {
-        .x = pos.x,
-        .y = sd_float_mul(pos.y, sd_float_set(-1))
-    });
-}
-
 sd_vec2 SD_VARIANT(M7_ProjectPerspective)(ECS_Handle *self, sd_vec3 pos, sd_vec2 midpoint) {
     (void)self;
 
     sd_vec2 normalized = sd_vec2_div((sd_vec2) {
         .x = pos.x,
-        .y = sd_float_mul(pos.y, sd_float_set(-1))
+        .y = sd_float_negate(pos.y)
     }, pos.z);
 
     return sd_vec2_add(midpoint, sd_vec2_mul(normalized, midpoint.x));;
@@ -57,13 +48,18 @@ xform3 M7_XformComposeBillboard(ECS_Handle *self, xform3 lhs) {
     };
 }
 
-xform3 M7_XformComposeAbsolute(ECS_Handle *self, xform3 lhs) {
+xform3 M7_XformComposeCubemap(ECS_Handle *self, xform3 lhs) {
     xform3 local = M7_Entity_GetXform(self);
 
     return (xform3) {
         mat3x3_mul(lhs.basis, local.basis),
         local.translation
     };
+}
+
+xform3 M7_XformComposeAbsolute(ECS_Handle *self, xform3 lhs) {
+    (void)lhs;
+    return M7_Entity_GetXform(self);
 }
 
 #endif /* UNVECTORIZED */

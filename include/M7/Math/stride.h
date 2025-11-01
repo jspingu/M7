@@ -11,8 +11,8 @@
 #include <immintrin.h>
 #include <limits.h>
 
-#define SD_VECTORIZE_AVX2  1
-#define SD_VECTORIZE_SSE2  2
+#define SD_VECTORIZE_AVX2  2
+#define SD_VECTORIZE_SSE2  1
 
 #define SD_DEFINE_TYPES(suffix,underlying_type)                \
     typedef union sd_float_##suffix {                          \
@@ -212,6 +212,31 @@ static inline sd_vec3 sd_vec3_div(sd_vec3 v, sd_float f) {
     };
 }
 
+static inline sd_float sd_float_negate(sd_float f) {
+#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+    return (sd_float){_mm256_mul_ps(f.val, _mm256_set1_ps(-1))};
+#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+    return (sd_float){_mm_mul_ps(f.val, _mm_set1_ps(-1))};
+#else
+    return (sd_float){-f.val};
+#endif
+}
+
+static inline sd_vec2 sd_vec2_negate(sd_vec2 v) {
+    return (sd_vec2) {
+        .x = sd_float_negate(v.x),
+        .y = sd_float_negate(v.y)
+    };
+}
+
+static inline sd_vec3 sd_vec3_negate(sd_vec3 v) {
+    return (sd_vec3) {
+        .x = sd_float_negate(v.x),
+        .y = sd_float_negate(v.y),
+        .z = sd_float_negate(v.z)
+    };
+}
+
 static inline sd_float sd_float_rcp(sd_float f) {
 #if SD_VECTORIZE == SD_VECTORIZE_AVX2
     return (sd_float){_mm256_rcp_ps(f.val)};
@@ -230,12 +255,27 @@ static inline sd_float sd_float_fmadd(sd_float multiplicand, sd_float multiplier
 #endif
 }
 
+static inline sd_vec2 sd_vec2_fmadd(sd_vec2 multiplicand, sd_float multiplier, sd_vec2 addend) {
+    return (sd_vec2) {
+        .x = sd_float_fmadd(multiplicand.x, multiplier, addend.x),
+        .y = sd_float_fmadd(multiplicand.y, multiplier, addend.y)
+    };
+}
+
 static inline sd_vec3 sd_vec3_fmadd(sd_vec3 multiplicand, sd_float multiplier, sd_vec3 addend) {
     return (sd_vec3) {
         .x = sd_float_fmadd(multiplicand.x, multiplier, addend.x),
         .y = sd_float_fmadd(multiplicand.y, multiplier, addend.y),
         .z = sd_float_fmadd(multiplicand.z, multiplier, addend.z)
     };
+}
+
+static inline sd_float sd_float_fmsub(sd_float multiplicand, sd_float multiplier, sd_float subtrahend) {
+#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+    return (sd_float){_mm256_fmsub_ps(multiplicand.val, multiplier.val, subtrahend.val)};
+#else
+    return sd_float_sub(sd_float_mul(multiplicand, multiplier), subtrahend);
+#endif
 }
 
 static inline sd_float sd_float_sqrt(sd_float f) {
@@ -431,6 +471,14 @@ static inline sd_float sd_vec3_dot(sd_vec3 lhs, sd_vec3 rhs) {
     sd_float out = sd_float_mul(lhs.x, rhs.x);
     out = sd_float_fmadd(lhs.y, rhs.y, out);
     return sd_float_fmadd(lhs.z, rhs.z, out);
+}
+
+static inline sd_vec3 sd_vec3_cross(sd_vec3 lhs, sd_vec3 rhs) {
+    return (sd_vec3) {
+        .x = sd_float_fmsub(lhs.y, rhs.z, sd_float_mul(lhs.z, rhs.y)),
+        .y = sd_float_fmsub(lhs.z, rhs.x, sd_float_mul(lhs.x, rhs.z)),
+        .z = sd_float_fmsub(lhs.x, rhs.y, sd_float_mul(lhs.y, rhs.x)),
+    };
 }
 
 static inline sd_float sd_vec2_length(sd_vec2 v) {
