@@ -11,6 +11,12 @@ static inline int roundtl(float f) {
     return SDL_ceilf(f - 0.5f);
 }
 
+static inline vec3 intersect_near(vec3 from, vec3 to, float near) {
+    vec3 path = vec3_sub(to, from);
+    vec3 slope = vec3_div(path, path.z);
+    return vec3_add(from, vec3_mul(slope, near - from.z));
+}
+
 static void M7_Rasterizer_Trace(M7_RasterContext ctx, vec2 line[2]) {
     vec2 path = vec2_sub(line[1], line[0]);
 
@@ -85,12 +91,12 @@ static void M7_Rasterizer_ScanPerspective(M7_RasterContext ctx, int high, int lo
                 (sd_vec2) { .x = fragment_x, .y = midpoint.y },
                 (sd_vec2) { .x = midpoint.x, .y = fragment_y }
             ), normalize_ss);
-
-            sd_float fragment_depth = sd_float_div(nrml_disp, sd_vec3_dot((sd_vec3) {
+            
+            sd_float fragment_depth = sd_float_mul(nrml_disp, sd_float_rcp(sd_vec3_dot((sd_vec3) {
                 .x = proj_plane.x,
                 .y = proj_plane.y,
                 .z = sd_float_one()
-            }, nrml));
+            }, nrml)));
 
             sd_vec3 relative = sd_vec3_sub((sd_vec3) {
                 .x = sd_float_mul(proj_plane.x, fragment_depth),
@@ -108,9 +114,32 @@ static void M7_Rasterizer_ScanPerspective(M7_RasterContext ctx, int high, int lo
                 .z = affine_coord.y
             };
 
-            ctx.target->color[base + j] = sd_vec3_mask_blend(bg, col, sd_float_clamp_mask(fragment_x, ctx.scanlines[i][0], ctx.scanlines[i][1]));
+            ctx.target->color[base + j] = sd_vec3_mask_blend(bg, col, sd_float_clamp_mask(
+                fragment_x,
+                ctx.scanlines[i][0],
+                ctx.scanlines[i][1]
+            ));
         }
     }
+}
+
+static void M7_Rasterizer_DrawTriangle(M7_RasterContext ctx, vec2 ss_verts[3]) {
+    float min_y = SDL_min(SDL_min(ss_verts[0].y, ss_verts[1].y), ss_verts[2].y);
+    float max_y = (SDL_max(SDL_max(ss_verts[0].y, ss_verts[1].y), ss_verts[2].y));
+
+    int high = SDL_clamp(roundtl(min_y), 0, ctx.target->height);
+    int low = SDL_clamp(roundtl(max_y), 0, ctx.target->height);
+
+    bool ss_verts_cw = vec2_dot(
+        vec2_orthogonal(vec2_sub(ss_verts[1], ss_verts[0])),
+        vec2_sub(ss_verts[2], ss_verts[0])
+    ) > 0;
+
+    M7_Rasterizer_Trace(ctx, (vec2 [2]) { ss_verts[0], ss_verts[1 + !ss_verts_cw] });
+    M7_Rasterizer_Trace(ctx, (vec2 [2]) { ss_verts[1 + !ss_verts_cw], ss_verts[1 + ss_verts_cw] });
+    M7_Rasterizer_Trace(ctx, (vec2 [2]) { ss_verts[1 + ss_verts_cw], ss_verts[0] });
+
+    M7_Rasterizer_ScanPerspective(ctx, high, low);
 }
 
 void SD_VARIANT(M7_Rasterizer_Render)(ECS_Handle *self) {
@@ -170,8 +199,8 @@ void SD_VARIANT(M7_Rasterizer_Render)(ECS_Handle *self) {
     /* Draw geometry */
     for (size_t i = 0; i < List_Length(c_world->render_batches); ++i) {
         /* Ignore flags for now */
-        for (int flag = 0; flag < M7_RASTERIZER_FLAG_COMBINATIONS; ++flag) {
-            List(M7_RenderInstance *) *flag_batch = List_Get(c_world->render_batches, i)[flag];
+        for (int flags = 0; flags < M7_RASTERIZER_FLAG_COMBINATIONS; ++flags) {
+            List(M7_RenderInstance *) *flag_batch = List_Get(c_world->render_batches, i)[flags];
 
             if (!flag_batch)
                 continue;
@@ -184,10 +213,28 @@ void SD_VARIANT(M7_Rasterizer_Render)(ECS_Handle *self) {
                     M7_RasterContext ctx = {
                         .target = c_canvas,
                         .shader = instance->shader,
-                        .scanlines = rasterizer->scanlines
+                        .scanlines = rasterizer->scanlines,
+                        .flags = flags
                     };
 
-                    /* Forget about near-clipping for now */
+                    SDL_memcpy(ctx.ts_verts, (vec2 [3]) {
+                        instance->geometry->mesh->ts_verts[faces[j].idx_tverts[0]],
+                        instance->geometry->mesh->ts_verts[faces[j].idx_tverts[1]],
+                        instance->geometry->mesh->ts_verts[faces[j].idx_tverts[2]],
+                    }, sizeof(vec2 [3]));
+
+                    SDL_memcpy(ctx.vs_verts, &(sd_vec3_scalar [3]) {
+                        sd_vec3_arr_get(instance->geometry->vs_verts, faces[j].idx_verts[0]),
+                        sd_vec3_arr_get(instance->geometry->vs_verts, faces[j].idx_verts[1]),
+                        sd_vec3_arr_get(instance->geometry->vs_verts, faces[j].idx_verts[2])
+                    }, sizeof(vec3 [3]));
+
+                    SDL_memcpy(ctx.vs_nrmls, &(sd_vec3_scalar [3]) {
+                        sd_vec3_arr_get(instance->geometry->vs_nrmls, faces[j].idx_verts[0]),
+                        sd_vec3_arr_get(instance->geometry->vs_nrmls, faces[j].idx_verts[1]),
+                        sd_vec3_arr_get(instance->geometry->vs_nrmls, faces[j].idx_verts[2])
+                    }, sizeof(vec3 [3]));
+
                     vec2 ss_verts[3];
 
                     SDL_memcpy(ss_verts, &(sd_vec2_scalar [3]) {
@@ -196,40 +243,32 @@ void SD_VARIANT(M7_Rasterizer_Render)(ECS_Handle *self) {
                         sd_vec2_arr_get(instance->geometry->ss_verts, faces[j].idx_verts[2]),
                     }, sizeof(vec2 [3]));
 
-                    float min_y = SDL_min(SDL_min(ss_verts[0].y, ss_verts[1].y), ss_verts[2].y);
-                    float max_y = (SDL_max(SDL_max(ss_verts[0].y, ss_verts[1].y), ss_verts[2].y));
+                    /* Perform near plane clipping */
+                    vec2 clipped[4];
+                    int nclipped = 0;
 
-                    int high = SDL_clamp(roundtl(min_y), 0, ctx.target->height);
-                    int low = SDL_clamp(roundtl(max_y), 0, ctx.target->height);
+                    for (int k = 0; k < 3; ++k) {
+                        vec3 curr = ctx.vs_verts[k];
+                        vec3 next = ctx.vs_verts[(k + 1) % 3];
 
-                    bool ss_verts_cw = vec2_dot(
-                        vec2_orthogonal(vec2_sub(ss_verts[1], ss_verts[0])),
-                        vec2_sub(ss_verts[2], ss_verts[0])
-                    ) > 0;
+                        if (curr.z >= rasterizer->near)
+                            clipped[nclipped++] = ss_verts[k];
 
-                    SDL_memcpy(ctx.ts_verts, (vec2 [3]) {
-                        instance->geometry->mesh->ts_verts[faces[j].idx_tverts[0]],
-                        instance->geometry->mesh->ts_verts[faces[j].idx_tverts[1 + !ss_verts_cw]],
-                        instance->geometry->mesh->ts_verts[faces[j].idx_tverts[1 + ss_verts_cw]],
-                    }, sizeof(vec2 [3]));
+                        if ((curr.z < rasterizer->near) != (next.z < rasterizer->near)) {
+                            vec3 intercept = intersect_near(curr, next, rasterizer->near);
 
-                    SDL_memcpy(ctx.vs_verts, &(sd_vec3_scalar [3]) {
-                        sd_vec3_arr_get(instance->geometry->vs_verts, faces[j].idx_verts[0]),
-                        sd_vec3_arr_get(instance->geometry->vs_verts, faces[j].idx_verts[1 + !ss_verts_cw]),
-                        sd_vec3_arr_get(instance->geometry->vs_verts, faces[j].idx_verts[1 + ss_verts_cw])
-                    }, sizeof(vec3 [3]));
+                            sd_vec2 projected = rasterizer->project(self,
+                                sd_vec3_set(intercept.x, intercept.y, rasterizer->near),
+                                sd_vec2_set(c_canvas->width * 0.5f, c_canvas->height * 0.5f)
+                            );
 
-                    SDL_memcpy(ctx.vs_nrmls, &(sd_vec3_scalar [3]) {
-                        sd_vec3_arr_get(instance->geometry->vs_nrmls, faces[j].idx_verts[0]),
-                        sd_vec3_arr_get(instance->geometry->vs_nrmls, faces[j].idx_verts[1 + !ss_verts_cw]),
-                        sd_vec3_arr_get(instance->geometry->vs_nrmls, faces[j].idx_verts[1 + ss_verts_cw])
-                    }, sizeof(vec3 [3]));
+                            sd_vec2_scalar projected_scalar = sd_vec2_arr_get(&projected, 0);
+                            SDL_memcpy(clipped + nclipped++, &projected_scalar, sizeof(vec2));
+                        }
+                    }
 
-                    M7_Rasterizer_Trace(ctx, (vec2 [2]) { ss_verts[0], ss_verts[1 + !ss_verts_cw] });
-                    M7_Rasterizer_Trace(ctx, (vec2 [2]) { ss_verts[1 + !ss_verts_cw], ss_verts[1 + ss_verts_cw] });
-                    M7_Rasterizer_Trace(ctx, (vec2 [2]) { ss_verts[1 + ss_verts_cw], ss_verts[0] });
-
-                    M7_Rasterizer_ScanPerspective(ctx, high, low);
+                    for (int k = 0; k < nclipped - 2; ++k)
+                        M7_Rasterizer_DrawTriangle(ctx, (vec2 [3]) { clipped[0], clipped[k + 1], clipped[k + 2] });
                 }
             });
         }
@@ -254,6 +293,7 @@ void M7_Rasterizer_Init(void *component, void *args) {
     *rasterizer = (M7_Rasterizer) {
         .project = raster_args->project,
         .scan = raster_args->scan,
+        .near = raster_args->near
     };
 }
 

@@ -35,7 +35,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
         { /* Camera */
             ECS_Components(
                 { M7_Components.Rasterizer, &(M7_RasterizerArgs) {
-                    .project = SD_SELECT(M7_ProjectPerspective)
+                    .project = SD_SELECT(M7_ProjectPerspective),
+                    .near = 5
                 }},
                 { M7_Components.CameraMovement, &(CameraMovement){} },
                 { M7_Components.Position, &(vec3){} },

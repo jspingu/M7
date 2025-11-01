@@ -47,6 +47,7 @@ typedef struct M7_Canvas {
 typedef struct M7_RasterContext {
     M7_Canvas *target;
     M7_FragmentShader shader;
+    M7_RasterizerFlags flags;
     int (*scanlines)[2];
     vec3 vs_verts[3];
     vec3 vs_nrmls[3];
@@ -56,6 +57,7 @@ typedef struct M7_RasterContext {
 typedef struct M7_RasterizerArgs {
     M7_VertexProjector project;
     M7_RasterScanner scan;
+    float near;
 } M7_RasterizerArgs;
 
 xform3 M7_Entity_GetXform(ECS_Handle *self);
@@ -63,6 +65,7 @@ void M7_Entity_Xform(ECS_Handle *self, xform3 lhs);
 
 xform3 M7_XformComposeDefault(ECS_Handle *self, xform3 lhs);
 xform3 M7_XformComposeBillboard(ECS_Handle *self, xform3 lhs);
+xform3 M7_XformComposeCubemap(ECS_Handle *self, xform3 lhs);
 xform3 M7_XformComposeAbsolute(ECS_Handle *self, xform3 lhs);
 
 SD_DECLARE(M7_Mesh *, M7_Mesh_Create, vec3 *, ws_verts, vec3 *, ws_norms, vec2 *, ts_verts, M7_MeshFace *, faces, size_t, nverts, size_t, nts_verts, size_t, nfaces)

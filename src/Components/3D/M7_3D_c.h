@@ -31,7 +31,8 @@ typedef struct M7_RenderInstance {
     M7_RasterizerFlags flags;
 } M7_RenderInstance;
 
-typedef struct M7_World { List(M7_WorldGeometry *) *geometry;
+typedef struct M7_World {
+    List(M7_WorldGeometry *) *geometry;
     // List of arrays of Lists of RenderInstance
     List(List(M7_RenderInstance *) *[M7_RASTERIZER_FLAG_COMBINATIONS]) *render_batches;
 } M7_World;
@@ -48,6 +49,7 @@ typedef struct M7_Rasterizer {
     M7_VertexProjector project;
     M7_RasterScanner scan;
     int (*scanlines)[2];
+    float near;
 } M7_Rasterizer;
 
 void M7_3D_RegisterToECS(ECS *ecs);
