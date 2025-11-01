@@ -13,7 +13,6 @@ static inline int roundtl(float f) {
 
 static void M7_Rasterizer_Trace(M7_RasterContext ctx, vec2 line[2]) {
     vec2 path = vec2_sub(line[1], line[0]);
-    if (path.y == 0) return;
 
     int trace_range[2] = {
         SDL_clamp(roundtl(line[0].y), 0, ctx.target->height),
@@ -83,14 +82,9 @@ static void M7_Rasterizer_ScanPerspective(M7_RasterContext ctx, int high, int lo
             sd_float fragment_y = sd_float_add(sd_float_set(i), sd_float_set(0.5));
 
             sd_vec2 proj_plane = sd_vec2_mul(sd_vec2_sub(
-                (sd_vec2) { .x = fragment_x, .y = fragment_y },
-                midpoint
+                (sd_vec2) { .x = fragment_x, .y = midpoint.y },
+                (sd_vec2) { .x = midpoint.x, .y = fragment_y }
             ), normalize_ss);
-
-            proj_plane = (sd_vec2) {
-                .x = proj_plane.x,
-                .y = sd_float_negate(proj_plane.y)
-            };
 
             sd_float fragment_depth = sd_float_div(nrml_disp, sd_vec3_dot((sd_vec3) {
                 .x = proj_plane.x,
