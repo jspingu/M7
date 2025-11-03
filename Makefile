@@ -20,34 +20,36 @@ SRCS_VECTORIZE += $(SRCDIR)/Components/3D/M7_Geometry.c
 SRCS_VECTORIZE += $(SRCDIR)/Components/3D/M7_Canvas.c
 SRCS_VECTORIZE += $(SRCDIR)/Components/3D/M7_Xform.c
 
-SRCS_VECTORIZE_OBJS = $(SRCS_VECTORIZE:%.c=$(BLDDIR)/%.o)
+OBJS_VECTORIZE_AVX2 = $(SRCS_VECTORIZE:%.c=$(BLDDIR)/%_avx2.o)
+OBJS_VECTORIZE_SSE2 = $(SRCS_VECTORIZE:%.c=$(BLDDIR)/%_sse2.o)
 
-OBJ_VARIANTS = $(basename $1)_avx2.o $(basename $1)_sse2.o
-OBJS_VECTORIZE = $(foreach s,$(SRCS_VECTORIZE_OBJS),$(call OBJ_VARIANTS,$s))
-OBJS_NO_VECTORIZE = $(filter-out $(SRCS_VECTORIZE_OBJS),$(OBJS))
+DEPS_VECTORIZE_AVX2 = $(SRCS_VECTORIZE:%.c=$(BLDDIR)/%_avx2.d)
+DEPS_VECTORIZE_SSE2 = $(SRCS_VECTORIZE:%.c=$(BLDDIR)/%_sse2.d)
+
+OBJS_VECTORIZE = $(OBJS_VECTORIZE_AVX2) $(OBJS_VECTORIZE_SSE2)
+DEPS_VECTORIZE = $(DEPS_VECTORIZE_AVX2) $(DEPS_VECTORIZE_SSE2)
 
 .PHONY: all
 all: $(BIN)
 
-$(BIN): $(OBJS)
+$(BIN): $(OBJS) $(OBJS_VECTORIZE)
 	$(CC) $(OBJS) $(OBJS_VECTORIZE) $(LDFLAGS) -o $@
 
-$(OBJS_NO_VECTORIZE): $(BLDDIR)/%.o: %.c
+$(OBJS): $(BLDDIR)/%.o: %.c
 	@mkdir -p $(dir $@)
 	$(CC) -c $< $(CFLAGS) $(OPTFLAGS) $(DEPFLAGS) -o $@
 
-$(SRCS_VECTORIZE_OBJS): $(BLDDIR)/%.o: %.c $(call OBJ_VARIANTS,$(BLDDIR)/%.o)
+$(OBJS_VECTORIZE_AVX2): $(BLDDIR)/%_avx2.o: %.c
 	@mkdir -p $(dir $@)
-	$(CC) -c $< -mavx2 -mfma -DSD_VECTORIZE=SD_VECTORIZE_AVX2 $(CFLAGS) $(OPTFLAGS) -o $(basename $@)_avx2.o
-	$(CC) -c $< -msse2 -DSD_VECTORIZE=SD_VECTORIZE_SSE2 $(CFLAGS) $(OPTFLAGS) -o $(basename $@)_sse2.o
-	$(CC) -c $< $(CFLAGS) $(OPTFLAGS) $(DEPFLAGS) -o $@
+	$(CC) -c $< -mavx2 -mfma -DSD_VECTORIZE=SD_VECTORIZE_AVX2 $(CFLAGS) $(OPTFLAGS) $(DEPFLAGS) -o $@
 
-$(OBJS_VECTORIZE):
-
+$(OBJS_VECTORIZE_SSE2): $(BLDDIR)/%_sse2.o: %.c
+	@mkdir -p $(dir $@)
+	$(CC) -c $< -msse2 -DSD_VECTORIZE=SD_VECTORIZE_SSE2 $(CFLAGS) $(OPTFLAGS) $(DEPFLAGS) -o $@
 
 .PHONY: clean
 clean:
 	find $(BLDDIR) -type f \( -name *.o -o -name *.d \) -exec rm -f {} +
 	rm -f $(BIN)
 
--include $(DEPS)
+-include $(DEPS) $(DEPS_VECTORIZE)
