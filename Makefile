@@ -32,7 +32,7 @@ DEPS_VECTORIZE = $(DEPS_VECTORIZE_AVX2) $(DEPS_VECTORIZE_SSE2)
 .PHONY: all
 all: $(BIN)
 
-$(BIN): $(OBJS) $(OBJS_VECTORIZE)
+$(BIN): $(OBJS_VECTORIZE) $(OBJS)
 	$(CC) $(OBJS) $(OBJS_VECTORIZE) $(LDFLAGS) -o $@
 
 $(OBJS): $(BLDDIR)/%.o: %.c
@@ -52,4 +52,4 @@ clean:
 	find $(BLDDIR) -type f \( -name *.o -o -name *.d \) -exec rm -f {} +
 	rm -f $(BIN)
 
--include $(DEPS) $(DEPS_VECTORIZE)
+-include $(DEPS_VECTORIZE) $(DEPS)
