@@ -212,6 +212,20 @@ static inline sd_vec3 sd_vec3_div(sd_vec3 v, sd_float f) {
     };
 }
 
+static inline sd_float sd_float_abs(sd_float f) {
+#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+    __m256i minus_one = _mm256_set1_epi32(-1);
+    __m256 abs_mask = _mm256_castsi256_ps(_mm256_srli_epi32(minus_one, 1));
+    return (sd_float){_mm256_and_ps(f.val, abs_mask)};
+#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+    __m128i minus_one = _mm_set1_epi32(-1);
+    __m128 abs_mask = _mm_castsi128_ps(_mm_srli_epi32(minus_one, 1));
+    return (sd_float){_mm_and_ps(f.val, abs_mask)};
+#else
+    return (sd_float){SDL_fabsf(f.val)};
+#endif
+}
+
 static inline sd_float sd_float_negate(sd_float f) {
 #if SD_VECTORIZE == SD_VECTORIZE_AVX2
     return (sd_float){_mm256_mul_ps(f.val, _mm256_set1_ps(-1))};

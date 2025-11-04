@@ -8,6 +8,8 @@
 #include <M7/Math/stride.h>
 
 typedef struct M7_Mesh M7_Mesh;
+typedef struct M7_Sculpture M7_Sculpture;
+typedef struct M7_PolyChain M7_PolyChain;
 typedef struct M7_WorldGeometry M7_WorldGeometry;
 typedef struct M7_RenderInstance M7_RenderInstance;
 typedef struct M7_World M7_World;
@@ -70,6 +72,12 @@ xform3 M7_XformComposeAbsolute(ECS_Handle *self, xform3 lhs);
 
 SD_DECLARE(M7_Mesh *, M7_Mesh_Create, vec3 *, ws_verts, vec3 *, ws_norms, vec2 *, ts_verts, M7_MeshFace *, faces, size_t, nverts, size_t, nts_verts, size_t, nfaces)
 void M7_Mesh_Free(M7_Mesh *mesh);
+
+void M7_Sculpture_JoinPolyChains(M7_Sculpture *sculpture, M7_PolyChain *pc1, M7_PolyChain *pc2);
+M7_PolyChain *M7_Sculpture_Ellipse(M7_Sculpture *sculpture, vec3 center, vec3 axis1, vec3 axis2, size_t precision);
+M7_Mesh *M7_Sculpture_ToMesh(M7_Sculpture *sculpture);
+M7_Sculpture *M7_Sculpture_Create(void);
+void M7_Sculpture_Free(M7_Sculpture *sculpture);
 
 SD_DECLARE(M7_WorldGeometry *, M7_World_RegisterGeometry, ECS_Handle *, self, M7_Mesh *, mesh)
 

@@ -55,6 +55,7 @@ static void M7_Rasterizer_ScanPerspective(M7_RasterContext ctx, int high, int lo
     ), origin);
 
     sd_vec3 nrml = sd_vec3_cross(ab, ac);
+    sd_vec3 unit_nrml = sd_vec3_normalize(nrml);
     sd_float nrml_disp = sd_vec3_dot(origin, nrml);
 
     sd_vec3 perp_ab = sd_vec3_cross(nrml, ab);
@@ -114,6 +115,8 @@ static void M7_Rasterizer_ScanPerspective(M7_RasterContext ctx, int high, int lo
                 .z = affine_coord.y
             };
 
+            col = sd_vec3_mul(col, sd_float_max(sd_float_abs(unit_nrml.z), sd_float_set(0.25)));
+
             ctx.target->color[base + j] = sd_vec3_mask_blend(bg, col, sd_float_clamp_mask(
                 fragment_x,
                 ctx.scanlines[i][0],
@@ -134,6 +137,9 @@ static void M7_Rasterizer_DrawTriangle(M7_RasterContext ctx, vec2 ss_verts[3]) {
         vec2_orthogonal(vec2_sub(ss_verts[1], ss_verts[0])),
         vec2_sub(ss_verts[2], ss_verts[0])
     ) > 0;
+
+    if (ctx.flags & M7_RASTERIZER_CULL_BACKFACE && !ss_verts_cw)
+        return;
 
     M7_Rasterizer_Trace(ctx, (vec2 [2]) { ss_verts[0], ss_verts[1 + !ss_verts_cw] });
     M7_Rasterizer_Trace(ctx, (vec2 [2]) { ss_verts[1 + !ss_verts_cw], ss_verts[1 + ss_verts_cw] });

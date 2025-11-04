@@ -14,6 +14,17 @@ typedef struct M7_Mesh {
     size_t nverts, nfaces;
 } M7_Mesh;
 
+typedef struct M7_PolyChain {
+    size_t *indices;
+    size_t nindices;
+} M7_PolyChain;
+
+typedef struct M7_Sculpture {
+    List(vec3) *verts;
+    List(M7_MeshFace) *faces;
+    List(M7_PolyChain *) *chains;
+} M7_Sculpture;
+
 typedef struct M7_WorldGeometry {
     M7_World *world;
     List(M7_RenderInstance *) *instances;

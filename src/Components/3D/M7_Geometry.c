@@ -87,26 +87,20 @@ void M7_Model_OnXform(ECS_Handle *self, xform3 composed) {
 }
 
 void M7_Model_Update(ECS_Handle *self, double delta) {
-    // mat3x3 *basis = ECS_Entity_GetComponent(self, M7_Components.Basis);
-    // *basis = mat3x3_rotate(*basis, vec3_normalize((vec3){ .x=0, .y=1 }), 4 * delta);
-}
+    static float pitch = 0;
+    static float yaw = 0;
 
+    mat3x3 *basis = ECS_Entity_GetComponent(self, M7_Components.Basis);
+    pitch += 2.718 / 2 * delta;
+    yaw -= 3.141 / 2 * delta;
+    *basis = mat3x3_rotate(mat3x3_rotate(mat3x3_identity, vec3_i, pitch), vec3_j, yaw);
+}
 void M7_Model_Attach(ECS_Handle *self) {
     M7_Model *mdl = ECS_Entity_GetComponent(self, M7_Components.Model);
     ECS_Handle *world = ECS_Entity_AncestorWithComponent(self, M7_Components.World, true);
 
     mdl->geometry = M7_World_RegisterGeometry(world, mdl->mesh);
     mdl->instance = M7_WorldGeometry_Instance(mdl->geometry, nullptr, 0, M7_RASTERIZER_CULL_BACKFACE);
-
-    // M7_World *c_world = ECS_Entity_GetComponent(world, M7_Components.World);
-    // SDL_Log("Registered geometry: %zu", List_Length(c_world->geometry));
-    // for (size_t i = 0; i < List_Length(c_world->render_batches); ++i) {
-    //     for (int j = 0; j < M7_RASTERIZER_FLAG_COMBINATIONS; ++j) {
-    //         List(M7_RenderInstance *) *flag_batch = List_Get(c_world->render_batches, i)[j];
-    //         if (flag_batch)
-    //             SDL_Log("Render batch %zu, Flag batch %i: %zu", i, j, List_Length(flag_batch));
-    //     }
-    // }
 }
 
 void M7_Model_Detach(ECS_Handle *self) {
@@ -126,30 +120,31 @@ void M7_Model_Init(void *component, void *args) {
     (void)args;
     M7_Model *mdl = component;
 
-    vec3 verts[3] = {
-        { .x=-100, .y=-100, .z=0 },
-        { .x=0, .y=100, .z=0 },
-        { .x=100, .y=-100, .z=0 },
-    };
+    M7_Sculpture *torus = M7_Sculpture_Create();
+    List(M7_PolyChain *) *rings = List_Create(M7_PolyChain *);
+    
+    size_t outer_precision = 32;
+    size_t inner_precision = 16;
+    float outer_radius = 100;
+    float inner_radius = 60;
 
-    vec3 nrmls[3] = {
-        { .x=0, .y=0, .z=-1 },
-        { .x=0, .y=0, .z=-1 },
-        { .x=0, .y=0, .z=-1 },
-    };
+    for (size_t i = 0; i < outer_precision; ++i) {
+        vec3 outer_rot = vec3_rotate(vec3_i, vec3_k, 2 * SDL_PI_F / outer_precision * i);
+        List_Push(rings, M7_Sculpture_Ellipse(
+            torus,
+            vec3_mul(outer_rot, outer_radius),
+            vec3_mul(outer_rot, inner_radius),
+            vec3_mul(vec3_k, inner_radius),
+            inner_precision
+        ));
+    }
 
-    vec2 ts_verts[3] = {
-        { .x=0, .y=0 },
-        { .x=1, .y=0 },
-        { .x=0, .y=1 },
-    };
+    for (size_t i = 0; i < List_Length(rings); ++i)
+        M7_Sculpture_JoinPolyChains(torus, List_Get(rings, i), List_Get(rings, (i + 1) % List_Length(rings)));
 
-    M7_MeshFace face = {
-        .idx_verts = { 0, 1, 2 },
-        .idx_tverts = { 0, 1, 2 },
-    };
-
-    mdl->mesh = M7_Mesh_Create(verts, nrmls, ts_verts, &face, 3, 3, 1);
+    mdl->mesh = M7_Sculpture_ToMesh(torus);
+    List_Free(rings);
+    M7_Sculpture_Free(torus);
 }
 
 void M7_Model_Free(void *component) {
