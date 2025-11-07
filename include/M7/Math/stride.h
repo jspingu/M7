@@ -336,6 +336,47 @@ static inline sd_float sd_float_clamp(sd_float f, sd_float min, sd_float max) {
     return sd_float_min(sd_float_max(f, min), max);
 }
 
+static inline sd_float sd_float_lt(sd_float lhs, sd_float rhs) {
+#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+    return (sd_float){_mm256_cmp_ps(lhs.val, rhs.val, _CMP_LT_OQ)};
+#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+    return (sd_float){_mm_cmplt_ps(lhs.val, rhs.val)};
+#else
+    sd_float out;
+    SDL_memset(&out, UCHAR_MAX * (lhs.val < rhs.val), sizeof(sd_float));
+    return out;
+#endif
+}
+
+static inline sd_float sd_float_gt(sd_float lhs, sd_float rhs) {
+#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+    return (sd_float){_mm256_cmp_ps(lhs.val, rhs.val, _CMP_GT_OQ)};
+#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+    return (sd_float){_mm_cmpgt_ps(lhs.val, rhs.val)};
+#else
+    sd_float out;
+    SDL_memset(&out, UCHAR_MAX * (lhs.val > rhs.val), sizeof(sd_float));
+    return out;
+#endif
+}
+
+static inline sd_float sd_float_and(sd_float lhs, sd_float rhs) {
+#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+    return (sd_float){_mm256_and_ps(lhs.val, rhs.val)};
+#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+    return (sd_float){_mm_and_ps(lhs.val, rhs.val)};
+#else
+    uint32_t lhs_i, rhs_i;
+    SDL_memcpy(&lhs_i, &lhs, sizeof(sd_float));
+    SDL_memcpy(&rhs_i, &rhs, sizeof(sd_float));
+
+    sd_float out;
+    uint32_t res = lhs_i & rhs_i;
+    SDL_memcpy(&out, &res, sizeof(sd_float));
+    return out;
+#endif
+}
+
 static inline sd_float sd_float_clamp_mask(sd_float f, float min, float max) {
 #if SD_VECTORIZE == SD_VECTORIZE_AVX2
     __m256 mask_gt = _mm256_cmp_ps(f.val, _mm256_set1_ps(min), _CMP_GT_OQ);
@@ -346,7 +387,7 @@ static inline sd_float sd_float_clamp_mask(sd_float f, float min, float max) {
     __m128 mask_lt = _mm_cmplt_ps(f.val, _mm_set1_ps(max));
     return (sd_float){_mm_and_ps(mask_gt, mask_lt)};
 #else
-    SDL_memset(&f, UCHAR_MAX * (f.val > min && f.val < max), sizeof(float));
+    SDL_memset(&f, UCHAR_MAX * (f.val > min && f.val < max), sizeof(sd_float));
     return f;
 #endif
 }

@@ -24,8 +24,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
         }},
         { M7_Components.InputState, nullptr },
         { M7_Components.Canvas, &(M7_Canvas){
-            .width=1280,
-            .height=720
+            .width = 1280,
+            .height = 720
         }},
         { M7_Components.World, nullptr },
         { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault} }
@@ -45,7 +45,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
         },
         { /* Model */
             ECS_Components(
-                { M7_Components.Position, &(vec3){ .y=20, .z=250 } },
+                { M7_Components.Position, &(vec3){ .z=250 } },
                 { M7_Components.Basis, (mat3x3 []){mat3x3_identity} },
                 { M7_Components.Model, nullptr },
                 { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault} }

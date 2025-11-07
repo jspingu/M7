@@ -61,10 +61,22 @@ void M7_Sculpture_JoinPolyChains(M7_Sculpture *sculpture, M7_PolyChain *pc1, M7_
     }
 }
 
+M7_PolyChain *M7_Sculpture_Vertex(M7_Sculpture *sculpture, vec3 pos) {
+    M7_PolyChain *chain = SDL_malloc(sizeof(M7_PolyChain));
+    chain->indices = SDL_malloc(sizeof(size_t));
+    chain->nindices = 1;
+    *chain->indices = List_Length(sculpture->verts);
+    List_Push(sculpture->chains, chain);
+
+    List_Push(sculpture->verts, pos);
+    return chain;
+}
+
 M7_PolyChain *M7_Sculpture_Ellipse(M7_Sculpture *sculpture, vec3 center, vec3 axis1, vec3 axis2, size_t precision) {
     M7_PolyChain *chain = SDL_malloc(sizeof(M7_PolyChain));
     chain->indices = SDL_malloc(sizeof(size_t) * (precision + 1));
     chain->nindices = precision + 1;
+    List_Push(sculpture->chains, chain);
 
     size_t old_len = List_Length(sculpture->verts);
     vec3 *new_verts = List_PushSpace(sculpture->verts, precision);

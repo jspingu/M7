@@ -56,7 +56,7 @@ static void M7_Rasterizer_ScanPerspective(M7_RasterContext ctx, int high, int lo
 
     sd_vec3 nrml = sd_vec3_cross(ab, ac);
     sd_vec3 unit_nrml = sd_vec3_normalize(nrml);
-    sd_float nrml_disp = sd_vec3_dot(origin, nrml);
+    sd_float inv_nrml_disp = sd_float_div(sd_float_one(), sd_vec3_dot(origin, nrml));
 
     sd_vec3 perp_ab = sd_vec3_cross(nrml, ab);
     sd_vec3 perp_ac = sd_vec3_cross(ac, nrml);
@@ -92,17 +92,19 @@ static void M7_Rasterizer_ScanPerspective(M7_RasterContext ctx, int high, int lo
                 (sd_vec2) { .x = fragment_x, .y = midpoint.y },
                 (sd_vec2) { .x = midpoint.x, .y = fragment_y }
             ), normalize_ss);
-            
-            sd_float fragment_depth = sd_float_mul(nrml_disp, sd_float_rcp(sd_vec3_dot((sd_vec3) {
+
+            sd_float inv_z = sd_float_mul(sd_vec3_dot((sd_vec3) {
                 .x = proj_plane.x,
                 .y = proj_plane.y,
                 .z = sd_float_one()
-            }, nrml)));
+            }, nrml), inv_nrml_disp);
+
+            sd_float fragment_z = sd_float_rcp(inv_z);
 
             sd_vec3 relative = sd_vec3_sub((sd_vec3) {
-                .x = sd_float_mul(proj_plane.x, fragment_depth),
-                .y = sd_float_mul(proj_plane.y, fragment_depth),
-                .z = fragment_depth
+                .x = sd_float_mul(proj_plane.x, fragment_z),
+                .y = sd_float_mul(proj_plane.y, fragment_z),
+                .z = fragment_z
             }, origin);
 
             sd_vec2 affine_coord = sd_vec2_mul(inv_xform[0], relative.x);
@@ -115,20 +117,27 @@ static void M7_Rasterizer_ScanPerspective(M7_RasterContext ctx, int high, int lo
                 .z = affine_coord.y
             };
 
-            col = sd_vec3_mul(col, sd_float_max(sd_float_abs(unit_nrml.z), sd_float_set(0.25)));
+            col = sd_vec3_mul(col, sd_float_add(sd_float_set(0.25), sd_float_mul(unit_nrml.z, sd_float_set(-0.75))));
 
-            ctx.target->color[base + j] = sd_vec3_mask_blend(bg, col, sd_float_clamp_mask(
+            sd_float mask = sd_float_clamp_mask(
                 fragment_x,
                 ctx.scanlines[i][0],
                 ctx.scanlines[i][1]
-            ));
+            );
+
+            /* Inverse z in depth buffer */
+            sd_float bg_z = ctx.target->depth[base + j];
+            mask = sd_float_and(mask, sd_float_gt(inv_z, bg_z));
+
+            ctx.target->depth[base + j] = sd_float_mask_blend(bg_z, inv_z, mask);
+            ctx.target->color[base + j] = sd_vec3_mask_blend(bg, col, mask);
         }
     }
 }
 
 static void M7_Rasterizer_DrawTriangle(M7_RasterContext ctx, vec2 ss_verts[3]) {
     float min_y = SDL_min(SDL_min(ss_verts[0].y, ss_verts[1].y), ss_verts[2].y);
-    float max_y = (SDL_max(SDL_max(ss_verts[0].y, ss_verts[1].y), ss_verts[2].y));
+    float max_y = SDL_max(SDL_max(ss_verts[0].y, ss_verts[1].y), ss_verts[2].y);
 
     int high = SDL_clamp(roundtl(min_y), 0, ctx.target->height);
     int low = SDL_clamp(roundtl(max_y), 0, ctx.target->height);
@@ -199,8 +208,10 @@ void SD_VARIANT(M7_Rasterizer_Render)(ECS_Handle *self) {
     });
 
     /* Clear canvas */
-    for (size_t i = 0; i < sd_bounding_size(c_canvas->width) * c_canvas->height; ++i)
+    for (size_t i = 0; i < sd_bounding_size(c_canvas->width) * c_canvas->height; ++i) {
         c_canvas->color[i] = sd_vec3_set(0, 0, 0);
+        c_canvas->depth[i] = sd_float_set(0);
+    }
 
     /* Draw geometry */
     for (size_t i = 0; i < List_Length(c_world->render_batches); ++i) {

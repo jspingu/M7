@@ -95,6 +95,7 @@ void M7_Model_Update(ECS_Handle *self, double delta) {
     yaw -= 3.141 / 2 * delta;
     *basis = mat3x3_rotate(mat3x3_rotate(mat3x3_identity, vec3_i, pitch), vec3_j, yaw);
 }
+
 void M7_Model_Attach(ECS_Handle *self) {
     M7_Model *mdl = ECS_Entity_GetComponent(self, M7_Components.Model);
     ECS_Handle *world = ECS_Entity_AncestorWithComponent(self, M7_Components.World, true);
@@ -122,11 +123,11 @@ void M7_Model_Init(void *component, void *args) {
 
     M7_Sculpture *torus = M7_Sculpture_Create();
     List(M7_PolyChain *) *rings = List_Create(M7_PolyChain *);
-    
-    size_t outer_precision = 32;
-    size_t inner_precision = 16;
+
+    size_t outer_precision = 64;
+    size_t inner_precision = 32;
     float outer_radius = 100;
-    float inner_radius = 60;
+    float inner_radius = 64;
 
     for (size_t i = 0; i < outer_precision; ++i) {
         vec3 outer_rot = vec3_rotate(vec3_i, vec3_k, 2 * SDL_PI_F / outer_precision * i);
@@ -145,6 +146,40 @@ void M7_Model_Init(void *component, void *args) {
     mdl->mesh = M7_Sculpture_ToMesh(torus);
     List_Free(rings);
     M7_Sculpture_Free(torus);
+
+    // M7_Sculpture *sphere = M7_Sculpture_Create();
+    // List(M7_PolyChain *) *rings = List_Create(M7_PolyChain *);
+    //
+    // int nrings = 32;
+    // int ring_precision = 32;
+    // float radius = 128;
+    // float rot = SDL_PI_F / (nrings + 1);
+    //
+    // M7_PolyChain *bottom = M7_Sculpture_Vertex(sphere, vec3_mul(vec3_j, -radius));
+    // M7_PolyChain *top = M7_Sculpture_Vertex(sphere, vec3_mul(vec3_j, radius));
+    //
+    // for (int i = 1; i < nrings + 1; ++i) {
+    //     float y = -SDL_cosf(rot * i) * radius;
+    //     float x = SDL_sinf(rot * i) * radius;
+    //
+    //     List_Push(rings, M7_Sculpture_Ellipse(
+    //         sphere,
+    //         vec3_mul(vec3_j, y),
+    //         vec3_mul(vec3_i, x),
+    //         vec3_mul(vec3_k, x),
+    //         ring_precision
+    //     ));
+    // }
+    //
+    // M7_Sculpture_JoinPolyChains(sphere, bottom, List_Get(rings, 0));
+    // M7_Sculpture_JoinPolyChains(sphere, List_Get(rings, List_Length(rings) - 1), top);
+    //
+    // for (int i = 0; i < nrings - 1; ++i)
+    //     M7_Sculpture_JoinPolyChains(sphere, List_Get(rings, i), List_Get(rings, i + 1));
+    //
+    // mdl->mesh = M7_Sculpture_ToMesh(sphere);
+    // List_Free(rings);
+    // M7_Sculpture_Free(sphere);
 }
 
 void M7_Model_Free(void *component) {
