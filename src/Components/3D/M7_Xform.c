@@ -11,7 +11,7 @@ sd_vec2 SD_VARIANT(M7_ProjectPerspective)(ECS_Handle *self, sd_vec3 pos, sd_vec2
         .y = sd_float_negate(pos.y)
     }, pos.z);
 
-    return sd_vec2_add(midpoint, sd_vec2_mul(normalized, midpoint.x));;
+    return sd_vec2_add(midpoint, sd_vec2_mul(normalized, midpoint.x));
 }
 
 #ifndef SD_VECTORIZE

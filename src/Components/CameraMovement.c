@@ -1,3 +1,4 @@
+#include <SDL3/SDL.h>
 #include <M7/ECS.h>
 #include <M7/M7_ECS.h>
 #include <M7/Math/linalg.h>
@@ -12,10 +13,21 @@ bool vec3_eq(vec3 lhs, vec3 rhs) {
 
 void CameraMovement_Update(ECS_Handle *self, double delta) {
     ECS_Handle *is = ECS_Entity_AncestorWithComponent(self, M7_Components.InputState, true);
+    ECS_Handle *vp = ECS_Entity_AncestorWithComponent(self, M7_Components.Viewport, true);
+    M7_Viewport *c_vp = ECS_Entity_GetComponent(vp, M7_Components.Viewport);
 
     CameraMovement *cam = ECS_Entity_GetComponent(self, M7_Components.CameraMovement);
     vec3 *pos = ECS_Entity_GetComponent(self, M7_Components.Position);
     mat3x3 *basis = ECS_Entity_GetComponent(self, M7_Components.Basis);
+
+    bool grabbed = SDL_GetWindowRelativeMouseMode(c_vp->window);
+
+    if (M7_InputState_KeyJustDown(is, SDL_SCANCODE_ESCAPE)) {
+        grabbed = !grabbed;
+        SDL_SetWindowRelativeMouseMode(c_vp->window, grabbed);
+    }
+
+    if (!grabbed) return;
 
     vec3 input_axis = vec3_zero;
 
