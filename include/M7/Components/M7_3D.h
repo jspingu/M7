@@ -40,7 +40,7 @@ typedef struct M7_MeshFace {
 } M7_MeshFace;
 
 typedef struct M7_Canvas {
-    M7_Viewport *vp;
+    ECS_Handle *vp;
     int width, height;
     sd_vec3 *color;
     sd_float *depth;

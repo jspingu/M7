@@ -3,7 +3,7 @@ rwildcard = $(foreach d,$1,$(wildcard $d/$2) $(call rwildcard,$(wildcard $d/*),$
 PREFIX ?= /usr/local
 CC ?= gcc
 CFLAGS += -Iinclude -Wall -Wextra -Wpedantic -std=c23
-OPTFLAGS += -O2
+OPTFLAGS += -O3 -ffast-math
 DEPFLAGS += -MMD -MP
 LDFLAGS += -lSDL3
 
@@ -32,8 +32,8 @@ DEPS_VECTORIZE = $(DEPS_VECTORIZE_AVX2) $(DEPS_VECTORIZE_SSE2)
 .PHONY: all
 all: $(BIN)
 
-$(BIN): $(OBJS_VECTORIZE) $(OBJS)
-	$(CC) $(OBJS) $(OBJS_VECTORIZE) $(LDFLAGS) -o $@
+$(BIN): $(OBJS_VECTORIZE) $(OBJS) $(BLDDIR)/gamma.o
+	$(CC) $(OBJS) $(OBJS_VECTORIZE) $(BLDDIR)/gamma.o $(LDFLAGS) -o $@
 
 $(OBJS): $(BLDDIR)/%.o: %.c
 	@mkdir -p $(dir $@)
@@ -47,9 +47,19 @@ $(OBJS_VECTORIZE_SSE2): $(BLDDIR)/%_sse2.o: %.c
 	@mkdir -p $(dir $@)
 	$(CC) -c $< -msse2 -DSD_VECTORIZE=SD_VECTORIZE_SSE2 $(CFLAGS) $(OPTFLAGS) $(DEPFLAGS) -o $@
 
+$(BLDDIR)/gamma.o: $(BLDDIR)/gamma.c
+	@mkdir -p $(BLDDIR)
+	$(CC) -c $< -o $@
+
+$(BLDDIR)/gamma.c: scripts/gengamma.c
+	@mkdir -p $(BLDDIR)
+	$(CC) $< -lm -o $(BLDDIR)/gengamma
+	$(BLDDIR)/gengamma > $@
+
 .PHONY: clean
 clean:
-	find $(BLDDIR) -type f \( -name *.o -o -name *.d \) -exec rm -f {} +
+	find $(BLDDIR) -type f \( -name *.c -o -name *.o -o -name *.d \) -exec rm -f {} +
+	rm -f $(BLDDIR)/gengamma
 	rm -f $(BIN)
 
 -include $(DEPS_VECTORIZE) $(DEPS)

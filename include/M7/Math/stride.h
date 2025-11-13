@@ -29,9 +29,13 @@
                                                                \
     typedef union sd_vec3_##suffix {                           \
         sd_float_##suffix xyz[3];                              \
+        sd_float_##suffix rgb[3];                              \
         sd_vec2_##suffix xy;                                   \
         struct {                                               \
             sd_float_##suffix x, y, z;                         \
+        };                                                     \
+        struct {                                               \
+            sd_float_##suffix r, g, b;                         \
         };                                                     \
     } sd_vec3_##suffix;                                        \
                                                                \
@@ -381,6 +385,30 @@ SD_DEFINE_VECFNS_BINARY_VV(max)
 
 static inline sd_float sd_float_clamp(sd_float f, sd_float min, sd_float max) {
     return sd_float_min(sd_float_max(f, min), max);
+}
+
+static inline sd_vec2 sd_vec2_clamp(sd_vec2 v, sd_float min, sd_float max) {
+    return (sd_vec2) {
+        .x = sd_float_clamp(v.x, min, max),
+        .y = sd_float_clamp(v.y, min, max)
+    };
+}
+
+static inline sd_vec3 sd_vec3_clamp(sd_vec3 v, sd_float min, sd_float max) {
+    return (sd_vec3) {
+        .x = sd_float_clamp(v.x, min, max),
+        .y = sd_float_clamp(v.y, min, max),
+        .z = sd_float_clamp(v.z, min, max)
+    };
+}
+
+static inline sd_vec4 sd_vec4_clamp(sd_vec4 v, sd_float min, sd_float max) {
+    return (sd_vec4) {
+        .x = sd_float_clamp(v.x, min, max),
+        .y = sd_float_clamp(v.y, min, max),
+        .z = sd_float_clamp(v.z, min, max),
+        .w = sd_float_clamp(v.w, min, max)
+    };
 }
 
 static inline sd_float sd_float_lt(sd_float lhs, sd_float rhs) {
