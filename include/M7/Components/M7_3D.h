@@ -76,7 +76,7 @@ void M7_Mesh_Free(M7_Mesh *mesh);
 void M7_Sculpture_JoinPolyChains(M7_Sculpture *sculpture, M7_PolyChain *pc1, M7_PolyChain *pc2);
 M7_PolyChain *M7_Sculpture_Vertex(M7_Sculpture *sculpture, vec3 pos);
 M7_PolyChain *M7_Sculpture_Ellipse(M7_Sculpture *sculpture, vec3 center, vec3 axis1, vec3 axis2, size_t precision);
-M7_Mesh *M7_Sculpture_ToMesh(M7_Sculpture *sculpture);
+M7_Mesh *M7_Sculpture_ToMesh(M7_Sculpture *sculpture, vec3 *nrmls);
 M7_Sculpture *M7_Sculpture_Create(void);
 void M7_Sculpture_Free(M7_Sculpture *sculpture);
 

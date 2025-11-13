@@ -36,26 +36,12 @@ static void M7_Rasterizer_Trace(M7_RasterContext ctx, vec2 line[2]) {
 }
 
 static void M7_Rasterizer_ScanPerspective(M7_RasterContext ctx, int high, int low) {
-    sd_vec3 origin = sd_vec3_set(
-        ctx.vs_verts[0].x,
-        ctx.vs_verts[0].y,
-        ctx.vs_verts[0].z
-    );
-
-    sd_vec3 ab = sd_vec3_sub(sd_vec3_set(
-        ctx.vs_verts[1].x,
-        ctx.vs_verts[1].y,
-        ctx.vs_verts[1].z
-    ), origin);
-
-    sd_vec3 ac = sd_vec3_sub(sd_vec3_set(
-        ctx.vs_verts[2].x,
-        ctx.vs_verts[2].y,
-        ctx.vs_verts[2].z
-    ), origin);
+    sd_vec3 origin = sd_vec3_set(ctx.vs_verts[0].x, ctx.vs_verts[0].y, ctx.vs_verts[0].z);
+    sd_vec3 ab = sd_vec3_sub(sd_vec3_set(ctx.vs_verts[1].x, ctx.vs_verts[1].y, ctx.vs_verts[1].z), origin);
+    sd_vec3 ac = sd_vec3_sub(sd_vec3_set(ctx.vs_verts[2].x, ctx.vs_verts[2].y, ctx.vs_verts[2].z), origin);
 
     sd_vec3 nrml = sd_vec3_cross(ab, ac);
-    sd_vec3 unit_nrml = sd_vec3_normalize(nrml);
+    // sd_vec3 unit_nrml = sd_vec3_normalize(nrml);
     sd_float inv_nrml_disp = sd_float_div(sd_float_one(), sd_vec3_dot(origin, nrml));
 
     sd_vec3 perp_ab = sd_vec3_cross(nrml, ab);
@@ -65,6 +51,16 @@ static void M7_Rasterizer_ScanPerspective(M7_RasterContext ctx, int high, int lo
         sd_vec2_div((sd_vec2) { .x = perp_ac.x, .y = perp_ab.x }, sd_vec3_dot(ab, perp_ac)),
         sd_vec2_div((sd_vec2) { .x = perp_ac.y, .y = perp_ab.y }, sd_vec3_dot(ab, perp_ac)),
         sd_vec2_div((sd_vec2) { .x = perp_ac.z, .y = perp_ab.z }, sd_vec3_dot(ab, perp_ac))
+    };
+
+    sd_vec3 origin_nrml = sd_vec3_set(ctx.vs_nrmls[0].x, ctx.vs_nrmls[0].y, ctx.vs_nrmls[0].z);
+    sd_vec3 ab_nrml = sd_vec3_sub(sd_vec3_set(ctx.vs_nrmls[1].x, ctx.vs_nrmls[1].y, ctx.vs_nrmls[1].z), origin_nrml);
+    sd_vec3 ac_nrml = sd_vec3_sub(sd_vec3_set(ctx.vs_nrmls[2].x, ctx.vs_nrmls[2].y, ctx.vs_nrmls[2].z), origin_nrml);
+
+    sd_vec3 nrml_xform[3] = {
+        sd_vec3_fmadd(ac_nrml, inv_xform[0].y, sd_vec3_mul(ab_nrml, inv_xform[0].x)),
+        sd_vec3_fmadd(ac_nrml, inv_xform[1].y, sd_vec3_mul(ab_nrml, inv_xform[1].x)),
+        sd_vec3_fmadd(ac_nrml, inv_xform[2].y, sd_vec3_mul(ab_nrml, inv_xform[2].x))
     };
 
     sd_vec2 midpoint = {
@@ -101,23 +97,29 @@ static void M7_Rasterizer_ScanPerspective(M7_RasterContext ctx, int high, int lo
 
             sd_float fragment_z = sd_float_rcp(inv_z);
 
-            sd_vec3 relative = sd_vec3_sub((sd_vec3) {
+            sd_vec3 fragment_vs = (sd_vec3) {
                 .x = sd_float_mul(proj_plane.x, fragment_z),
                 .y = sd_float_mul(proj_plane.y, fragment_z),
                 .z = fragment_z
-            }, origin);
-
-            sd_vec2 affine_coord = sd_vec2_mul(inv_xform[0], relative.x);
-                    affine_coord = sd_vec2_fmadd(inv_xform[1], relative.y, affine_coord);
-                    affine_coord = sd_vec2_fmadd(inv_xform[2], relative.z, affine_coord);
-
-            sd_vec3 col = {
-                .x = sd_float_sub(sd_float_sub(sd_float_one(), affine_coord.x), affine_coord.y),
-                .y = affine_coord.x,
-                .z = affine_coord.y
             };
 
-            col = sd_vec3_mul(col, sd_float_add(sd_float_set(0.25), sd_float_mul(unit_nrml.z, sd_float_set(-0.75))));
+            sd_vec3 relative = sd_vec3_sub(fragment_vs, origin);
+
+            sd_vec3 fragment_nrml = sd_vec3_fmadd(nrml_xform[0], relative.x, origin_nrml);
+                    fragment_nrml = sd_vec3_fmadd(nrml_xform[1], relative.y, fragment_nrml);
+                    fragment_nrml = sd_vec3_fmadd(nrml_xform[2], relative.z, fragment_nrml);
+                    fragment_nrml = sd_vec3_normalize(fragment_nrml);
+
+            sd_vec3 col = sd_vec3_set(0.7, 0.4, 0.1);
+            sd_float intensity = sd_float_mul(
+                sd_float_mul(
+                    sd_float_negate(sd_vec3_dot(fragment_vs, fragment_nrml)),
+                    sd_float_rcp(sd_vec3_dot(fragment_vs, fragment_vs))
+                ),
+                sd_float_set(50)
+            );
+
+            col = sd_vec3_mul(col, sd_float_add(sd_float_set(0.05), intensity));
 
             sd_float mask = sd_float_clamp_mask(
                 fragment_x,
@@ -182,8 +184,10 @@ void SD_VARIANT(M7_Rasterizer_Render)(ECS_Handle *self) {
             wg->xform.translation.z
         );
 
-        for (size_t i = 0; i < sd_count; ++i)
+        for (size_t i = 0; i < sd_count; ++i) {
             wg->vs_verts[i] = translation;
+            wg->vs_nrmls[i] = sd_vec3_set(0, 0, 0);
+        }
 
         for (int i = 0; i < 3; ++i) {
             sd_vec3 column_vec = sd_vec3_set(
@@ -234,11 +238,12 @@ void SD_VARIANT(M7_Rasterizer_Render)(ECS_Handle *self) {
                         .flags = flags
                     };
 
-                    SDL_memcpy(ctx.ts_verts, (vec2 [3]) {
-                        instance->geometry->mesh->ts_verts[faces[j].idx_tverts[0]],
-                        instance->geometry->mesh->ts_verts[faces[j].idx_tverts[1]],
-                        instance->geometry->mesh->ts_verts[faces[j].idx_tverts[2]],
-                    }, sizeof(vec2 [3]));
+                    /* This should segfault, since mesh->ts_verts is nullptr, but it somehow doesn't when compiled on gcc */
+                    // SDL_memcpy(ctx.ts_verts, (vec2 [3]) {
+                    //     instance->geometry->mesh->ts_verts[faces[j].idx_tverts[0]],
+                    //     instance->geometry->mesh->ts_verts[faces[j].idx_tverts[1]],
+                    //     instance->geometry->mesh->ts_verts[faces[j].idx_tverts[2]],
+                    // }, sizeof(vec2 [3]));
 
                     SDL_memcpy(ctx.vs_verts, &(sd_vec3_scalar [3]) {
                         sd_vec3_arr_get(instance->geometry->vs_verts, faces[j].idx_verts[0]),

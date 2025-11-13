@@ -123,6 +123,7 @@ void M7_Model_Init(void *component, void *args) {
 
     M7_Sculpture *torus = M7_Sculpture_Create();
     List(M7_PolyChain *) *rings = List_Create(M7_PolyChain *);
+    List(vec3) *nrmls = List_Create(vec3);
 
     size_t outer_precision = 64;
     size_t inner_precision = 32;
@@ -131,6 +132,7 @@ void M7_Model_Init(void *component, void *args) {
 
     for (size_t i = 0; i < outer_precision; ++i) {
         vec3 outer_rot = vec3_rotate(vec3_i, vec3_k, 2 * SDL_PI_F / outer_precision * i);
+
         List_Push(rings, M7_Sculpture_Ellipse(
             torus,
             vec3_mul(outer_rot, outer_radius),
@@ -138,12 +140,15 @@ void M7_Model_Init(void *component, void *args) {
             vec3_mul(vec3_k, inner_radius),
             inner_precision
         ));
+
+        for (size_t j = 0; j < inner_precision; ++j)
+            List_Push(nrmls, vec3_rotate(outer_rot, vec3_cross(outer_rot, vec3_k), 2 * SDL_PI_F / inner_precision * j));
     }
 
     for (size_t i = 0; i < List_Length(rings); ++i)
         M7_Sculpture_JoinPolyChains(torus, List_Get(rings, i), List_Get(rings, (i + 1) % List_Length(rings)));
 
-    mdl->mesh = M7_Sculpture_ToMesh(torus);
+    mdl->mesh = M7_Sculpture_ToMesh(torus, List_GetAddress(nrmls, 0));
     List_Free(rings);
     M7_Sculpture_Free(torus);
 
