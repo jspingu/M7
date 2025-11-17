@@ -1,7 +1,7 @@
 /*
  * Strided data types and functions for generic vectorization
  * Currently supports SSE2 and AVX2
- * SD_VECTORIZE_AVX2 assumes FMA
+ * __AVX2__ implies that FMA is present
  */
 
 #ifndef STRIDE_H
@@ -10,9 +10,6 @@
 #include <SDL3/SDL.h>
 #include <immintrin.h>
 #include <limits.h>
-
-#define SD_VECTORIZE_AVX2  2
-#define SD_VECTORIZE_SSE2  1
 
 #define SD_DEFINE_TYPES(suffix,underlying_type)                \
     typedef union sd_float_##suffix {                          \
@@ -63,10 +60,10 @@ SD_DEFINE_TYPES(avx2, __m256)
 SD_DEFINE_TYPES(sse2, __m128)
 SD_DEFINE_TYPES(scalar, float) // NOLINT(bugprone-sizeof-expression)
 
-#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+#ifdef __AVX2__
     #define SD_VARIANT(fnname)  fnname##_avx2
     SD_TYPEDEFS(avx2)
-#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+#elifdef __SSE2__
     #define SD_VARIANT(fnname)  fnname##_sse2
     SD_TYPEDEFS(sse2)
 #else
@@ -94,7 +91,22 @@ SD_DEFINE_TYPES(scalar, float) // NOLINT(bugprone-sizeof-expression)
 #define SD_PARAM_NAME7(type,name,...)  name __VA_OPT__(, SD_PARAM_NAME8(__VA_ARGS__))
 #define SD_PARAM_NAME8(type,name,...)  name
 
-#define SD_SELECT(fnname)  ( SDL_HasAVX2() ? fnname##_avx2 : SDL_HasSSE2() ? fnname##_sse2 : fnname##_scalar )
+#ifdef __x86_64__
+#ifdef __AVX2__
+#define SD_SELECT(fnname)  ( fnname##_avx2 )
+#else
+#define SD_SELECT(fnname)  ( SDL_HasAVX2() ? fnname##_avx2 : fnname##_sse2 )
+#endif
+#endif /* __x86_64__ */
+
+#ifdef __i386__
+#ifdef __SSE2__
+#define SD_SELECT(fnname)  ( fnname##_sse2 )
+#else
+#define SD_SELECT(fnname)  ( SDL_HasSSE2() ? fnname##_sse2 : fnname##_scalar )
+#endif
+#endif /* __i386__ */
+
 #define SD_LENGTH          ( sizeof(sd_float) / sizeof(float) )
 #define SD_ALIGN           ( alignof(sd_float) )
 
@@ -208,9 +220,9 @@ static inline size_t sd_bounding_size(size_t n) {
 // }
 
 static inline sd_float sd_float_add(sd_float lhs, sd_float rhs) {
-#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+#ifdef __AVX2__
     return (sd_float){_mm256_add_ps(lhs.val, rhs.val)};
-#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+#elifdef __SSE2__
     return (sd_float){_mm_add_ps(lhs.val, rhs.val)};
 #else
     return (sd_float){lhs.val + rhs.val};
@@ -220,9 +232,9 @@ static inline sd_float sd_float_add(sd_float lhs, sd_float rhs) {
 SD_DEFINE_VECFNS_BINARY_VV(add)
 
 static inline sd_float sd_float_sub(sd_float lhs, sd_float rhs) {
-#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+#ifdef __AVX2__
     return (sd_float){_mm256_sub_ps(lhs.val, rhs.val)};
-#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+#elifdef __SSE2__
     return (sd_float){_mm_sub_ps(lhs.val, rhs.val)};
 #else
     return (sd_float){lhs.val - rhs.val};
@@ -232,9 +244,9 @@ static inline sd_float sd_float_sub(sd_float lhs, sd_float rhs) {
 SD_DEFINE_VECFNS_BINARY_VV(sub)
 
 static inline sd_float sd_float_mul(sd_float lhs, sd_float rhs) {
-#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+#ifdef __AVX2__
     return (sd_float){_mm256_mul_ps(lhs.val, rhs.val)};
-#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+#elifdef __SSE2__
     return (sd_float){_mm_mul_ps(lhs.val, rhs.val)};
 #else
     return (sd_float){lhs.val * rhs.val};
@@ -244,9 +256,9 @@ static inline sd_float sd_float_mul(sd_float lhs, sd_float rhs) {
 SD_DEFINE_VECFNS_BINARY_VS(mul)
 
 static inline sd_float sd_float_div(sd_float lhs, sd_float rhs) {
-#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+#ifdef __AVX2__
     return (sd_float){_mm256_div_ps(lhs.val, rhs.val)};
-#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+#elifdef __SSE2__
     return (sd_float){_mm_div_ps(lhs.val, rhs.val)};
 #else
     return (sd_float){lhs.val / rhs.val};
@@ -256,11 +268,11 @@ static inline sd_float sd_float_div(sd_float lhs, sd_float rhs) {
 SD_DEFINE_VECFNS_BINARY_VS(div)
 
 static inline sd_float sd_float_abs(sd_float f) {
-#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+#ifdef __AVX2__
     __m256i minus_one = _mm256_set1_epi32(-1);
     __m256 abs_mask = _mm256_castsi256_ps(_mm256_srli_epi32(minus_one, 1));
     return (sd_float){_mm256_and_ps(f.val, abs_mask)};
-#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+#elifdef __SSE2__
     __m128i minus_one = _mm_set1_epi32(-1);
     __m128 abs_mask = _mm_castsi128_ps(_mm_srli_epi32(minus_one, 1));
     return (sd_float){_mm_and_ps(f.val, abs_mask)};
@@ -272,9 +284,9 @@ static inline sd_float sd_float_abs(sd_float f) {
 SD_DEFINE_VECFNS_UNARY(abs)
 
 static inline sd_float sd_float_negate(sd_float f) {
-#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+#ifdef __AVX2__
     return (sd_float){_mm256_mul_ps(f.val, _mm256_set1_ps(-1))};
-#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+#elifdef __SSE2__
     return (sd_float){_mm_mul_ps(f.val, _mm_set1_ps(-1))};
 #else
     return (sd_float){-f.val};
@@ -284,9 +296,9 @@ static inline sd_float sd_float_negate(sd_float f) {
 SD_DEFINE_VECFNS_UNARY(negate)
 
 static inline sd_float sd_float_rcp(sd_float f) {
-#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+#ifdef __AVX2__
     return (sd_float){_mm256_rcp_ps(f.val)};
-#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+#elifdef __SSE2__
     return (sd_float){_mm_rcp_ps(f.val)};
 #else
     return (sd_float){1 / f.val};
@@ -296,7 +308,7 @@ static inline sd_float sd_float_rcp(sd_float f) {
 SD_DEFINE_VECFNS_UNARY(rcp)
 
 static inline sd_float sd_float_fmadd(sd_float multiplicand, sd_float multiplier, sd_float addend) {
-#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+#ifdef __AVX2__
     return (sd_float){_mm256_fmadd_ps(multiplicand.val, multiplier.val, addend.val)};
 #else
     return sd_float_add(sd_float_mul(multiplicand, multiplier), addend);
@@ -328,7 +340,7 @@ static inline sd_vec4 sd_vec4_fmadd(sd_vec4 multiplicand, sd_float multiplier, s
 }
 
 static inline sd_float sd_float_fmsub(sd_float multiplicand, sd_float multiplier, sd_float subtrahend) {
-#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+#ifdef __AVX2__
     return (sd_float){_mm256_fmsub_ps(multiplicand.val, multiplier.val, subtrahend.val)};
 #else
     return sd_float_sub(sd_float_mul(multiplicand, multiplier), subtrahend);
@@ -336,9 +348,9 @@ static inline sd_float sd_float_fmsub(sd_float multiplicand, sd_float multiplier
 }
 
 static inline sd_float sd_float_sqrt(sd_float f) {
-#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+#ifdef __AVX2__
     return (sd_float){_mm256_sqrt_ps(f.val)};
-#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+#elifdef __SSE2__
     return (sd_float){_mm_sqrt_ps(f.val)};
 #else
     return (sd_float){SDL_sqrtf(f.val)};
@@ -348,9 +360,9 @@ static inline sd_float sd_float_sqrt(sd_float f) {
 SD_DEFINE_VECFNS_UNARY(sqrt)
 
 static inline sd_float sd_float_rsqrt(sd_float f) {
-#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+#ifdef __AVX2__
     return (sd_float){_mm256_rsqrt_ps(f.val)};
-#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+#elifdef __SSE2__
     return (sd_float){_mm_rsqrt_ps(f.val)};
 #else
     return (sd_float){1 / SDL_sqrtf(f.val)};
@@ -360,9 +372,9 @@ static inline sd_float sd_float_rsqrt(sd_float f) {
 SD_DEFINE_VECFNS_UNARY(rsqrt)
 
 static inline sd_float sd_float_min(sd_float f, sd_float min) {
-#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+#ifdef __AVX2__
     return (sd_float){_mm256_min_ps(f.val, min.val)};
-#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+#elifdef __SSE2__
     return (sd_float){_mm_min_ps(f.val, min.val)};
 #else
     return (sd_float){SDL_min(f.val, min.val)};
@@ -372,9 +384,9 @@ static inline sd_float sd_float_min(sd_float f, sd_float min) {
 SD_DEFINE_VECFNS_BINARY_VV(min)
 
 static inline sd_float sd_float_max(sd_float f, sd_float max) {
-#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+#ifdef __AVX2__
     return (sd_float){_mm256_max_ps(f.val, max.val)};
-#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+#elifdef __SSE2__
     return (sd_float){_mm_max_ps(f.val, max.val)};
 #else
     return (sd_float){SDL_max(f.val, max.val)};
@@ -412,9 +424,9 @@ static inline sd_vec4 sd_vec4_clamp(sd_vec4 v, sd_float min, sd_float max) {
 }
 
 static inline sd_float sd_float_lt(sd_float lhs, sd_float rhs) {
-#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+#ifdef __AVX2__
     return (sd_float){_mm256_cmp_ps(lhs.val, rhs.val, _CMP_LT_OQ)};
-#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+#elifdef __SSE2__
     return (sd_float){_mm_cmplt_ps(lhs.val, rhs.val)};
 #else
     sd_float out;
@@ -426,9 +438,9 @@ static inline sd_float sd_float_lt(sd_float lhs, sd_float rhs) {
 SD_DEFINE_VECFNS_BINARY_VV(lt)
 
 static inline sd_float sd_float_gt(sd_float lhs, sd_float rhs) {
-#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+#ifdef __AVX2__
     return (sd_float){_mm256_cmp_ps(lhs.val, rhs.val, _CMP_GT_OQ)};
-#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+#elifdef __SSE2__
     return (sd_float){_mm_cmpgt_ps(lhs.val, rhs.val)};
 #else
     sd_float out;
@@ -440,9 +452,9 @@ static inline sd_float sd_float_gt(sd_float lhs, sd_float rhs) {
 SD_DEFINE_VECFNS_BINARY_VV(gt)
 
 static inline sd_float sd_float_and(sd_float lhs, sd_float rhs) {
-#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+#ifdef __AVX2__
     return (sd_float){_mm256_and_ps(lhs.val, rhs.val)};
-#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+#elifdef __SSE2__
     return (sd_float){_mm_and_ps(lhs.val, rhs.val)};
 #else
     uint32_t lhs_i, rhs_i;
@@ -459,9 +471,9 @@ static inline sd_float sd_float_and(sd_float lhs, sd_float rhs) {
 SD_DEFINE_VECFNS_BINARY_VV(and)
 
 static inline sd_float sd_float_or(sd_float lhs, sd_float rhs) {
-#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+#ifdef __AVX2__
     return (sd_float){_mm256_or_ps(lhs.val, rhs.val)};
-#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+#elifdef __SSE2__
     return (sd_float){_mm_or_ps(lhs.val, rhs.val)};
 #else
     uint32_t lhs_i, rhs_i;
@@ -478,11 +490,11 @@ static inline sd_float sd_float_or(sd_float lhs, sd_float rhs) {
 SD_DEFINE_VECFNS_BINARY_VV(or)
 
 static inline sd_float sd_float_clamp_mask(sd_float f, float min, float max) {
-#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+#ifdef __AVX2__
     __m256 mask_gt = _mm256_cmp_ps(f.val, _mm256_set1_ps(min), _CMP_GT_OQ);
     __m256 mask_lt = _mm256_cmp_ps(f.val, _mm256_set1_ps(max), _CMP_LT_OQ);
     return (sd_float){_mm256_and_ps(mask_gt, mask_lt)};
-#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+#elifdef __SSE2__
     __m128 mask_gt = _mm_cmpgt_ps(f.val, _mm_set1_ps(min));
     __m128 mask_lt = _mm_cmplt_ps(f.val, _mm_set1_ps(max));
     return (sd_float){_mm_and_ps(mask_gt, mask_lt)};
@@ -493,9 +505,9 @@ static inline sd_float sd_float_clamp_mask(sd_float f, float min, float max) {
 }
 
 static inline sd_float sd_float_mask_blend(sd_float bg, sd_float fg, sd_float mask) {
-#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+#ifdef __AVX2__
     return (sd_float){_mm256_blendv_ps(bg.val, fg.val, mask.val)};
-#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+#elifdef __SSE2__
     __m128 select_bg = _mm_andnot_ps(mask.val, bg.val);
     __m128 select_fg = _mm_and_ps(mask.val, fg.val);
     return (sd_float){_mm_or_ps(select_bg, select_fg)};
@@ -538,9 +550,9 @@ static inline sd_vec4 sd_vec4_mask_blend(sd_vec4 bg, sd_vec4 fg, sd_float mask) 
 }
 
 static inline sd_float sd_float_range(void) {
-#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+#ifdef __AVX2__
     return (sd_float){_mm256_set_ps(7, 6, 5, 4, 3, 2, 1, 0)};
-#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+#elifdef __SSE2__
     return (sd_float){_mm_set_ps(3, 2, 1, 0)};
 #else
     return (sd_float){0};
@@ -548,9 +560,9 @@ static inline sd_float sd_float_range(void) {
 }
 
 static inline sd_float sd_float_zero(void) {
-#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+#ifdef __AVX2__
     return (sd_float){_mm256_set1_ps(0)};
-#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+#elifdef __SSE2__
     return (sd_float){_mm_set1_ps(0)};
 #else
     return (sd_float){0};
@@ -558,9 +570,9 @@ static inline sd_float sd_float_zero(void) {
 }
 
 static inline sd_float sd_float_one(void) {
-#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+#ifdef __AVX2__
     return (sd_float){_mm256_set1_ps(1)};
-#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+#elifdef __SSE2__
     return (sd_float){_mm_set1_ps(1)};
 #else
     return (sd_float){1};
@@ -568,9 +580,9 @@ static inline sd_float sd_float_one(void) {
 }
 
 static inline sd_float sd_float_set(float f) {
-#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+#ifdef __AVX2__
     return (sd_float){_mm256_set1_ps(f)};
-#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+#elifdef __SSE2__
     return (sd_float){_mm_set1_ps(f)};
 #else
     return (sd_float){f};

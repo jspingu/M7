@@ -14,7 +14,7 @@ sd_vec2 SD_VARIANT(M7_ProjectPerspective)(ECS_Handle *self, sd_vec3 pos, sd_vec2
     return sd_vec2_add(midpoint, sd_vec2_mul(normalized, midpoint.x));
 }
 
-#ifndef SD_VECTORIZE
+#ifdef SD_BASE
 
 xform3 M7_Entity_GetXform(ECS_Handle *self) {
     mat3x3 *basis = ECS_Entity_GetComponent(self, M7_Components.Basis);
@@ -62,4 +62,4 @@ xform3 M7_XformComposeAbsolute(ECS_Handle *self, xform3 lhs) {
     return M7_Entity_GetXform(self);
 }
 
-#endif /* UNVECTORIZED */
+#endif /* SD_BASE */

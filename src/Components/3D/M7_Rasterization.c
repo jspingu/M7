@@ -297,7 +297,7 @@ void SD_VARIANT(M7_Rasterizer_Render)(ECS_Handle *self) {
     }
 }
 
-#ifndef SD_VECTORIZE
+#ifdef SD_BASE
 
 void M7_Rasterizer_Attach(ECS_Handle *self) {
     M7_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, M7_Components.Rasterizer);
@@ -324,4 +324,4 @@ void M7_Rasterizer_Free(void *component) {
     SDL_free(rasterizer->scanlines);
 }
 
-#endif /* UNVECTORIZED */
+#endif /* SD_BASE */

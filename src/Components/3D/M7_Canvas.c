@@ -3,9 +3,10 @@
 #include <M7/M7_ECS.h>
 #include <M7/Math/stride.h>
 #include <M7/gamma.h>
+#include <SDL3/SDL_thread.h>
 #include <immintrin.h>
 
-#if SD_VECTORIZE == SD_VECTORIZE_SSE2
+#if defined(__SSE2__) && !defined(__AVX2__)
 static inline __m128i gather_sse2(const uint8_t *buf, __m128i idx) {
     alignas(16) int elems[4];
     alignas(16) int idxs[4];
@@ -40,7 +41,7 @@ void SD_VARIANT(M7_Canvas_Present)(ECS_Handle *self) {
             sd_vec3 col = base[j];
             col = sd_vec3_clamp(col, sd_float_zero(), sd_float_one());
             col = sd_vec3_mul(col, sd_float_set(0xFFFF));
-#if SD_VECTORIZE == SD_VECTORIZE_AVX2
+#ifdef __AVX2__
             __m256i byte = _mm256_set1_epi32(0xFF);
 
             __m256i r = _mm256_cvtps_epi32(col.r.val);
@@ -55,8 +56,8 @@ void SD_VARIANT(M7_Canvas_Present)(ECS_Handle *self) {
                     b = _mm256_and_si256(b, byte);
 
             __m256i col_out = _mm256_or_si256(_mm256_or_si256(r, g), b);
-            _mm256_storeu_si256((__m256i *)(pixels + i * c_vp->width) + j, col_out);
-#elif SD_VECTORIZE == SD_VECTORIZE_SSE2
+            _mm256_storeu_si256((__m256i *)(pixels + i * canvas->width) + j, col_out);
+#elifdef __SSE2__
             __m128i byte = _mm_set1_epi32(0xFF);
 
             __m128i r = _mm_cvtps_epi32(col.r.val);
@@ -69,9 +70,9 @@ void SD_VARIANT(M7_Canvas_Present)(ECS_Handle *self) {
             __m128i b = _mm_cvtps_epi32(col.b.val);
                     b = gather_sse2(gamma_encode_lut, b);
                     b = _mm_and_si128(b, byte);
-                  
+
             __m128i col_out = _mm_or_si128(_mm_or_si128(r, g), b);
-            _mm_storeu_si128((__m128i *)(pixels + i * c_vp->width) + j, col_out);
+            _mm_storeu_si128((__m128i *)(pixels + i * canvas->width) + j, col_out);
 #else
             uint16_t r = col.r.val;
                      r = gamma_encode_lut[r];
@@ -80,7 +81,7 @@ void SD_VARIANT(M7_Canvas_Present)(ECS_Handle *self) {
             uint16_t b = col.b.val;
                      b = gamma_encode_lut[b];
 
-            pixels[i * c_vp->width + j] = (r << 16) | (g << 8) | b;
+            pixels[i * canvas->width + j] = (r << 16) | (g << 8) | b;
 #endif
         }
 
@@ -94,7 +95,7 @@ void SD_VARIANT(M7_Canvas_Present)(ECS_Handle *self) {
             uint16_t b = col.b.val * 0xFFFF;
                      b = gamma_encode_lut[b];
 
-            pixels[i * c_vp->width + sd_qot * SD_LENGTH + j] = (r << 16) | (g << 8) | b;
+            pixels[i * canvas->width + sd_qot * SD_LENGTH + j] = (r << 16) | (g << 8) | b;
         }
     }
 
@@ -119,7 +120,7 @@ void SD_VARIANT(M7_Canvas_Init)(void *component, void *args) {
     canvas->depth = SDL_aligned_alloc(SD_ALIGN, sizeof(sd_float) * sd_count);
 }
 
-#ifndef SD_VECTORIZE
+#ifdef SD_BASE
 
 void M7_Canvas_Free(void *component) {
     M7_Canvas *canvas = component;
@@ -128,4 +129,4 @@ void M7_Canvas_Free(void *component) {
     SDL_aligned_free(canvas->depth);
 }
 
-#endif /* UNVECTORIZED */
+#endif /* SD_BASE */

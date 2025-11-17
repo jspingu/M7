@@ -48,7 +48,7 @@ M7_WorldGeometry *SD_VARIANT(M7_World_RegisterGeometry)(ECS_Handle *self, M7_Mes
     return geometry;
 }
 
-#ifndef SD_VECTORIZE
+#ifdef SD_BASE
 
 M7_RenderInstance *M7_WorldGeometry_Instance(M7_WorldGeometry *geometry, M7_FragmentShader shader, size_t render_batch, M7_RasterizerFlags flags) {
     M7_World *world = geometry->world;
@@ -247,4 +247,4 @@ void M7_Mesh_Free(M7_Mesh *mesh) {
     SDL_free(mesh->faces);
 }
 
-#endif /* UNVECTORIZED */
+#endif /* SD_BASE */
