@@ -91,6 +91,18 @@ SD_DEFINE_TYPES(scalar, float) // NOLINT(bugprone-sizeof-expression)
 #define SD_PARAM_NAME7(type,name,...)  name __VA_OPT__(, SD_PARAM_NAME8(__VA_ARGS__))
 #define SD_PARAM_NAME8(type,name,...)  name
 
+#ifdef SD_DISPATCH_STATIC
+
+#ifdef __AVX2__
+#define SD_SELECT(fnname)  ( fnname##_avx2 )
+#elifdef __SSE2__
+#define SD_SELECT(fnname)  ( fnname##_sse2 )
+#else
+#define SD_SELECT(fnname)  ( fnname##_scalar )
+#endif
+
+#elifdef SD_DISPATCH_DYNAMIC
+
 #ifdef __x86_64__
 #ifdef __AVX2__
 #define SD_SELECT(fnname)  ( fnname##_avx2 )
@@ -106,6 +118,8 @@ SD_DEFINE_TYPES(scalar, float) // NOLINT(bugprone-sizeof-expression)
 #define SD_SELECT(fnname)  ( SDL_HasSSE2() ? fnname##_sse2 : fnname##_scalar )
 #endif
 #endif /* __i386__ */
+
+#endif /* SD_DISPATCH */
 
 #define SD_LENGTH          ( sizeof(sd_float) / sizeof(float) )
 #define SD_ALIGN           ( alignof(sd_float) )

@@ -41,23 +41,19 @@ endif
 
 AVAILABLE_SIMD_EXTENSIONS = $(findstring AVX2,$(PREDEFINED_MACROS)) $(findstring SSE2,$(PREDEFINED_MACROS))
 BASE_SIMD_EXTENSION = $(firstword $(AVAILABLE_SIMD_EXTENSIONS))
-
 SIMD_VARIANTS = $(filter-out $(AVAILABLE_SIMD_EXTENSIONS),$(POSSIBLE_SIMD_EXTENSIONS))
+
+ifeq ($(VECTORIZATION),dynamic)
+BASE_VECTORIZATION_FLAGS = -DSD_DISPATCH_DYNAMIC
 OBJS_VECTORIZE = $(foreach v,$(SIMD_VARIANTS),$(OBJS_VECTORIZE_$v))
 DEPS_VECTORIZE = $(foreach v,$(SIMD_VARIANTS),$(DEPS_VECTORIZE_$v))
-
-# ifeq ($(VECTORIZATION),dynamic)
-# $(info Building with dynamic dispatch vectorization)
-# $(info Object variants will be built for the following SIMD extensions: $(SIMD_VARIANTS))
-# BASE_VECTORIZATION_FLAGS = -DSD_DISPATCH_DYNAMIC
-# else
-# ifeq ($(VECTORIZATION),static)
-# $(info Building with static dispatch vectorization)
-# BASE_VECTORIZATION_FLAGS = -DSD_DISPATCH_STATIC
-# else
-# $(error Invalid vectorization option '$(VECTORIZATION)'. Valid options are 'static' or 'dynamic')
-# endif
-# endif
+else
+ifeq ($(VECTORIZATION),static)
+BASE_VECTORIZATION_FLAGS = -DSD_DISPATCH_STATIC
+else
+$(error Invalid vectorization option '$(VECTORIZATION)'. Valid options are 'static' or 'dynamic')
+endif
+endif
 
 .PHONY: all
 all: buildinfo $(BIN)
@@ -66,21 +62,29 @@ all: buildinfo $(BIN)
 buildinfo:
 	$(info Target architecture: $(firstword $(TARGET_ARCH) unknown))
 	$(info Base SIMD extension: $(firstword $(BASE_SIMD_EXTENSION) none))
+ifeq ($(VECTORIZATION),dynamic)
+	$(info Configured with dynamic dispatch vectorization)
+	$(info Object variants will be built for the following SIMD extensions: $(SIMD_VARIANTS))
+else
+ifeq ($(VECTORIZATION),static)
+	$(info Configured with static dispatch vectorization)
+endif
+endif
 
 $(BIN): $(OBJS_VECTORIZE) $(OBJS) $(BLDDIR)/gamma.o
 	$(CC) $(OBJS) $(OBJS_VECTORIZE) $(BLDDIR)/gamma.o $(LDFLAGS) -o $@
 
 $(OBJS): $(BLDDIR)/%.o: %.c
 	@mkdir -p $(dir $@)
-	$(CC) -c $< -DSD_BASE $(CFLAGS) $(OPTFLAGS) $(DEPFLAGS) -o $@
+	$(CC) -c $< -DSD_BASE $(BASE_VECTORIZATION_FLAGS) $(CFLAGS) $(OPTFLAGS) $(DEPFLAGS) -o $@
 
 $(OBJS_VECTORIZE_AVX2): $(BLDDIR)/%_avx2.o: %.c
 	@mkdir -p $(dir $@)
-	$(CC) -c $< -mavx2 -mfma $(CFLAGS) $(OPTFLAGS) $(DEPFLAGS) -o $@
+	$(CC) -c $< -mavx2 -mfma -DSD_DISPATCH_DYNAMIC $(CFLAGS) $(OPTFLAGS) $(DEPFLAGS) -o $@
 
 $(OBJS_VECTORIZE_SSE2): $(BLDDIR)/%_sse2.o: %.c
 	@mkdir -p $(dir $@)
-	$(CC) -c $< -msse2 $(CFLAGS) $(OPTFLAGS) $(DEPFLAGS) -o $@
+	$(CC) -c $< -msse2 -DSD_DISPATCH_DYNAMIC $(CFLAGS) $(OPTFLAGS) $(DEPFLAGS) -o $@
 
 $(BLDDIR)/gamma.o: $(BLDDIR)/gamma.c
 	@mkdir -p $(BLDDIR)
