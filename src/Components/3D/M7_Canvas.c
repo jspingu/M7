@@ -4,7 +4,10 @@
 #include <M7/Math/stride.h>
 #include <M7/gamma.h>
 #include <SDL3/SDL_thread.h>
+
+#if defined(__SSE2__) || defined(__AVX2__)
 #include <immintrin.h>
+#endif
 
 #if defined(__SSE2__) && !defined(__AVX2__)
 static inline __m128i gather_sse2(const uint8_t *buf, __m128i idx) {

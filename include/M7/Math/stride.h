@@ -8,8 +8,11 @@
 #define STRIDE_H
 
 #include <SDL3/SDL.h>
-#include <immintrin.h>
 #include <limits.h>
+
+#if defined(__SSE2__) || defined(__AVX2__)
+#include <immintrin.h>
+#endif
 
 #define SD_DEFINE_TYPES(suffix,underlying_type)                \
     typedef union sd_float_##suffix {                          \
@@ -56,15 +59,15 @@
     typedef union sd_vec3_##suffix sd_vec3;    \
     typedef union sd_vec4_##suffix sd_vec4;
 
-SD_DEFINE_TYPES(avx2, __m256)
-SD_DEFINE_TYPES(sse2, __m128)
 SD_DEFINE_TYPES(scalar, float) // NOLINT(bugprone-sizeof-expression)
 
 #ifdef __AVX2__
     #define SD_VARIANT(fnname)  fnname##_avx2
+    SD_DEFINE_TYPES(avx2, __m256)
     SD_TYPEDEFS(avx2)
 #elifdef __SSE2__
     #define SD_VARIANT(fnname)  fnname##_sse2
+    SD_DEFINE_TYPES(sse2, __m128)
     SD_TYPEDEFS(sse2)
 #else
     #define SD_VARIANT(fnname)  fnname##_scalar
@@ -118,6 +121,10 @@ SD_DEFINE_TYPES(scalar, float) // NOLINT(bugprone-sizeof-expression)
 #define SD_SELECT(fnname)  ( SDL_HasSSE2() ? fnname##_sse2 : fnname##_scalar )
 #endif
 #endif /* __i386__ */
+
+#ifndef SD_SELECT
+#define SD_SELECT(fnname)  ( fnname##_scalar )
+#endif /* Unknown architecture */
 
 #endif /* SD_DISPATCH */
 
