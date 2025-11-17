@@ -53,7 +53,7 @@ $(BLDDIR)/gamma.o: $(BLDDIR)/gamma.c
 
 $(BLDDIR)/gamma.c: scripts/gengamma.c
 	@mkdir -p $(BLDDIR)
-	$(CC) $< -lm -o $(BLDDIR)/gengamma
+	cc $< -lm -o $(BLDDIR)/gengamma
 	$(BLDDIR)/gengamma > $@
 
 .PHONY: clean
