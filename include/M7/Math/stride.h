@@ -14,6 +14,10 @@
 #include <immintrin.h>
 #endif
 
+#ifdef __ARM_NEON
+#include <arm_neon.h>
+#endif
+
 #define SD_DEFINE_TYPES(suffix,underlying_type)                \
     typedef union sd_float_##suffix {                          \
         underlying_type val;                                   \
@@ -69,6 +73,10 @@ SD_DEFINE_TYPES(scalar, float) // NOLINT(bugprone-sizeof-expression)
     #define SD_VARIANT(fnname)  fnname##_sse2
     SD_DEFINE_TYPES(sse2, __m128)
     SD_TYPEDEFS(sse2)
+#elifdef __ARM_NEON
+    #define SD_VARIANT(fnname)  fnname##_neon
+    SD_DEFINE_TYPES(neon, float32x4_t)
+    SD_TYPEDEFS(neon)
 #else
     #define SD_VARIANT(fnname)  fnname##_scalar
     SD_TYPEDEFS(scalar)
@@ -100,6 +108,8 @@ SD_DEFINE_TYPES(scalar, float) // NOLINT(bugprone-sizeof-expression)
 #define SD_SELECT(fnname)  ( fnname##_avx2 )
 #elifdef __SSE2__
 #define SD_SELECT(fnname)  ( fnname##_sse2 )
+#elifdef __ARM_NEON
+#define SD_SELECT(fnname)  ( fnname##_neon )
 #else
 #define SD_SELECT(fnname)  ( fnname##_scalar )
 #endif
@@ -121,6 +131,18 @@ SD_DEFINE_TYPES(scalar, float) // NOLINT(bugprone-sizeof-expression)
 #define SD_SELECT(fnname)  ( SDL_HasSSE2() ? fnname##_sse2 : fnname##_scalar )
 #endif
 #endif /* __i386__ */
+
+#ifdef __aarch64__
+#define SD_SELECT(fnname)  ( fnname##_neon )
+#endif /* __aarch64__ */
+
+#ifdef __arm__
+#ifdef __ARM_NEON
+#define SD_SELECT(fnname)  ( fnname##_neon )
+#else
+#define SD_SELECT(fnname)  ( SDL_HasNEON() ? fnname##_neon : fnname##_scalar )
+#endif
+#endif /* __arm__ */
 
 #ifndef SD_SELECT
 #define SD_SELECT(fnname)  ( fnname##_scalar )
@@ -245,6 +267,8 @@ static inline sd_float sd_float_add(sd_float lhs, sd_float rhs) {
     return (sd_float){_mm256_add_ps(lhs.val, rhs.val)};
 #elifdef __SSE2__
     return (sd_float){_mm_add_ps(lhs.val, rhs.val)};
+#elifdef __ARM_NEON
+    return (sd_float){vaddq_f32(lhs.val, rhs.val)};
 #else
     return (sd_float){lhs.val + rhs.val};
 #endif
@@ -257,6 +281,8 @@ static inline sd_float sd_float_sub(sd_float lhs, sd_float rhs) {
     return (sd_float){_mm256_sub_ps(lhs.val, rhs.val)};
 #elifdef __SSE2__
     return (sd_float){_mm_sub_ps(lhs.val, rhs.val)};
+#elifdef __ARM_NEON
+    return (sd_float){vsubq_f32(lhs.val, rhs.val)};
 #else
     return (sd_float){lhs.val - rhs.val};
 #endif
@@ -269,6 +295,8 @@ static inline sd_float sd_float_mul(sd_float lhs, sd_float rhs) {
     return (sd_float){_mm256_mul_ps(lhs.val, rhs.val)};
 #elifdef __SSE2__
     return (sd_float){_mm_mul_ps(lhs.val, rhs.val)};
+#elifdef __ARM_NEON
+    return (sd_float){vmulq_f32(lhs.val, rhs.val)};
 #else
     return (sd_float){lhs.val * rhs.val};
 #endif
@@ -281,6 +309,8 @@ static inline sd_float sd_float_div(sd_float lhs, sd_float rhs) {
     return (sd_float){_mm256_div_ps(lhs.val, rhs.val)};
 #elifdef __SSE2__
     return (sd_float){_mm_div_ps(lhs.val, rhs.val)};
+#elifdef __ARM_NEON
+    return (sd_float){vdivq_f32(lhs.val, rhs.val)};
 #else
     return (sd_float){lhs.val / rhs.val};
 #endif
@@ -297,6 +327,8 @@ static inline sd_float sd_float_abs(sd_float f) {
     __m128i minus_one = _mm_set1_epi32(-1);
     __m128 abs_mask = _mm_castsi128_ps(_mm_srli_epi32(minus_one, 1));
     return (sd_float){_mm_and_ps(f.val, abs_mask)};
+#elifdef __ARM_NEON
+    return (sd_float){vabsq_f32(f.val)};
 #else
     return (sd_float){SDL_fabsf(f.val)};
 #endif
@@ -309,6 +341,8 @@ static inline sd_float sd_float_negate(sd_float f) {
     return (sd_float){_mm256_mul_ps(f.val, _mm256_set1_ps(-1))};
 #elifdef __SSE2__
     return (sd_float){_mm_mul_ps(f.val, _mm_set1_ps(-1))};
+#elifdef __ARM_NEON
+    return (sd_float){vnegq_f32(f.val)};
 #else
     return (sd_float){-f.val};
 #endif
@@ -321,6 +355,8 @@ static inline sd_float sd_float_rcp(sd_float f) {
     return (sd_float){_mm256_rcp_ps(f.val)};
 #elifdef __SSE2__
     return (sd_float){_mm_rcp_ps(f.val)};
+#elifdef __ARM_NEON
+    return (sd_float){vrecpeq_f32(f.val)};
 #else
     return (sd_float){1 / f.val};
 #endif
@@ -331,6 +367,8 @@ SD_DEFINE_VECFNS_UNARY(rcp)
 static inline sd_float sd_float_fmadd(sd_float multiplicand, sd_float multiplier, sd_float addend) {
 #ifdef __AVX2__
     return (sd_float){_mm256_fmadd_ps(multiplicand.val, multiplier.val, addend.val)};
+#elifdef __ARM_NEON
+    return (sd_float){vmlaq_f32(addend.val, multiplicand.val, multiplier.val)};
 #else
     return sd_float_add(sd_float_mul(multiplicand, multiplier), addend);
 #endif
@@ -363,6 +401,8 @@ static inline sd_vec4 sd_vec4_fmadd(sd_vec4 multiplicand, sd_float multiplier, s
 static inline sd_float sd_float_fmsub(sd_float multiplicand, sd_float multiplier, sd_float subtrahend) {
 #ifdef __AVX2__
     return (sd_float){_mm256_fmsub_ps(multiplicand.val, multiplier.val, subtrahend.val)};
+#elifdef __ARM_NEON
+    return (sd_float){vmlaq_f32(vnegq_f32(subtrahend.val), multiplicand.val, multiplier.val)};
 #else
     return sd_float_sub(sd_float_mul(multiplicand, multiplier), subtrahend);
 #endif
@@ -373,6 +413,8 @@ static inline sd_float sd_float_sqrt(sd_float f) {
     return (sd_float){_mm256_sqrt_ps(f.val)};
 #elifdef __SSE2__
     return (sd_float){_mm_sqrt_ps(f.val)};
+#elifdef __ARM_NEON
+    return (sd_float){vsqrtq_f32(f.val)};
 #else
     return (sd_float){SDL_sqrtf(f.val)};
 #endif
@@ -385,6 +427,8 @@ static inline sd_float sd_float_rsqrt(sd_float f) {
     return (sd_float){_mm256_rsqrt_ps(f.val)};
 #elifdef __SSE2__
     return (sd_float){_mm_rsqrt_ps(f.val)};
+#elifdef __ARM_NEON__
+    return (sd_float){vrsqrteq_f32(f.val)};
 #else
     return (sd_float){1 / SDL_sqrtf(f.val)};
 #endif
@@ -397,6 +441,8 @@ static inline sd_float sd_float_min(sd_float f, sd_float min) {
     return (sd_float){_mm256_min_ps(f.val, min.val)};
 #elifdef __SSE2__
     return (sd_float){_mm_min_ps(f.val, min.val)};
+#elifdef __ARM_NEON__
+    return (sd_float){vminq_f32(f.val, min.val)};
 #else
     return (sd_float){SDL_min(f.val, min.val)};
 #endif
@@ -409,6 +455,8 @@ static inline sd_float sd_float_max(sd_float f, sd_float max) {
     return (sd_float){_mm256_max_ps(f.val, max.val)};
 #elifdef __SSE2__
     return (sd_float){_mm_max_ps(f.val, max.val)};
+#elifdef __ARM_NEON__
+    return (sd_float){vmaxq_f32(f.val, max.val)};
 #else
     return (sd_float){SDL_max(f.val, max.val)};
 #endif
@@ -449,6 +497,8 @@ static inline sd_float sd_float_lt(sd_float lhs, sd_float rhs) {
     return (sd_float){_mm256_cmp_ps(lhs.val, rhs.val, _CMP_LT_OQ)};
 #elifdef __SSE2__
     return (sd_float){_mm_cmplt_ps(lhs.val, rhs.val)};
+#elifdef __ARM_NEON__
+    return (sd_float){vcltq_f32(lhs.val, rhs.val)};
 #else
     sd_float out;
     SDL_memset(&out, UCHAR_MAX * (lhs.val < rhs.val), sizeof(sd_float));
@@ -463,6 +513,8 @@ static inline sd_float sd_float_gt(sd_float lhs, sd_float rhs) {
     return (sd_float){_mm256_cmp_ps(lhs.val, rhs.val, _CMP_GT_OQ)};
 #elifdef __SSE2__
     return (sd_float){_mm_cmpgt_ps(lhs.val, rhs.val)};
+#elifdef __ARM_NEON__
+    return (sd_float){vcgtq_f32(lhs.val, rhs.val)};
 #else
     sd_float out;
     SDL_memset(&out, UCHAR_MAX * (lhs.val > rhs.val), sizeof(sd_float));
@@ -477,6 +529,8 @@ static inline sd_float sd_float_and(sd_float lhs, sd_float rhs) {
     return (sd_float){_mm256_and_ps(lhs.val, rhs.val)};
 #elifdef __SSE2__
     return (sd_float){_mm_and_ps(lhs.val, rhs.val)};
+#elifdef __ARM_NEON
+    return (sd_float){vandq_s32(lhs.val, rhs.val)};
 #else
     uint32_t lhs_i, rhs_i;
     SDL_memcpy(&lhs_i, &lhs, sizeof(sd_float));
@@ -496,6 +550,8 @@ static inline sd_float sd_float_or(sd_float lhs, sd_float rhs) {
     return (sd_float){_mm256_or_ps(lhs.val, rhs.val)};
 #elifdef __SSE2__
     return (sd_float){_mm_or_ps(lhs.val, rhs.val)};
+#elifdef __ARM_NEON
+    return (sd_float){vorrq_s32(lhs.val, rhs.val)};
 #else
     uint32_t lhs_i, rhs_i;
     SDL_memcpy(&lhs_i, &lhs, sizeof(sd_float));
@@ -519,6 +575,10 @@ static inline sd_float sd_float_clamp_mask(sd_float f, float min, float max) {
     __m128 mask_gt = _mm_cmpgt_ps(f.val, _mm_set1_ps(min));
     __m128 mask_lt = _mm_cmplt_ps(f.val, _mm_set1_ps(max));
     return (sd_float){_mm_and_ps(mask_gt, mask_lt)};
+#elifdef __ARM_NEON
+    int32x4_t mask_gt = vcgtq_f32(f.val, vdupq_n_f32(min));
+    int32x4_t mask_lt = vcltq_f32(f.val, vdupq_n_f32(max));
+    return (sd_float){vandq_s32(mask_gt, mask_lt)};
 #else
     SDL_memset(&f, UCHAR_MAX * (f.val > min && f.val < max), sizeof(sd_float));
     return f;
@@ -532,6 +592,8 @@ static inline sd_float sd_float_mask_blend(sd_float bg, sd_float fg, sd_float ma
     __m128 select_bg = _mm_andnot_ps(mask.val, bg.val);
     __m128 select_fg = _mm_and_ps(mask.val, fg.val);
     return (sd_float){_mm_or_ps(select_bg, select_fg)};
+#elifdef __ARM_NEON
+    return (sd_float){vbslq_f32(mask.val, fg.val, bg.val)};
 #else
     uint32_t bg_i, fg_i, mask_i;
     SDL_memcpy(&bg_i, &bg, sizeof(float));
@@ -575,6 +637,8 @@ static inline sd_float sd_float_range(void) {
     return (sd_float){_mm256_set_ps(7, 6, 5, 4, 3, 2, 1, 0)};
 #elifdef __SSE2__
     return (sd_float){_mm_set_ps(3, 2, 1, 0)};
+#elifdef __ARM_NEON__
+    return (sd_float){{0,1,2,3}};
 #else
     return (sd_float){0};
 #endif
@@ -582,9 +646,11 @@ static inline sd_float sd_float_range(void) {
 
 static inline sd_float sd_float_zero(void) {
 #ifdef __AVX2__
-    return (sd_float){_mm256_set1_ps(0)};
+    return (sd_float){_mm256_setzero_ps()};
 #elifdef __SSE2__
-    return (sd_float){_mm_set1_ps(0)};
+    return (sd_float){_mm_setzero_ps()};
+#elifdef __ARM_NEON__
+    return (sd_float){vdupq_n_f32(0)};
 #else
     return (sd_float){0};
 #endif
@@ -595,6 +661,8 @@ static inline sd_float sd_float_one(void) {
     return (sd_float){_mm256_set1_ps(1)};
 #elifdef __SSE2__
     return (sd_float){_mm_set1_ps(1)};
+#elifdef __ARM_NEON__
+    return (sd_float){vdupq_n_f32(1)};
 #else
     return (sd_float){1};
 #endif
@@ -605,6 +673,8 @@ static inline sd_float sd_float_set(float f) {
     return (sd_float){_mm256_set1_ps(f)};
 #elifdef __SSE2__
     return (sd_float){_mm_set1_ps(f)};
+#elifdef __ARM_NEON__
+    return (sd_float){vdupq_n_f32(f)};
 #else
     return (sd_float){f};
 #endif
