@@ -156,6 +156,7 @@ SD_DEFINE_TYPES(scalar, float) // NOLINT(bugprone-sizeof-expression)
 #define SD_DECLARE(rettype,fnname,...)                      \
     rettype fnname##_avx2(SD_PARAMS(__VA_ARGS__));          \
     rettype fnname##_sse2(SD_PARAMS(__VA_ARGS__));          \
+    rettype fnname##_neon(SD_PARAMS(__VA_ARGS__));          \
     rettype fnname##_scalar(SD_PARAMS(__VA_ARGS__));        \
     static inline rettype fnname(SD_PARAMS(__VA_ARGS__)) {  \
         typeof(&fnname) sd_fn = SD_SELECT(fnname);          \
@@ -165,6 +166,7 @@ SD_DEFINE_TYPES(scalar, float) // NOLINT(bugprone-sizeof-expression)
 #define SD_DECLARE_VOID_RETURN(fnname,...)               \
     void fnname##_avx2(SD_PARAMS(__VA_ARGS__));          \
     void fnname##_sse2(SD_PARAMS(__VA_ARGS__));          \
+    void fnname##_neon(SD_PARAMS(__VA_ARGS__));          \
     void fnname##_scalar(SD_PARAMS(__VA_ARGS__));        \
     static inline void fnname(SD_PARAMS(__VA_ARGS__)) {  \
         typeof(&fnname) sd_fn = SD_SELECT(fnname);       \
