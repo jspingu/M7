@@ -1,6 +1,6 @@
 /*
  * Strided data types and functions for generic vectorization
- * Currently supports SSE2 and AVX2
+ * Currently supports SSE2, AVX2, and NEON
  * __AVX2__ implies that FMA is present
  */
 
@@ -150,8 +150,8 @@ SD_DEFINE_TYPES(scalar, float) // NOLINT(bugprone-sizeof-expression)
 
 #endif /* SD_DISPATCH */
 
-#define SD_LENGTH          ( sizeof(sd_float) / sizeof(float) )
-#define SD_ALIGN           ( alignof(sd_float) )
+#define SD_LENGTH  ( sizeof(sd_float) / sizeof(float) )
+#define SD_ALIGN   ( alignof(sd_float) )
 
 #define SD_DECLARE(rettype,fnname,...)                      \
     rettype fnname##_avx2(SD_PARAMS(__VA_ARGS__));          \
@@ -306,20 +306,6 @@ static inline sd_float sd_float_mul(sd_float lhs, sd_float rhs) {
 
 SD_DEFINE_VECFNS_BINARY_VS(mul)
 
-static inline sd_float sd_float_div(sd_float lhs, sd_float rhs) {
-#ifdef __AVX2__
-    return (sd_float){_mm256_div_ps(lhs.val, rhs.val)};
-#elifdef __SSE2__
-    return (sd_float){_mm_div_ps(lhs.val, rhs.val)};
-#elifdef __ARM_NEON
-    return (sd_float){vdivq_f32(lhs.val, rhs.val)};
-#else
-    return (sd_float){lhs.val / rhs.val};
-#endif
-}
-
-SD_DEFINE_VECFNS_BINARY_VS(div)
-
 static inline sd_float sd_float_abs(sd_float f) {
 #ifdef __AVX2__
     __m256i minus_one = _mm256_set1_epi32(-1);
@@ -409,20 +395,6 @@ static inline sd_float sd_float_fmsub(sd_float multiplicand, sd_float multiplier
     return sd_float_sub(sd_float_mul(multiplicand, multiplier), subtrahend);
 #endif
 }
-
-static inline sd_float sd_float_sqrt(sd_float f) {
-#ifdef __AVX2__
-    return (sd_float){_mm256_sqrt_ps(f.val)};
-#elifdef __SSE2__
-    return (sd_float){_mm_sqrt_ps(f.val)};
-#elifdef __ARM_NEON
-    return (sd_float){vsqrtq_f32(f.val)};
-#else
-    return (sd_float){SDL_sqrtf(f.val)};
-#endif
-}
-
-SD_DEFINE_VECFNS_UNARY(sqrt)
 
 static inline sd_float sd_float_rsqrt(sd_float f) {
 #ifdef __AVX2__
@@ -777,16 +749,6 @@ static inline sd_vec3 sd_vec3_cross(sd_vec3 lhs, sd_vec3 rhs) {
         .y = sd_float_fmsub(lhs.z, rhs.x, sd_float_mul(lhs.x, rhs.z)),
         .z = sd_float_fmsub(lhs.x, rhs.y, sd_float_mul(lhs.y, rhs.x)),
     };
-}
-
-static inline sd_float sd_vec2_length(sd_vec2 v) {
-    sd_float sqrlen = sd_vec2_dot(v, v);
-    return sd_float_sqrt(sqrlen);
-}
-
-static inline sd_float sd_vec3_length(sd_vec3 v) {
-    sd_float sqrlen = sd_vec3_dot(v, v);
-    return sd_float_sqrt(sqrlen);
 }
 
 static inline sd_vec2 sd_vec2_normalize(sd_vec2 v) {

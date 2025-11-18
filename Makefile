@@ -99,7 +99,7 @@ $(OBJS_VECTORIZE_SSE2): $(BLDDIR)/%_sse2.o: %.c
 
 $(OBJS_VECTORIZE_NEON): $(BLDDIR)/%_neon.o: %.c
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(OPTFLAGS) $(DEPFLAGS) -march=armv7 -DSD_DISPATCH_DYNAMIC -c $< -o $@
+	$(CC) $(CFLAGS) $(OPTFLAGS) $(DEPFLAGS) -march=armv7 -mfloat-abi=softfp -DSD_DISPATCH_DYNAMIC -c $< -o $@
 
 $(BLDDIR)/gamma.o: $(BLDDIR)/gamma.c
 	@mkdir -p $(BLDDIR)

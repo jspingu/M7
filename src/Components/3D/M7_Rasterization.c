@@ -42,15 +42,17 @@ static void M7_Rasterizer_ScanPerspective(M7_RasterContext ctx, int high, int lo
 
     sd_vec3 nrml = sd_vec3_cross(ab, ac);
     // sd_vec3 unit_nrml = sd_vec3_normalize(nrml);
-    sd_float inv_nrml_disp = sd_float_div(sd_float_one(), sd_vec3_dot(origin, nrml));
+    sd_float inv_nrml_disp = sd_float_rcp(sd_vec3_dot(origin, nrml));
 
     sd_vec3 perp_ab = sd_vec3_cross(nrml, ab);
     sd_vec3 perp_ac = sd_vec3_cross(ac, nrml);
 
+    sd_float inv_pgram_area = sd_float_rcp(sd_vec3_dot(ab, perp_ac));
+
     sd_vec2 inv_xform[3] = {
-        sd_vec2_div((sd_vec2) { .x = perp_ac.x, .y = perp_ab.x }, sd_vec3_dot(ab, perp_ac)),
-        sd_vec2_div((sd_vec2) { .x = perp_ac.y, .y = perp_ab.y }, sd_vec3_dot(ab, perp_ac)),
-        sd_vec2_div((sd_vec2) { .x = perp_ac.z, .y = perp_ab.z }, sd_vec3_dot(ab, perp_ac))
+        sd_vec2_mul((sd_vec2) { .x = perp_ac.x, .y = perp_ab.x }, inv_pgram_area),
+        sd_vec2_mul((sd_vec2) { .x = perp_ac.y, .y = perp_ab.y }, inv_pgram_area),
+        sd_vec2_mul((sd_vec2) { .x = perp_ac.z, .y = perp_ab.z }, inv_pgram_area)
     };
 
     sd_vec3 origin_nrml = sd_vec3_set(ctx.vs_nrmls[0].x, ctx.vs_nrmls[0].y, ctx.vs_nrmls[0].z);
@@ -68,7 +70,7 @@ static void M7_Rasterizer_ScanPerspective(M7_RasterContext ctx, int high, int lo
         .y = sd_float_set(ctx.target->height * 0.5f)
     };
 
-    sd_float normalize_ss = sd_float_div(sd_float_one(), midpoint.x);
+    sd_float normalize_ss = sd_float_rcp(midpoint.x);
 
     for (int i = high; i < low; ++i) {
         int base = i * sd_bounding_size(ctx.target->width);

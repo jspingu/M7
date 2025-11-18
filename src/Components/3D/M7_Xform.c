@@ -6,10 +6,10 @@
 sd_vec2 SD_VARIANT(M7_ProjectPerspective)(ECS_Handle *self, sd_vec3 pos, sd_vec2 midpoint) {
     (void)self;
 
-    sd_vec2 normalized = sd_vec2_div((sd_vec2) {
+    sd_vec2 normalized = sd_vec2_mul((sd_vec2) {
         .x = pos.x,
         .y = sd_float_negate(pos.y)
-    }, pos.z);
+    }, sd_float_rcp(pos.z));
 
     return sd_vec2_add(midpoint, sd_vec2_mul(normalized, midpoint.x));
 }
