@@ -26,6 +26,14 @@ static inline __m128i gather_sse2(const uint8_t *buf, __m128i idx) {
 }
 #endif
 
+#ifdef __ARM_NEON
+#include <arm_neon.h>
+
+static inline uint32x4_t gather_neon(const uint8_t *buf, uint32x4_t idx) {
+    return (uint32x4_t) { buf[idx[0]], buf[idx[1]], buf[idx[2]], buf[idx[3]] };
+}
+#endif
+
 void SD_VARIANT(M7_Canvas_Present)(ECS_Handle *self) {
     M7_Canvas *canvas = ECS_Entity_GetComponent(self, M7_Components.Canvas);
     M7_Viewport *c_vp = ECS_Entity_GetComponent(canvas->vp, M7_Components.Viewport);
@@ -76,6 +84,22 @@ void SD_VARIANT(M7_Canvas_Present)(ECS_Handle *self) {
 
             __m128i col_out = _mm_or_si128(_mm_or_si128(r, g), b);
             _mm_storeu_si128((__m128i *)(pixels + i * canvas->width) + j, col_out);
+#elifdef __ARM_NEON
+            uint32x4_t byte = vdupq_n_u32(0xFF);
+
+            uint32x4_t r = vcvtq_u32_f32(col.r.val);
+                       r = gather_neon(gamma_encode_lut, r);
+                       r = vshlq_n_u32(r, 16);
+            uint32x4_t g = vcvtq_u32_f32(col.g.val);
+                       g = gather_neon(gamma_encode_lut, g);
+                       g = vandq_u32(g, byte);
+                       g = vshlq_n_u32(g, 8);
+            uint32x4_t b = vcvtq_u32_f32(col.b.val);
+                       b = gather_neon(gamma_encode_lut, b);
+                       b = vandq_u32(b, byte);
+
+            uint32x4_t col_out = vorrq_u32(vorrq_u32(r, g), b);
+            *((uint32x4_t *)(pixels + i * canvas->width) + j) = col_out;
 #else
             uint16_t r = col.r.val;
                      r = gamma_encode_lut[r];
