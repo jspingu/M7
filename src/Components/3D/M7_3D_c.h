@@ -59,8 +59,8 @@ typedef struct M7_Rasterizer {
     ECS_Handle *target;
     M7_VertexProjector project;
     M7_RasterScanner scan;
-    int (*scanlines)[2];
     float near;
+    int parallelism;
 } M7_Rasterizer;
 
 void M7_3D_RegisterToECS(ECS *ecs);
@@ -78,7 +78,6 @@ void M7_World_Free(void *component);
 SD_DECLARE_VOID_RETURN(M7_Rasterizer_Render, ECS_Handle *, self)
 void M7_Rasterizer_Attach(ECS_Handle *self);
 void M7_Rasterizer_Init(void *component, void *args);
-void M7_Rasterizer_Free(void *component);
 
 SD_DECLARE_VOID_RETURN(M7_Canvas_Present, ECS_Handle *, self)
 SD_DECLARE_VOID_RETURN(M7_Canvas_Attach, ECS_Handle *, self)

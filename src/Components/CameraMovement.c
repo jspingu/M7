@@ -3,8 +3,6 @@
 #include <M7/M7_ECS.h>
 #include <M7/Math/linalg.h>
 
-#include <M7/Components/CameraMovement.h>
-
 bool vec3_eq(vec3 lhs, vec3 rhs) {
     return lhs.x == rhs.x &&
            lhs.y == rhs.y &&
@@ -52,7 +50,7 @@ void CameraMovement_Update(ECS_Handle *self, double delta) {
     cam->yaw += mouse_motion.x * 0.15 * delta;
     cam->yaw = cam->yaw - SDL_floor(cam->yaw / (2 * SDL_PI_F)) * 2 * SDL_PI_F;
     cam->pitch += mouse_motion.y * 0.15 * delta;
-    cam->pitch = cam->pitch - SDL_floor(cam->pitch / (2 * SDL_PI_F)) * 2 * SDL_PI_F;
+    cam->pitch = SDL_clamp(cam->pitch, -SDL_PI_F / 2, SDL_PI_F / 2);
 
     *basis = mat3x3_rotate(
         mat3x3_rotate(mat3x3_identity, vec3_i, cam->pitch),

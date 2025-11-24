@@ -15,13 +15,13 @@ typedef struct M7_RenderInstance M7_RenderInstance;
 typedef struct M7_World M7_World;
 typedef struct M7_Model M7_Model;
 typedef struct M7_Rasterizer M7_Rasterizer;
-typedef struct M7_RasterContext M7_RasterContext;
+typedef struct M7_TriangleDraw M7_TriangleDraw;
 
 typedef xform3 (*M7_XformComposer)(ECS_Handle *self, xform3 lhs);
 
 typedef sd_vec3 (*M7_FragmentShader)(void *ctx, sd_vec3 pos, sd_vec3 normal, sd_vec2 tex_coord);
 typedef sd_vec2 (*M7_VertexProjector)(ECS_Handle *self, sd_vec3 pos, sd_vec2 midpoint);
-typedef void (*M7_RasterScanner)(ECS_Handle *self, M7_RasterContext raster_ctx);
+typedef void (*M7_RasterScanner)(ECS_Handle *self, M7_TriangleDraw *tri, int (*scanlines)[2], int range[2]);
 
 typedef enum M7_RasterizerFlags {
     M7_RASTERIZER_ALPHA_BLEND         = 1 << 0,
@@ -46,20 +46,23 @@ typedef struct M7_Canvas {
     sd_float *depth;
 } M7_Canvas;
 
-typedef struct M7_RasterContext {
-    M7_Canvas *target;
+typedef struct M7_TriangleDraw {
     M7_FragmentShader shader;
-    M7_RasterizerFlags flags;
-    int (*scanlines)[2];
     vec3 vs_verts[3];
     vec3 vs_nrmls[3];
     vec2 ts_verts[3];
-} M7_RasterContext;
+    vec2 ss_verts[3];
+    struct {
+        int left, right;
+        int top, bottom;
+    } sd_bounding_box;
+} M7_TriangleDraw;
 
 typedef struct M7_RasterizerArgs {
     M7_VertexProjector project;
     M7_RasterScanner scan;
     float near;
+    int parallelism;
 } M7_RasterizerArgs;
 
 xform3 M7_Entity_GetXform(ECS_Handle *self);
@@ -87,13 +90,7 @@ void M7_RenderInstance_Free(M7_RenderInstance *instance);
 M7_RenderInstance *M7_WorldGeometry_Instance(M7_WorldGeometry *geometry, M7_FragmentShader shader, size_t render_batch, M7_RasterizerFlags flags);
 void M7_WorldGeometry_Free(M7_WorldGeometry *geometry);
 
-SD_DECLARE(sd_vec2, M7_ProjectStub, ECS_Handle *, self, sd_vec3, pos, sd_vec2, midpoint)
 SD_DECLARE(sd_vec2, M7_ProjectPerspective, ECS_Handle *, self, sd_vec3, point, sd_vec2, midpoint)
-
-// SD_DECLARE(sd_vec2, M7_ProjectOrthographic, ECS_Handle *, self, sd_vec3, point, sd_vec2, midpoint)
-// SD_DECLARE(sd_vec2, M7_ProjectImitationSpriteStack, ECS_Handle *, self, sd_vec3, point, sd_vec2, midpoint)
-//
-// SD_DECLARE_VOID_RETURN(M7_ScanPerspective, ECS_Handle *, self, M7_RasterContext, ctx)
-// SD_DECLARE_VOID_RETURN(M7_ScanLinear, ECS_Handle *, self, M7_RasterContext, ctx)
+SD_DECLARE_VOID_RETURN(M7_ScanPerspective, ECS_Handle *, self, M7_TriangleDraw *, tri, int (*)[2], scanlines, int [2], range)
 
 #endif /* M7_3D_H */

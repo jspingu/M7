@@ -36,12 +36,12 @@ static inline uint32x4_t gather_neon(const uint8_t *buf, uint32x4_t idx) {
 
 void SD_VARIANT(M7_Canvas_Present)(ECS_Handle *self) {
     M7_Canvas *canvas = ECS_Entity_GetComponent(self, M7_Components.Canvas);
-    M7_Viewport *c_vp = ECS_Entity_GetComponent(canvas->vp, M7_Components.Viewport);
+    M7_Viewport *vp = ECS_Entity_GetComponent(canvas->vp, M7_Components.Viewport);
 
     uint32_t *pixels;
     int pitch;
 
-    SDL_LockTexture(c_vp->texture, nullptr, (void **)&pixels, &pitch);
+    SDL_LockTexture(vp->texture, nullptr, (void **)&pixels, &pitch);
 
     for (int i = 0; i < canvas->height; ++i) {
         sd_vec3 *base = canvas->color + i * sd_bounding_size(canvas->width);
@@ -126,9 +126,9 @@ void SD_VARIANT(M7_Canvas_Present)(ECS_Handle *self) {
         }
     }
 
-    SDL_UnlockTexture(c_vp->texture);
-    SDL_RenderTexture(c_vp->renderer, c_vp->texture, nullptr, nullptr);
-    SDL_RenderPresent(c_vp->renderer);
+    SDL_UnlockTexture(vp->texture);
+    SDL_RenderTexture(vp->renderer, vp->texture, nullptr, nullptr);
+    SDL_RenderPresent(vp->renderer);
 }
 
 void SD_VARIANT(M7_Canvas_Attach)(ECS_Handle *self) {

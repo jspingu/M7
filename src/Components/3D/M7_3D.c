@@ -18,8 +18,7 @@ void M7_3D_RegisterToECS(ECS *ecs) {
 
     M7_Components.Rasterizer = ECS_RegisterComponent(ecs, M7_Rasterizer, {
         .attach = M7_Rasterizer_Attach,
-        .init = M7_Rasterizer_Init,
-        .free = M7_Rasterizer_Free
+        .init = M7_Rasterizer_Init
     });
 
     M7_Components.Model = ECS_RegisterComponent(ecs, M7_Model, {

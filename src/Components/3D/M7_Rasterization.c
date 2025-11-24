@@ -7,6 +7,16 @@
 
 #include "M7_3D_c.h"
 
+typedef struct TriangleDispatcherData {
+    SDL_Mutex *sync;
+    SDL_Condition *wake;
+    ECS_Handle *rasterizer;
+    M7_RasterizerFlags flags;
+    List(M7_TriangleDraw *) *triangles;
+    M7_TriangleDraw **active_triangles;
+    int id, ndispatchers;
+} TriangleDispatcherData;
+
 static inline int roundtl(float f) {
     return SDL_ceilf(f - 0.5f);
 }
@@ -17,31 +27,15 @@ static inline vec3 intersect_near(vec3 from, vec3 to, float near) {
     return vec3_add(from, vec3_mul(slope, near - from.z));
 }
 
-static void M7_Rasterizer_Trace(M7_RasterContext ctx, vec2 line[2]) {
-    vec2 path = vec2_sub(line[1], line[0]);
+void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw *triangle, int (*scanlines)[2], int range[2]) {
+    M7_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, M7_Components.Rasterizer);
+    M7_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, M7_Components.Canvas);
 
-    int trace_range[2] = {
-        SDL_clamp(roundtl(line[0].y), 0, ctx.target->height),
-        SDL_clamp(roundtl(line[1].y), 0, ctx.target->height)
-    };
-
-    bool descending = path.y > 0;
-    float slope = path.x / path.y;
-    float offset = line[!descending].x + (trace_range[!descending] + 0.5f - line[!descending].y) * slope;
-
-    for (int i = trace_range[!descending]; i < trace_range[descending]; ++i) {
-        ctx.scanlines[i][descending] = SDL_clamp(roundtl(offset), 0, ctx.target->width);
-        offset += slope;
-    }
-}
-
-static void M7_Rasterizer_ScanPerspective(M7_RasterContext ctx, int high, int low) {
-    sd_vec3 origin = sd_vec3_set(ctx.vs_verts[0].x, ctx.vs_verts[0].y, ctx.vs_verts[0].z);
-    sd_vec3 ab = sd_vec3_sub(sd_vec3_set(ctx.vs_verts[1].x, ctx.vs_verts[1].y, ctx.vs_verts[1].z), origin);
-    sd_vec3 ac = sd_vec3_sub(sd_vec3_set(ctx.vs_verts[2].x, ctx.vs_verts[2].y, ctx.vs_verts[2].z), origin);
+    sd_vec3 origin = sd_vec3_set(triangle->vs_verts[0].x, triangle->vs_verts[0].y, triangle->vs_verts[0].z);
+    sd_vec3 ab = sd_vec3_sub(sd_vec3_set(triangle->vs_verts[1].x, triangle->vs_verts[1].y, triangle->vs_verts[1].z), origin);
+    sd_vec3 ac = sd_vec3_sub(sd_vec3_set(triangle->vs_verts[2].x, triangle->vs_verts[2].y, triangle->vs_verts[2].z), origin);
 
     sd_vec3 nrml = sd_vec3_cross(ab, ac);
-    // sd_vec3 unit_nrml = sd_vec3_normalize(nrml);
     sd_float inv_nrml_disp = sd_float_rcp(sd_vec3_dot(origin, nrml));
 
     sd_vec3 perp_ab = sd_vec3_cross(nrml, ab);
@@ -55,9 +49,9 @@ static void M7_Rasterizer_ScanPerspective(M7_RasterContext ctx, int high, int lo
         sd_vec2_mul((sd_vec2) { .x = perp_ac.z, .y = perp_ab.z }, inv_pgram_area)
     };
 
-    sd_vec3 origin_nrml = sd_vec3_set(ctx.vs_nrmls[0].x, ctx.vs_nrmls[0].y, ctx.vs_nrmls[0].z);
-    sd_vec3 ab_nrml = sd_vec3_sub(sd_vec3_set(ctx.vs_nrmls[1].x, ctx.vs_nrmls[1].y, ctx.vs_nrmls[1].z), origin_nrml);
-    sd_vec3 ac_nrml = sd_vec3_sub(sd_vec3_set(ctx.vs_nrmls[2].x, ctx.vs_nrmls[2].y, ctx.vs_nrmls[2].z), origin_nrml);
+    sd_vec3 origin_nrml = sd_vec3_set(triangle->vs_nrmls[0].x, triangle->vs_nrmls[0].y, triangle->vs_nrmls[0].z);
+    sd_vec3 ab_nrml = sd_vec3_sub(sd_vec3_set(triangle->vs_nrmls[1].x, triangle->vs_nrmls[1].y, triangle->vs_nrmls[1].z), origin_nrml);
+    sd_vec3 ac_nrml = sd_vec3_sub(sd_vec3_set(triangle->vs_nrmls[2].x, triangle->vs_nrmls[2].y, triangle->vs_nrmls[2].z), origin_nrml);
 
     sd_vec3 nrml_xform[3] = {
         sd_vec3_fmadd(ac_nrml, inv_xform[0].y, sd_vec3_mul(ab_nrml, inv_xform[0].x)),
@@ -66,20 +60,20 @@ static void M7_Rasterizer_ScanPerspective(M7_RasterContext ctx, int high, int lo
     };
 
     sd_vec2 midpoint = {
-        .x = sd_float_set(ctx.target->width * 0.5f),
-        .y = sd_float_set(ctx.target->height * 0.5f)
+        .x = sd_float_set(canvas->width * 0.5f),
+        .y = sd_float_set(canvas->height * 0.5f)
     };
 
     sd_float normalize_ss = sd_float_rcp(midpoint.x);
 
-    for (int i = high; i < low; ++i) {
-        int base = i * sd_bounding_size(ctx.target->width);
-        int sd_left = ctx.scanlines[i][0] / SD_LENGTH;
-        int sd_right = sd_bounding_size(ctx.scanlines[i][1]);
+    for (int i = range[0]; i < range[1]; ++i) {
+        int base = i * sd_bounding_size(canvas->width);
+        int sd_left = scanlines[i][0] / SD_LENGTH;
+        int sd_right = sd_bounding_size(scanlines[i][1]);
 
         for (int j = sd_left; j < sd_right; ++j) {
             int left = j * SD_LENGTH;
-            sd_vec3 bg = ctx.target->color[base + j];
+            sd_vec3 bg = canvas->color[base + j];
 
             sd_float fragment_x = sd_float_add(sd_float_range(), sd_float_set(0.5));
                      fragment_x = sd_float_add(fragment_x, sd_float_set(left));
@@ -125,49 +119,243 @@ static void M7_Rasterizer_ScanPerspective(M7_RasterContext ctx, int high, int lo
 
             sd_float mask = sd_float_clamp_mask(
                 fragment_x,
-                ctx.scanlines[i][0],
-                ctx.scanlines[i][1]
+                scanlines[i][0],
+                scanlines[i][1]
             );
 
             /* Inverse z in depth buffer */
-            sd_float bg_z = ctx.target->depth[base + j];
+            sd_float bg_z = canvas->depth[base + j];
             mask = sd_float_and(mask, sd_float_gt(inv_z, bg_z));
 
-            ctx.target->depth[base + j] = sd_float_mask_blend(bg_z, inv_z, mask);
-            ctx.target->color[base + j] = sd_vec3_mask_blend(bg, col, mask);
+            canvas->depth[base + j] = sd_float_mask_blend(bg_z, inv_z, mask);
+            canvas->color[base + j] = sd_vec3_mask_blend(bg, col, mask);
         }
     }
 }
 
-static void M7_Rasterizer_DrawTriangle(M7_RasterContext ctx, vec2 ss_verts[3]) {
-    float min_y = SDL_min(SDL_min(ss_verts[0].y, ss_verts[1].y), ss_verts[2].y);
-    float max_y = SDL_max(SDL_max(ss_verts[0].y, ss_verts[1].y), ss_verts[2].y);
+static void Trace(int width, int height, int (*scanlines)[2], vec2 line[2]) {
+    vec2 path = vec2_sub(line[1], line[0]);
 
-    int high = SDL_clamp(roundtl(min_y), 0, ctx.target->height);
-    int low = SDL_clamp(roundtl(max_y), 0, ctx.target->height);
+    int trace_range[2] = {
+        SDL_clamp(roundtl(line[0].y), 0, height),
+        SDL_clamp(roundtl(line[1].y), 0, height)
+    };
 
-    bool ss_verts_cw = vec2_dot(
-        vec2_orthogonal(vec2_sub(ss_verts[1], ss_verts[0])),
-        vec2_sub(ss_verts[2], ss_verts[0])
-    ) > 0;
+    bool descending = path.y > 0;
+    float slope = path.x / path.y;
+    float offset = line[!descending].x + (trace_range[!descending] + 0.5f - line[!descending].y) * slope;
 
-    if (ctx.flags & M7_RASTERIZER_CULL_BACKFACE && !ss_verts_cw)
-        return;
+    for (int i = trace_range[!descending]; i < trace_range[descending]; ++i) {
+        scanlines[i][descending] = SDL_clamp(roundtl(offset), 0, width);
+        offset += slope;
+    }
+}
 
-    M7_Rasterizer_Trace(ctx, (vec2 [2]) { ss_verts[0], ss_verts[1 + !ss_verts_cw] });
-    M7_Rasterizer_Trace(ctx, (vec2 [2]) { ss_verts[1 + !ss_verts_cw], ss_verts[1 + ss_verts_cw] });
-    M7_Rasterizer_Trace(ctx, (vec2 [2]) { ss_verts[1 + ss_verts_cw], ss_verts[0] });
+static void M7_Rasterizer_DrawTriangle(ECS_Handle *self, M7_TriangleDraw *triangle, int (*scanlines)[2]) {
+    M7_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, M7_Components.Rasterizer);
+    M7_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, M7_Components.Canvas);
 
-    M7_Rasterizer_ScanPerspective(ctx, high, low);
+    float min_y = SDL_min(SDL_min(triangle->ss_verts[0].y, triangle->ss_verts[1].y), triangle->ss_verts[2].y);
+    float max_y = SDL_max(SDL_max(triangle->ss_verts[0].y, triangle->ss_verts[1].y), triangle->ss_verts[2].y);
+
+    int high = SDL_clamp(roundtl(min_y), 0, canvas->height);
+    int low = SDL_clamp(roundtl(max_y), 0, canvas->height);
+
+    for (int i = 0; i < 3; ++i)
+        Trace(canvas->width, canvas->height, scanlines, (vec2 [2]) { triangle->ss_verts[i], triangle->ss_verts[(i + 1) % 3] });
+
+    rasterizer->scan(self, triangle, scanlines, (int [2]) { high, low });
+}
+
+static M7_TriangleDraw *ExtractSafeTriangleDraw(List(M7_TriangleDraw *) *triangles, M7_TriangleDraw **active, int ndispatchers) {
+    for (size_t i = List_Length(triangles); i > 0; --i) {
+        M7_TriangleDraw *triangle = List_Get(triangles, i - 1);
+        bool skip = false;
+
+        for (int j = 0; !skip && j < ndispatchers; ++j)
+            skip = active[j] && triangle->sd_bounding_box.left < active[j]->sd_bounding_box.right
+                             && triangle->sd_bounding_box.right > active[j]->sd_bounding_box.left
+                             && triangle->sd_bounding_box.top < active[j]->sd_bounding_box.bottom
+                             && triangle->sd_bounding_box.bottom > active[j]->sd_bounding_box.top;
+
+        if (!skip) {
+            List_Remove(triangles, i - 1);
+            return triangle;
+        }
+    }
+
+    return nullptr;
+}
+
+static int DispatchTriDraws(void *data) {
+    TriangleDispatcherData *dispatch = data;
+    M7_Rasterizer *rasterizer = ECS_Entity_GetComponent(dispatch->rasterizer, M7_Components.Rasterizer);
+    M7_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, M7_Components.Canvas);
+    int (*scanlines)[2] = SDL_malloc(sizeof(int [2]) * canvas->height);
+
+    while (true) {
+        SDL_LockMutex(dispatch->sync);
+        
+        do {
+            if (!List_Length(dispatch->triangles)) {
+                SDL_UnlockMutex(dispatch->sync);
+                SDL_free(scanlines);
+                return 0;
+            }
+
+            M7_TriangleDraw *safe_triangle = ExtractSafeTriangleDraw(dispatch->triangles, dispatch->active_triangles, dispatch->ndispatchers);
+
+            if (safe_triangle)
+                dispatch->active_triangles[dispatch->id] = safe_triangle;
+            else
+                SDL_WaitCondition(dispatch->wake, dispatch->sync);
+        } while (!dispatch->active_triangles[dispatch->id]);
+
+        SDL_UnlockMutex(dispatch->sync);
+
+        M7_Rasterizer_DrawTriangle(dispatch->rasterizer, dispatch->active_triangles[dispatch->id], scanlines);
+
+        SDL_LockMutex(dispatch->sync);
+        SDL_free(dispatch->active_triangles[dispatch->id]);
+        dispatch->active_triangles[dispatch->id] = nullptr;
+        SDL_BroadcastCondition(dispatch->wake);
+        SDL_UnlockMutex(dispatch->sync);
+    }
+}
+
+static void M7_Rasterizer_DrawBatch(ECS_Handle *self, M7_RasterizerFlags flags, List(M7_RenderInstance *) *batch) {
+    M7_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, M7_Components.Rasterizer);
+    M7_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, M7_Components.Canvas);
+    List(M7_TriangleDraw *) *triangles = List_Create(M7_TriangleDraw *);
+
+    /* Queue up triangle draws */
+    List_ForEach(batch, instance, {
+        M7_MeshFace *faces = instance->geometry->mesh->faces;
+        size_t nfaces = instance->geometry->mesh->nfaces;
+
+        for (size_t i = 0; i < nfaces; ++i) {
+            /* Cull backface or correct the vertex ordering */
+            vec3 vs_verts[3];
+
+            SDL_memcpy(vs_verts, &(sd_vec3_scalar [3]) {
+                sd_vec3_arr_get(instance->geometry->vs_verts, faces[i].idx_verts[0]),
+                sd_vec3_arr_get(instance->geometry->vs_verts, faces[i].idx_verts[1]),
+                sd_vec3_arr_get(instance->geometry->vs_verts, faces[i].idx_verts[2])
+            }, sizeof(vec3 [3]));
+
+            vec3 nrml = vec3_cross(vec3_sub(vs_verts[1], vs_verts[0]), vec3_sub(vs_verts[2], vs_verts[0]));
+            bool verts_cw = vec3_dot(vs_verts[0], nrml) < 0;
+
+            if (flags & M7_RASTERIZER_CULL_BACKFACE && !verts_cw)
+                continue;
+
+            SDL_memcpy(vs_verts, (vec3 [3]) { vs_verts[0], vs_verts[1 + !verts_cw], vs_verts[1 + verts_cw] }, sizeof(vec3 [3]));
+
+            /* Perform near plane clipping */
+            vec2 ss_verts[3];
+            vec2 clipped[4];
+            int nclipped = 0;
+
+            SDL_memcpy(ss_verts, (sd_vec2_scalar [3]) {
+                sd_vec2_arr_get(instance->geometry->ss_verts, faces[i].idx_verts[0]),
+                sd_vec2_arr_get(instance->geometry->ss_verts, faces[i].idx_verts[1 + !verts_cw]),
+                sd_vec2_arr_get(instance->geometry->ss_verts, faces[i].idx_verts[1 + verts_cw]),
+            }, sizeof(vec2 [3]));
+
+            for (int j = 0; j < 3; ++j) {
+                vec3 curr = vs_verts[j];
+                vec3 next = vs_verts[(j + 1) % 3];
+
+                if (curr.z >= rasterizer->near)
+                    clipped[nclipped++] = ss_verts[j];
+
+                if ((curr.z < rasterizer->near) != (next.z < rasterizer->near)) {
+                    vec3 intercept = intersect_near(curr, next, rasterizer->near);
+
+                    sd_vec2 projected = rasterizer->project(self,
+                        sd_vec3_set(intercept.x, intercept.y, rasterizer->near),
+                        sd_vec2_set(canvas->width * 0.5f, canvas->height * 0.5f)
+                    );
+
+                    sd_vec2_scalar projected_scalar = sd_vec2_arr_get(&projected, 0);
+                    SDL_memcpy(clipped + nclipped++, &projected_scalar, sizeof(vec2));
+                }
+            }
+
+            /* Triangle fan clipped verticies */
+            for (int j = 1; j < nclipped - 1; ++j) {
+                M7_TriangleDraw *triangle = SDL_malloc(sizeof(M7_TriangleDraw));
+                SDL_memcpy(triangle->vs_verts, vs_verts, sizeof(vec3 [3]));
+                SDL_memcpy(triangle->ss_verts, (vec2 [3]) { clipped[0], clipped[j], clipped[j + 1] }, sizeof(vec2 [3]));
+
+                SDL_memcpy(triangle->vs_nrmls, (sd_vec3_scalar [3]) {
+                    sd_vec3_arr_get(instance->geometry->vs_nrmls, faces[i].idx_verts[0]),
+                    sd_vec3_arr_get(instance->geometry->vs_nrmls, faces[i].idx_verts[1 + !verts_cw]),
+                    sd_vec3_arr_get(instance->geometry->vs_nrmls, faces[i].idx_verts[1 + verts_cw])
+                }, sizeof(vec3 [3]));
+
+                /* Compute strided bounding box */
+                float min_x = SDL_min(triangle->ss_verts[0].x, SDL_min(triangle->ss_verts[1].x, triangle->ss_verts[2].x));
+                float max_x = SDL_max(triangle->ss_verts[0].x, SDL_max(triangle->ss_verts[1].x, triangle->ss_verts[2].x));
+                float min_y = SDL_min(triangle->ss_verts[0].y, SDL_min(triangle->ss_verts[1].y, triangle->ss_verts[2].y));
+                float max_y = SDL_max(triangle->ss_verts[0].y, SDL_max(triangle->ss_verts[1].y, triangle->ss_verts[2].y));
+
+                triangle->sd_bounding_box.left = roundtl(min_x) / SD_LENGTH;
+                triangle->sd_bounding_box.right = sd_bounding_size(roundtl(max_x));
+                triangle->sd_bounding_box.top = roundtl(min_y);
+                triangle->sd_bounding_box.bottom = roundtl(max_y);
+
+                List_Push(triangles, triangle);
+            }
+        }
+    });
+
+    /* TODO: Triangle sort here, if the flag is set */
+
+    /* Dispatch triangle draws with multithreading */
+    SDL_Thread **threads = SDL_malloc(sizeof(SDL_Thread *) * rasterizer->parallelism);
+    SDL_Mutex *sync = SDL_CreateMutex();
+    SDL_Condition *wake = SDL_CreateCondition();
+    M7_TriangleDraw **active_triangles = SDL_malloc(sizeof(M7_TriangleDraw *) * rasterizer->parallelism);
+    TriangleDispatcherData *dispatcher_data = SDL_malloc(sizeof(TriangleDispatcherData) * rasterizer->parallelism);
+
+    for (int i = 0; i < rasterizer->parallelism; ++i) {
+        active_triangles[i] = nullptr;
+
+        dispatcher_data[i] = (TriangleDispatcherData) {
+            .sync = sync,
+            .wake = wake,
+            .rasterizer = self,
+            .flags = flags,
+            .triangles = triangles,
+            .active_triangles = active_triangles,
+            .id = i,
+            .ndispatchers = rasterizer->parallelism
+        };
+    }
+
+    for (int i = 0; i < rasterizer->parallelism; ++i)
+        threads[i] = SDL_CreateThread(DispatchTriDraws, "triangles", dispatcher_data + i);
+
+    for (int i = 0; i < rasterizer->parallelism; ++i)
+        SDL_WaitThread(threads[i], nullptr);
+
+    SDL_free(dispatcher_data);
+    SDL_free(active_triangles);
+    SDL_DestroyMutex(sync);
+    SDL_DestroyCondition(wake);
+    SDL_free(threads);
+
+    List_Free(triangles);
 }
 
 void SD_VARIANT(M7_Rasterizer_Render)(ECS_Handle *self) {
     M7_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, M7_Components.Rasterizer);
-    M7_World *c_world = ECS_Entity_GetComponent(rasterizer->world, M7_Components.World);
-    M7_Canvas *c_canvas = ECS_Entity_GetComponent(rasterizer->target, M7_Components.Canvas);
+    M7_World *world = ECS_Entity_GetComponent(rasterizer->world, M7_Components.World);
+    M7_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, M7_Components.Canvas);
 
     /* Transform registered world geometry */
-    List(M7_WorldGeometry *) *geometry = c_world->geometry;
+    List(M7_WorldGeometry *) *geometry = world->geometry;
     xform3 cam_xform = M7_Entity_GetXform(self);
 
     xform3 ws2vs_xform = {
@@ -210,91 +398,22 @@ void SD_VARIANT(M7_Rasterizer_Render)(ECS_Handle *self) {
         size_t sd_count = sd_bounding_size(wg->mesh->nverts);
 
         for (size_t i = 0; i < sd_count; ++i)
-            wg->ss_verts[i] = rasterizer->project(self, wg->vs_verts[i], sd_vec2_set(c_canvas->width * 0.5f, c_canvas->height * 0.5f));
+            wg->ss_verts[i] = rasterizer->project(self, wg->vs_verts[i], sd_vec2_set(canvas->width * 0.5f, canvas->height * 0.5f));
     });
 
     /* Clear canvas */
-    for (size_t i = 0; i < sd_bounding_size(c_canvas->width) * c_canvas->height; ++i) {
-        c_canvas->color[i] = sd_vec3_set(0, 0, 0);
-        c_canvas->depth[i] = sd_float_set(0);
+    for (size_t i = 0; i < sd_bounding_size(canvas->width) * canvas->height; ++i) {
+        canvas->color[i] = sd_vec3_zero();
+        canvas->depth[i] = sd_float_zero();
     }
 
-    /* Draw geometry */
-    for (size_t i = 0; i < List_Length(c_world->render_batches); ++i) {
-        /* Ignore flags for now */
+    /* Draw geometry in batches, according to render order and rasterizer flags */
+    for (size_t i = 0; i < List_Length(world->render_batches); ++i) {
         for (int flags = 0; flags < M7_RASTERIZER_FLAG_COMBINATIONS; ++flags) {
-            List(M7_RenderInstance *) *flag_batch = List_Get(c_world->render_batches, i)[flags];
+            List(M7_RenderInstance *) *flag_batch = List_Get(world->render_batches, i)[flags];
 
-            if (!flag_batch)
-                continue;
-
-            List_ForEach(flag_batch, instance, {
-                M7_MeshFace *faces = instance->geometry->mesh->faces;
-                size_t nfaces = instance->geometry->mesh->nfaces;
-
-                for (size_t j = 0; j < nfaces; ++j) {
-                    M7_RasterContext ctx = {
-                        .target = c_canvas,
-                        .shader = instance->shader,
-                        .scanlines = rasterizer->scanlines,
-                        .flags = flags
-                    };
-
-                    /* This should segfault, since mesh->ts_verts is nullptr, but it somehow doesn't when compiled on gcc */
-                    // SDL_memcpy(ctx.ts_verts, (vec2 [3]) {
-                    //     instance->geometry->mesh->ts_verts[faces[j].idx_tverts[0]],
-                    //     instance->geometry->mesh->ts_verts[faces[j].idx_tverts[1]],
-                    //     instance->geometry->mesh->ts_verts[faces[j].idx_tverts[2]],
-                    // }, sizeof(vec2 [3]));
-
-                    SDL_memcpy(ctx.vs_verts, &(sd_vec3_scalar [3]) {
-                        sd_vec3_arr_get(instance->geometry->vs_verts, faces[j].idx_verts[0]),
-                        sd_vec3_arr_get(instance->geometry->vs_verts, faces[j].idx_verts[1]),
-                        sd_vec3_arr_get(instance->geometry->vs_verts, faces[j].idx_verts[2])
-                    }, sizeof(vec3 [3]));
-
-                    SDL_memcpy(ctx.vs_nrmls, &(sd_vec3_scalar [3]) {
-                        sd_vec3_arr_get(instance->geometry->vs_nrmls, faces[j].idx_verts[0]),
-                        sd_vec3_arr_get(instance->geometry->vs_nrmls, faces[j].idx_verts[1]),
-                        sd_vec3_arr_get(instance->geometry->vs_nrmls, faces[j].idx_verts[2])
-                    }, sizeof(vec3 [3]));
-
-                    vec2 ss_verts[3];
-
-                    SDL_memcpy(ss_verts, &(sd_vec2_scalar [3]) {
-                        sd_vec2_arr_get(instance->geometry->ss_verts, faces[j].idx_verts[0]),
-                        sd_vec2_arr_get(instance->geometry->ss_verts, faces[j].idx_verts[1]),
-                        sd_vec2_arr_get(instance->geometry->ss_verts, faces[j].idx_verts[2]),
-                    }, sizeof(vec2 [3]));
-
-                    /* Perform near plane clipping */
-                    vec2 clipped[4];
-                    int nclipped = 0;
-
-                    for (int k = 0; k < 3; ++k) {
-                        vec3 curr = ctx.vs_verts[k];
-                        vec3 next = ctx.vs_verts[(k + 1) % 3];
-
-                        if (curr.z >= rasterizer->near)
-                            clipped[nclipped++] = ss_verts[k];
-
-                        if ((curr.z < rasterizer->near) != (next.z < rasterizer->near)) {
-                            vec3 intercept = intersect_near(curr, next, rasterizer->near);
-
-                            sd_vec2 projected = rasterizer->project(self,
-                                sd_vec3_set(intercept.x, intercept.y, rasterizer->near),
-                                sd_vec2_set(c_canvas->width * 0.5f, c_canvas->height * 0.5f)
-                            );
-
-                            sd_vec2_scalar projected_scalar = sd_vec2_arr_get(&projected, 0);
-                            SDL_memcpy(clipped + nclipped++, &projected_scalar, sizeof(vec2));
-                        }
-                    }
-
-                    for (int k = 0; k < nclipped - 2; ++k)
-                        M7_Rasterizer_DrawTriangle(ctx, (vec2 [3]) { clipped[0], clipped[k + 1], clipped[k + 2] });
-                }
-            });
+            if (flag_batch)
+                M7_Rasterizer_DrawBatch(self, flags, flag_batch);
         }
     }
 }
@@ -305,25 +424,18 @@ void M7_Rasterizer_Attach(ECS_Handle *self) {
     M7_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, M7_Components.Rasterizer);
     rasterizer->world = ECS_Entity_AncestorWithComponent(self, M7_Components.World, true);
     rasterizer->target = ECS_Entity_AncestorWithComponent(self, M7_Components.Canvas, true);
-
-    M7_Canvas *c_canvas = ECS_Entity_GetComponent(rasterizer->target, M7_Components.Canvas);
-    rasterizer->scanlines = SDL_malloc(sizeof(int [2]) * c_canvas->height);
 }
 
 void M7_Rasterizer_Init(void *component, void *args) {
     M7_Rasterizer *rasterizer = component;
-    M7_RasterizerArgs *raster_args = args;
+    M7_RasterizerArgs *rasterizer_args = args;
 
     *rasterizer = (M7_Rasterizer) {
-        .project = raster_args->project,
-        .scan = raster_args->scan,
-        .near = raster_args->near
+        .project = rasterizer_args->project,
+        .scan = rasterizer_args->scan,
+        .near = rasterizer_args->near,
+        .parallelism = rasterizer_args->parallelism
     };
-}
-
-void M7_Rasterizer_Free(void *component) {
-    M7_Rasterizer *rasterizer = component;
-    SDL_free(rasterizer->scanlines);
 }
 
 #endif /* SD_BASE */

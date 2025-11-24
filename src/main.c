@@ -5,6 +5,9 @@
 #define SDL_MAIN_USE_CALLBACKS
 #include <SDL3/SDL_main.h>
 
+#include <stdio.h>
+#include <M7/Math/linalg.h>
+
 static Uint64 count;
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
@@ -19,13 +22,13 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
     ECS_Entity_AttachComponents(root,
         { M7_Components.Viewport, &(M7_ViewportArgs){
             .title = "Good morning!",
-            .width = 1280,
-            .height = 720
+            .width = 960,
+            .height = 540
         }},
         { M7_Components.InputState, nullptr },
         { M7_Components.Canvas, &(M7_Canvas){
-            .width = 1280,
-            .height = 720
+            .width = 960,
+            .height = 540
         }},
         { M7_Components.World, nullptr },
         { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault} }
@@ -36,7 +39,9 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
             ECS_Components(
                 { M7_Components.Rasterizer, &(M7_RasterizerArgs) {
                     .project = SD_SELECT(M7_ProjectPerspective),
-                    .near = 5
+                    .scan = SD_SELECT(M7_ScanPerspective),
+                    .near = 5,
+                    .parallelism = 4
                 }},
                 { M7_Components.CameraMovement, &(CameraMovement){} },
                 { M7_Components.Position, &(vec3){} },
@@ -57,6 +62,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
 
     count = SDL_GetPerformanceCounter();
     *appstate = ecs;
+    // return SDL_APP_SUCCESS;
     return SDL_APP_CONTINUE;
 }
 
@@ -66,6 +72,8 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     Uint64 new_count = SDL_GetPerformanceCounter();
     double delta = (double)(new_count - count) / SDL_GetPerformanceFrequency();
     count = new_count;
+
+    printf("FPS: %li              \n\x1b[F", SDL_lround(1/delta));
 
     ECS_SystemGroup_Process(M7_SystemGroups.Update, delta);
 

@@ -83,14 +83,14 @@ SD_DEFINE_TYPES(scalar, float) // NOLINT(bugprone-sizeof-expression)
 #endif
 
 #define SD_PARAMS(...)                 __VA_OPT__(SD_PARAM1(__VA_ARGS__))
-#define SD_PARAM1(type,name,...)       type name __VA_OPT__(, SD_PARAM2(__VA_ARGS__))
-#define SD_PARAM2(type,name,...)       type name __VA_OPT__(, SD_PARAM3(__VA_ARGS__))
-#define SD_PARAM3(type,name,...)       type name __VA_OPT__(, SD_PARAM4(__VA_ARGS__))
-#define SD_PARAM4(type,name,...)       type name __VA_OPT__(, SD_PARAM5(__VA_ARGS__))
-#define SD_PARAM5(type,name,...)       type name __VA_OPT__(, SD_PARAM6(__VA_ARGS__))
-#define SD_PARAM6(type,name,...)       type name __VA_OPT__(, SD_PARAM7(__VA_ARGS__))
-#define SD_PARAM7(type,name,...)       type name __VA_OPT__(, SD_PARAM8(__VA_ARGS__))
-#define SD_PARAM8(type,name,...)       type name
+#define SD_PARAM1(type,name,...)       typeof(type) name __VA_OPT__(, SD_PARAM2(__VA_ARGS__))
+#define SD_PARAM2(type,name,...)       typeof(type) name __VA_OPT__(, SD_PARAM3(__VA_ARGS__))
+#define SD_PARAM3(type,name,...)       typeof(type) name __VA_OPT__(, SD_PARAM4(__VA_ARGS__))
+#define SD_PARAM4(type,name,...)       typeof(type) name __VA_OPT__(, SD_PARAM5(__VA_ARGS__))
+#define SD_PARAM5(type,name,...)       typeof(type) name __VA_OPT__(, SD_PARAM6(__VA_ARGS__))
+#define SD_PARAM6(type,name,...)       typeof(type) name __VA_OPT__(, SD_PARAM7(__VA_ARGS__))
+#define SD_PARAM7(type,name,...)       typeof(type) name __VA_OPT__(, SD_PARAM8(__VA_ARGS__))
+#define SD_PARAM8(type,name,...)       typeof(type) name
 
 #define SD_PARAM_NAMES(...)            __VA_OPT__(SD_PARAM_NAME1(__VA_ARGS__))
 #define SD_PARAM_NAME1(type,name,...)  name __VA_OPT__(, SD_PARAM_NAME2(__VA_ARGS__))
@@ -153,14 +153,14 @@ SD_DEFINE_TYPES(scalar, float) // NOLINT(bugprone-sizeof-expression)
 #define SD_LENGTH  ( sizeof(sd_float) / sizeof(float) )
 #define SD_ALIGN   ( alignof(sd_float) )
 
-#define SD_DECLARE(rettype,fnname,...)                      \
-    rettype fnname##_avx2(SD_PARAMS(__VA_ARGS__));          \
-    rettype fnname##_sse2(SD_PARAMS(__VA_ARGS__));          \
-    rettype fnname##_neon(SD_PARAMS(__VA_ARGS__));          \
-    rettype fnname##_scalar(SD_PARAMS(__VA_ARGS__));        \
-    static inline rettype fnname(SD_PARAMS(__VA_ARGS__)) {  \
-        typeof(&fnname) sd_fn = SD_SELECT(fnname);          \
-        return sd_fn(SD_PARAM_NAMES(__VA_ARGS__));          \
+#define SD_DECLARE(rettype,fnname,...)                              \
+    typeof(rettype) fnname##_avx2(SD_PARAMS(__VA_ARGS__));          \
+    typeof(rettype) fnname##_sse2(SD_PARAMS(__VA_ARGS__));          \
+    typeof(rettype) fnname##_neon(SD_PARAMS(__VA_ARGS__));          \
+    typeof(rettype) fnname##_scalar(SD_PARAMS(__VA_ARGS__));        \
+    static inline typeof(rettype) fnname(SD_PARAMS(__VA_ARGS__)) {  \
+        typeof(&fnname) sd_fn = SD_SELECT(fnname);                  \
+        return sd_fn(SD_PARAM_NAMES(__VA_ARGS__));                  \
     }
 
 #define SD_DECLARE_VOID_RETURN(fnname,...)               \
@@ -246,6 +246,31 @@ SD_DEFINE_TYPES(scalar, float) // NOLINT(bugprone-sizeof-expression)
             .z = sd_float_##base(v.z),                 \
             .w = sd_float_##base(v.w)                  \
         };                                             \
+    }
+
+#define SD_DEFINE_VECFNS_NULLARY(base)              \
+    static inline sd_vec2 sd_vec2_##base(void) {    \
+        return (sd_vec2) {                          \
+            .x = sd_float_##base(),                 \
+            .y = sd_float_##base()                  \
+        };                                          \
+    }                                               \
+                                                    \
+    static inline sd_vec3 sd_vec3_##base(void) {    \
+        return (sd_vec3) {                          \
+            .x = sd_float_##base(),                 \
+            .y = sd_float_##base(),                 \
+            .z = sd_float_##base()                  \
+        };                                          \
+    }                                               \
+                                                    \
+    static inline sd_vec4 sd_vec4_##base(void) {    \
+        return (sd_vec4) {                          \
+            .x = sd_float_##base(),                 \
+            .y = sd_float_##base(),                 \
+            .z = sd_float_##base(),                 \
+            .w = sd_float_##base()                  \
+        };                                          \
     }
 
 static inline size_t sd_bounding_size(size_t n) {
@@ -622,6 +647,8 @@ static inline sd_float sd_float_range(void) {
 #endif
 }
 
+SD_DEFINE_VECFNS_NULLARY(range)
+
 static inline sd_float sd_float_zero(void) {
 #ifdef __AVX2__
     return (sd_float){_mm256_setzero_ps()};
@@ -634,6 +661,8 @@ static inline sd_float sd_float_zero(void) {
 #endif
 }
 
+SD_DEFINE_VECFNS_NULLARY(zero)
+
 static inline sd_float sd_float_one(void) {
 #ifdef __AVX2__
     return (sd_float){_mm256_set1_ps(1)};
@@ -645,6 +674,8 @@ static inline sd_float sd_float_one(void) {
     return (sd_float){1};
 #endif
 }
+
+SD_DEFINE_VECFNS_NULLARY(one)
 
 static inline sd_float sd_float_set(float f) {
 #ifdef __AVX2__
