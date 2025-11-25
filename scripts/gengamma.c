@@ -1,3 +1,12 @@
+/*
+ * This is a code generator that produces gamma transfer function lookup tables as C arrays
+ * The transfer functions are defined according to the sRGB standard
+ * See https://en.wikipedia.org/wiki/SRGB
+ *
+ * `gamma_decode_lut`, when indexed with an 8-bit sRGB encoded intensity, will give the corresponding 16-bit linear light intensity
+ * `gamma_encode_lut`, when indexed with a 16-bit linear light intensity, will give the corresponding 8-bit sRGB encoded intensity
+ */
+
 #include <stdio.h>
 #include <stdint.h>
 #include <math.h>
