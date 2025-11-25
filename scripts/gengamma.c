@@ -10,13 +10,13 @@ uint8_t gamma_encode_lut[65536];
 
 void init_gamma_luts(void) {
     double decode_breakpoint = POWER_CURVE_SHIFT / (GAMMA - 1);
-    double encode_breakpoint = pow((decode_breakpoint + POWER_CURVE_SHIFT) / (1 + POWER_CURVE_SHIFT), 2.4);
+    double encode_breakpoint = pow((decode_breakpoint + POWER_CURVE_SHIFT) / (1 + POWER_CURVE_SHIFT), GAMMA);
 
     for (int i = 0; i < 256; ++i) {
         double normalized = (double)i / 255;
         gamma_decode_lut[i] = (normalized <= decode_breakpoint) ? 
                               (uint16_t) round(normalized * encode_breakpoint / decode_breakpoint * 65535) :
-                              (uint16_t) round(pow((normalized + POWER_CURVE_SHIFT) / (1 + POWER_CURVE_SHIFT), 2.4) * 65535);
+                              (uint16_t) round(pow((normalized + POWER_CURVE_SHIFT) / (1 + POWER_CURVE_SHIFT), GAMMA) * 65535);
     }
 
     for (int i = 0; i < 65536; ++i) {
