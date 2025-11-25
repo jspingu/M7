@@ -1,12 +1,10 @@
 #include <SDL3/SDL.h>
 #include <M7/ECS.h>
 #include <M7/M7_ECS.h>
+#include <stdio.h>
 
 #define SDL_MAIN_USE_CALLBACKS
 #include <SDL3/SDL_main.h>
-
-#include <stdio.h>
-#include <M7/Math/linalg.h>
 
 static Uint64 count;
 
@@ -28,7 +26,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
         { M7_Components.InputState, nullptr },
         { M7_Components.Canvas, &(M7_Canvas){
             .width = 960,
-            .height = 540
+            .height = 540,
+            .parallelism = 4
         }},
         { M7_Components.World, nullptr },
         { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault} }
@@ -62,7 +61,6 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
 
     count = SDL_GetPerformanceCounter();
     *appstate = ecs;
-    // return SDL_APP_SUCCESS;
     return SDL_APP_CONTINUE;
 }
 

@@ -3,7 +3,6 @@
 #include <M7/M7_ECS.h>
 #include <M7/Math/stride.h>
 #include <M7/gamma.h>
-#include <SDL3/SDL_thread.h>
 
 #if defined(__SSE2__) || defined(__AVX2__)
 #include <immintrin.h>
@@ -34,19 +33,20 @@ static inline uint32x4_t gather_neon(const uint8_t *buf, uint32x4_t idx) {
 }
 #endif
 
-void SD_VARIANT(M7_Canvas_Present)(ECS_Handle *self) {
-    M7_Canvas *canvas = ECS_Entity_GetComponent(self, M7_Components.Canvas);
-    M7_Viewport *vp = ECS_Entity_GetComponent(canvas->vp, M7_Components.Viewport);
-
+typedef struct PresentData {
+    ECS_Handle *canvas;
     uint32_t *pixels;
-    int pitch;
+    int start, end;
+} PresentData;
 
-    SDL_LockTexture(vp->texture, nullptr, (void **)&pixels, &pitch);
+static int PresentThread(void *data) {
+    PresentData *pd = data;
+    M7_Canvas *canvas = ECS_Entity_GetComponent(pd->canvas, M7_Components.Canvas);
+    int sd_qot = canvas->width / SD_LENGTH;
+    int sd_rem = canvas->width % SD_LENGTH;
 
-    for (int i = 0; i < canvas->height; ++i) {
+    for (int i = pd->start; i < pd->end; ++i) {
         sd_vec3 *base = canvas->color + i * sd_bounding_size(canvas->width);
-        int sd_qot = canvas->width / SD_LENGTH;
-        int sd_rem = canvas->width % SD_LENGTH;
 
         for (int j = 0; j < sd_qot; ++j) {
             sd_vec3 col = base[j];
@@ -67,7 +67,7 @@ void SD_VARIANT(M7_Canvas_Present)(ECS_Handle *self) {
                     b = _mm256_and_si256(b, byte);
 
             __m256i col_out = _mm256_or_si256(_mm256_or_si256(r, g), b);
-            _mm256_storeu_si256((__m256i *)(pixels + i * canvas->width) + j, col_out);
+            _mm256_storeu_si256((__m256i *)(pd->pixels + i * canvas->width) + j, col_out);
 #elifdef __SSE2__
             __m128i byte = _mm_set1_epi32(0xFF);
 
@@ -83,7 +83,7 @@ void SD_VARIANT(M7_Canvas_Present)(ECS_Handle *self) {
                     b = _mm_and_si128(b, byte);
 
             __m128i col_out = _mm_or_si128(_mm_or_si128(r, g), b);
-            _mm_storeu_si128((__m128i *)(pixels + i * canvas->width) + j, col_out);
+            _mm_storeu_si128((__m128i *)(pd->pixels + i * canvas->width) + j, col_out);
 #elifdef __ARM_NEON
             uint32x4_t byte = vdupq_n_u32(0xFF);
 
@@ -99,7 +99,7 @@ void SD_VARIANT(M7_Canvas_Present)(ECS_Handle *self) {
                        b = vandq_u32(b, byte);
 
             uint32x4_t col_out = vorrq_u32(vorrq_u32(r, g), b);
-            *((uint32x4_t *)(pixels + i * canvas->width) + j) = col_out;
+            *((uint32x4_t *)(pd->pixels + i * canvas->width) + j) = col_out;
 #else
             uint16_t r = col.r.val;
                      r = gamma_encode_lut[r];
@@ -108,7 +108,7 @@ void SD_VARIANT(M7_Canvas_Present)(ECS_Handle *self) {
             uint16_t b = col.b.val;
                      b = gamma_encode_lut[b];
 
-            pixels[i * canvas->width + j] = (r << 16) | (g << 8) | b;
+            pd->pixels[i * canvas->width + j] = (r << 16) | (g << 8) | b;
 #endif
         }
 
@@ -122,9 +122,44 @@ void SD_VARIANT(M7_Canvas_Present)(ECS_Handle *self) {
             uint16_t b = col.b.val * 0xFFFF;
                      b = gamma_encode_lut[b];
 
-            pixels[i * canvas->width + sd_qot * SD_LENGTH + j] = (r << 16) | (g << 8) | b;
+            pd->pixels[i * canvas->width + sd_qot * SD_LENGTH + j] = (r << 16) | (g << 8) | b;
         }
     }
+
+    return 0;
+}
+
+void SD_VARIANT(M7_Canvas_Present)(ECS_Handle *self) {
+    M7_Canvas *canvas = ECS_Entity_GetComponent(self, M7_Components.Canvas);
+    M7_Viewport *vp = ECS_Entity_GetComponent(canvas->vp, M7_Components.Viewport);
+
+    uint32_t *pixels;
+    int pitch;
+
+    SDL_LockTexture(vp->texture, nullptr, (void **)&pixels, &pitch);
+
+    SDL_Thread **threads = SDL_malloc(sizeof(SDL_Thread *) * canvas->parallelism);
+    PresentData *present_data = SDL_malloc(sizeof(PresentData) * canvas->parallelism);
+
+    int qot = canvas->height / canvas->parallelism;
+    int rem = canvas->height % canvas->parallelism;
+
+    for (int i = 0; i < canvas->parallelism; ++i) {
+        present_data[i] = (PresentData) {
+            .canvas = self,
+            .pixels = pixels,
+            .start = i * qot + SDL_min(i, rem),
+            .end = (i + 1) * qot + SDL_min(i + 1, rem)
+        };
+
+        threads[i] = SDL_CreateThread(PresentThread, "present", present_data + i);
+    }
+
+    for (int i = 0; i < canvas->parallelism; ++i)
+        SDL_WaitThread(threads[i], nullptr);
+
+    SDL_free(present_data);
+    SDL_free(threads);
 
     SDL_UnlockTexture(vp->texture);
     SDL_RenderTexture(vp->renderer, vp->texture, nullptr, nullptr);
@@ -141,6 +176,7 @@ void SD_VARIANT(M7_Canvas_Init)(void *component, void *args) {
 
     canvas->width = cargs->width;
     canvas->height = cargs->height;
+    canvas->parallelism = cargs->parallelism;
 
     size_t sd_count = sd_bounding_size(canvas->width) * canvas->height;
     canvas->color = SDL_aligned_alloc(SD_ALIGN, sizeof(sd_vec3) * sd_count);

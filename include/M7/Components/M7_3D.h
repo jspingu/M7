@@ -41,9 +41,10 @@ typedef struct M7_MeshFace {
 
 typedef struct M7_Canvas {
     ECS_Handle *vp;
-    int width, height;
     sd_vec3 *color;
     sd_float *depth;
+    int width, height;
+    int parallelism;
 } M7_Canvas;
 
 typedef struct M7_TriangleDraw {
