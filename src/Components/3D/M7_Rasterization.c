@@ -106,13 +106,13 @@ void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw *triangle,
                     fragment_nrml = sd_vec3_fmadd(nrml_xform[2], relative.z, fragment_nrml);
                     fragment_nrml = sd_vec3_normalize(fragment_nrml);
 
-            sd_vec3 col = sd_vec3_set(0.7, 0.4, 0.1);
+            sd_vec3 col = sd_vec3_set(0.4, 0.8, 0.7);
             sd_float intensity = sd_float_mul(
                 sd_float_mul(
                     sd_float_negate(sd_vec3_dot(fragment_vs, fragment_nrml)),
                     sd_float_rcp(sd_vec3_dot(fragment_vs, fragment_vs))
                 ),
-                sd_float_set(50)
+                sd_float_set(1)
             );
 
             col = sd_vec3_mul(col, sd_float_add(sd_float_set(0.05), intensity));
