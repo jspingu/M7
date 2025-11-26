@@ -374,31 +374,25 @@ void SD_VARIANT(M7_Rasterizer_Render)(ECS_Handle *self) {
             wg->xform.translation.z
         );
 
+        sd_vec3 sd_xform[3] = {
+            sd_vec3_set(wg->xform.basis.x.x, wg->xform.basis.x.y, wg->xform.basis.x.z),
+            sd_vec3_set(wg->xform.basis.y.x, wg->xform.basis.y.y, wg->xform.basis.y.z),
+            sd_vec3_set(wg->xform.basis.z.x, wg->xform.basis.z.y, wg->xform.basis.z.z)
+        };
+
         for (size_t i = 0; i < sd_count; ++i) {
-            wg->vs_verts[i] = translation;
-            wg->vs_nrmls[i] = sd_vec3_set(0, 0, 0);
+            sd_vec3 vs_vert = sd_vec3_fmadd(sd_xform[0], wg->mesh->ws_verts[i].x, translation);
+                    vs_vert = sd_vec3_fmadd(sd_xform[1], wg->mesh->ws_verts[i].y, vs_vert);
+                    vs_vert = sd_vec3_fmadd(sd_xform[2], wg->mesh->ws_verts[i].z, vs_vert);
+
+            sd_vec3 vs_nrml = sd_vec3_mul(sd_xform[0], wg->mesh->ws_nrmls[i].x);
+                    vs_nrml = sd_vec3_fmadd(sd_xform[1], wg->mesh->ws_nrmls[i].y, vs_nrml);
+                    vs_nrml = sd_vec3_fmadd(sd_xform[2], wg->mesh->ws_nrmls[i].z, vs_nrml);
+
+            wg->vs_verts[i] = vs_vert;
+            wg->vs_nrmls[i] = vs_nrml;
+            wg->ss_verts[i] = rasterizer->project(self, vs_vert, sd_vec2_set(canvas->width * 0.5f, canvas->height * 0.5f));
         }
-
-        for (int i = 0; i < 3; ++i) {
-            sd_vec3 column_vec = sd_vec3_set(
-                wg->xform.basis.entries[i][0],
-                wg->xform.basis.entries[i][1],
-                wg->xform.basis.entries[i][2]
-            );
-
-            for (size_t j = 0; j < sd_count; ++j) {
-                wg->vs_verts[j] = sd_vec3_fmadd(column_vec, wg->mesh->ws_verts[j].xyz[i], wg->vs_verts[j]);
-                wg->vs_nrmls[j] = sd_vec3_fmadd(column_vec, wg->mesh->ws_nrmls[j].xyz[i], wg->vs_nrmls[j]);
-            }
-        }
-    });
-
-    /* Project transformed verticies */
-    List_ForEach(geometry, wg, {
-        size_t sd_count = sd_bounding_size(wg->mesh->nverts);
-
-        for (size_t i = 0; i < sd_count; ++i)
-            wg->ss_verts[i] = rasterizer->project(self, wg->vs_verts[i], sd_vec2_set(canvas->width * 0.5f, canvas->height * 0.5f));
     });
 
     /* Clear canvas */
