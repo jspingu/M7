@@ -284,6 +284,17 @@ static void M7_Rasterizer_DrawBatch(ECS_Handle *self, M7_RasterizerFlags flags, 
 
             /* Triangle fan clipped verticies */
             for (int j = 1; j < nclipped - 1; ++j) {
+                /* Compute extremes */
+                float min_x = SDL_min(clipped[0].x, SDL_min(clipped[j].x, clipped[j + 1].x));
+                float max_x = SDL_max(clipped[0].x, SDL_max(clipped[j].x, clipped[j + 1].x));
+                float min_y = SDL_min(clipped[0].y, SDL_min(clipped[j].y, clipped[j + 1].y));
+                float max_y = SDL_max(clipped[0].y, SDL_max(clipped[j].y, clipped[j + 1].y));
+
+                /* Cull off-screen triangles */
+                if (min_x > canvas->width || max_x < 0 ||
+                    min_y > canvas->height || max_y < 0 
+                ) continue;
+
                 M7_TriangleDraw *triangle = SDL_malloc(sizeof(M7_TriangleDraw));
                 SDL_memcpy(triangle->vs_verts, vs_verts, sizeof(vec3 [3]));
                 SDL_memcpy(triangle->ss_verts, (vec2 [3]) { clipped[0], clipped[j], clipped[j + 1] }, sizeof(vec2 [3]));
@@ -295,11 +306,6 @@ static void M7_Rasterizer_DrawBatch(ECS_Handle *self, M7_RasterizerFlags flags, 
                 }, sizeof(vec3 [3]));
 
                 /* Compute strided bounding box */
-                float min_x = SDL_min(triangle->ss_verts[0].x, SDL_min(triangle->ss_verts[1].x, triangle->ss_verts[2].x));
-                float max_x = SDL_max(triangle->ss_verts[0].x, SDL_max(triangle->ss_verts[1].x, triangle->ss_verts[2].x));
-                float min_y = SDL_min(triangle->ss_verts[0].y, SDL_min(triangle->ss_verts[1].y, triangle->ss_verts[2].y));
-                float max_y = SDL_max(triangle->ss_verts[0].y, SDL_max(triangle->ss_verts[1].y, triangle->ss_verts[2].y));
-
                 triangle->sd_bounding_box.left = roundtl(min_x) / SD_LENGTH;
                 triangle->sd_bounding_box.right = sd_bounding_size(roundtl(max_x));
                 triangle->sd_bounding_box.top = roundtl(min_y);
