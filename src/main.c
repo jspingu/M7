@@ -6,6 +6,9 @@
 #define SDL_MAIN_USE_CALLBACKS
 #include <SDL3/SDL_main.h>
 
+#define WIDTH   960
+#define HEIGHT  540
+
 static Uint64 count;
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
@@ -20,13 +23,13 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
     ECS_Entity_AttachComponents(root,
         { M7_Components.Viewport, &(M7_ViewportArgs){
             .title = "Good morning!",
-            .width = 960,
-            .height = 540
+            .width = WIDTH,
+            .height = HEIGHT
         }},
         { M7_Components.InputState, nullptr },
         { M7_Components.Canvas, &(M7_Canvas){
-            .width = 960,
-            .height = 540,
+            .width = WIDTH,
+            .height = HEIGHT,
             .parallelism = 4
         }},
         { M7_Components.World, nullptr },
@@ -39,7 +42,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
                 { M7_Components.Rasterizer, &(M7_RasterizerArgs) {
                     .project = SD_SELECT(M7_ProjectPerspective),
                     .scan = SD_SELECT(M7_ScanPerspective),
-                    .near = 0.01,
+                    .near = 5,
                     .parallelism = 4
                 }},
                 { M7_Components.CameraMovement, &(CameraMovement){} },
@@ -49,9 +52,24 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
         },
         { /* Model */
             ECS_Components(
-                { M7_Components.Position, &(vec3){ .y=-1, .z=10 } },
+                { M7_Components.Position, &(vec3){ .y = -200, .z=400 } },
                 { M7_Components.Basis, (mat3x3 []){mat3x3_identity} },
-                { M7_Components.Model, nullptr },
+                { M7_Components.Teapot, &(M7_Teapot) { .scale = 100 } },
+                { M7_Components.Model, &(M7_ModelArgs) {
+                    .get_mesh = M7_Teapot_GetMesh,
+                    .instances = (M7_ModelInstance []) {
+                        (M7_ModelInstance) {
+                            .shader_pipeline = (M7_FragmentShader []) { nullptr },
+                            .nshaders = 1,
+                            .render_batch = 0,
+                            .flags = M7_RASTERIZER_CULL_BACKFACE
+                                   | M7_RASTERIZER_WRITE_DEPTH
+                                   | M7_RASTERIZER_TEST_DEPTH
+                                   | M7_RASTERIZER_INTERPOLATE_NORMALS
+                        },
+                    },
+                    .ninstances = 1
+                }},
                 { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault} }
             )
         }

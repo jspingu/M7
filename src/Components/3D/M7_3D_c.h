@@ -44,14 +44,16 @@ typedef struct M7_RenderInstance {
 
 typedef struct M7_World {
     List(M7_WorldGeometry *) *geometry;
-    // List of arrays of Lists of RenderInstance
+    /* List of arrays of Lists of RenderInstance */
     List(List(M7_RenderInstance *) *[M7_RASTERIZER_FLAG_COMBINATIONS]) *render_batches;
 } M7_World;
 
 typedef struct M7_Model {
-    M7_Mesh *mesh;
+    M7_Mesh *(*get_mesh)(ECS_Handle *self);
     M7_WorldGeometry *geometry;
     M7_RenderInstance *instance;
+    List(M7_RenderInstance *) *instances;
+    List(M7_ModelInstance) *instances_init;
 } M7_Model;
 
 typedef struct M7_Rasterizer {

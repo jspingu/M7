@@ -112,7 +112,7 @@ void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw *triangle,
                     sd_float_negate(sd_vec3_dot(fragment_vs, fragment_nrml)),
                     sd_float_rcp(sd_vec3_dot(fragment_vs, fragment_vs))
                 ),
-                sd_float_set(1)
+                sd_float_set(20)
             );
 
             col = sd_vec3_mul(col, sd_float_add(sd_float_set(0.05), intensity));
@@ -187,7 +187,7 @@ static M7_TriangleDraw *ExtractSafeTriangleDraw(List(M7_TriangleDraw *) *triangl
     return nullptr;
 }
 
-static int DispatchTriDraws(void *data) {
+static int DispatchTriangleDraws(void *data) {
     TriangleDispatcherData *dispatch = data;
     M7_Rasterizer *rasterizer = ECS_Entity_GetComponent(dispatch->rasterizer, M7_Components.Rasterizer);
     M7_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, M7_Components.Canvas);
@@ -341,7 +341,7 @@ static void M7_Rasterizer_DrawBatch(ECS_Handle *self, M7_RasterizerFlags flags, 
     }
 
     for (int i = 0; i < rasterizer->parallelism; ++i)
-        threads[i] = SDL_CreateThread(DispatchTriDraws, "triangles", dispatcher_data + i);
+        threads[i] = SDL_CreateThread(DispatchTriangleDraws, "triangles", dispatcher_data + i);
 
     for (int i = 0; i < rasterizer->parallelism; ++i)
         SDL_WaitThread(threads[i], nullptr);

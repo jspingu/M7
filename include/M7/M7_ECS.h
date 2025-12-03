@@ -20,7 +20,7 @@ struct M7_Components {
 
     ECS_Component(CameraMovement) *CameraMovement;
 
-    // 3D
+    /* 3D */
     ECS_Component(M7_Canvas) *Canvas;
     ECS_Component(M7_World) *World;
     ECS_Component(M7_Rasterizer) *Rasterizer;
@@ -28,6 +28,11 @@ struct M7_Components {
     ECS_Component(M7_XformComposer) *XformComposer;
     ECS_Component(vec3) *Position;
     ECS_Component(mat3x3) *Basis;
+
+    /* 3D primitives */
+    ECS_Component(M7_Teapot) *Teapot;
+    ECS_Component(M7_Torus) *Torus;
+    ECS_Component(M7_Sphere) *Sphere;
 };
 
 struct M7_SystemGroups {

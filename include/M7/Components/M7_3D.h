@@ -19,7 +19,7 @@ typedef struct M7_TriangleDraw M7_TriangleDraw;
 
 typedef xform3 (*M7_XformComposer)(ECS_Handle *self, xform3 lhs);
 
-typedef sd_vec3 (*M7_FragmentShader)(void *ctx, sd_vec3 pos, sd_vec3 normal, sd_vec2 tex_coord);
+typedef sd_vec4 (*M7_FragmentShader)(ECS_Handle *self, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts);
 typedef sd_vec2 (*M7_VertexProjector)(ECS_Handle *self, sd_vec3 pos, sd_vec2 midpoint);
 typedef void (*M7_RasterScanner)(ECS_Handle *self, M7_TriangleDraw *tri, int (*scanlines)[2], int range[2]);
 
@@ -65,6 +65,44 @@ typedef struct M7_RasterizerArgs {
     float near;
     int parallelism;
 } M7_RasterizerArgs;
+
+typedef struct M7_ModelInstance {
+   M7_FragmentShader *shader_pipeline;
+   size_t nshaders;
+   size_t render_batch;
+   M7_RasterizerFlags flags;
+} M7_ModelInstance;
+
+typedef struct M7_ModelArgs {
+    M7_Mesh *(*get_mesh)(ECS_Handle *self);
+    M7_ModelInstance *instances;
+    size_t ninstances;
+} M7_ModelArgs;
+
+typedef struct M7_Teapot {
+    M7_Mesh *mesh;
+    float scale;
+} M7_Teapot;
+
+typedef struct M7_Torus {
+    M7_Mesh *mesh;
+    size_t outer_precision, inner_precision;
+    float outer_radius, inner_radius;
+} M7_Torus;
+
+typedef struct M7_Sphere {
+    M7_Mesh *mesh;
+    size_t nrings, ring_precision;
+    float radius;
+} M7_Sphere;
+
+M7_Mesh *M7_Teapot_GetMesh(ECS_Handle *self);
+M7_Mesh *M7_Torus_GetMesh(ECS_Handle *self);
+M7_Mesh *M7_Sphere_GetMesh(ECS_Handle *self);
+
+void M7_Teapot_Free(void *component);
+void M7_Torus_Free(void *component);
+void M7_Sphere_Free(void *component);
 
 xform3 M7_Entity_GetXform(ECS_Handle *self);
 void M7_Entity_Xform(ECS_Handle *self, xform3 lhs);

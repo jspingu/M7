@@ -44,7 +44,7 @@ void CameraMovement_Update(ECS_Handle *self, double delta) {
 
     input_axis = (vec3_eq(input_axis, vec3_zero)) ? vec3_zero : vec3_normalize(input_axis);
     input_axis = vec3_rotate(input_axis, vec3_j, cam->yaw);
-    *pos = vec3_add(*pos, vec3_mul(input_axis, 5 * delta));
+    *pos = vec3_add(*pos, vec3_mul(input_axis, 250 * delta));
 
     vec2 mouse_motion = M7_InputState_GetMouseMotion(is);
     cam->yaw += mouse_motion.x * 0.15 * delta;
