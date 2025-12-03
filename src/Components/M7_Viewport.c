@@ -21,7 +21,7 @@ void M7_Viewport_Init(void *component, void *args) {
         &vp->renderer
     );
 
-    SDL_SetRenderVSync(vp->renderer, 1);
+    SDL_SetRenderVSync(vp->renderer, 0);
 
     vp->texture = SDL_CreateTexture(
         vp->renderer,

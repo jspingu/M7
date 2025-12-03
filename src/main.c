@@ -6,10 +6,12 @@
 #define SDL_MAIN_USE_CALLBACKS
 #include <SDL3/SDL_main.h>
 
-#define WIDTH   960
-#define HEIGHT  540
+#define WIDTH    960
+#define HEIGHT   540
+#define FPS_CAP  144
 
-static Uint64 count;
+static Uint64 ticks_prev;
+static Uint64 ticks_freq;
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
     (void)argc;
@@ -77,17 +79,28 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
 
     ECS_Update(ecs);
 
-    count = SDL_GetPerformanceCounter();
+    ticks_prev = SDL_GetPerformanceCounter();
+    ticks_freq = SDL_GetPerformanceFrequency();
     *appstate = ecs;
     return SDL_APP_CONTINUE;
 }
 
 SDL_AppResult SDL_AppIterate(void *appstate) {
     ECS *ecs = appstate;
+    Uint64 ticks_frame = ticks_freq / FPS_CAP;
+    Uint64 ticks_curr = SDL_GetPerformanceCounter();
+    Uint64 ticks_delta = ticks_curr - ticks_prev;
 
-    Uint64 new_count = SDL_GetPerformanceCounter();
-    double delta = (double)(new_count - count) / SDL_GetPerformanceFrequency();
-    count = new_count;
+    if (ticks_delta < ticks_frame) {
+        Uint64 ticks_rem = ticks_frame - ticks_delta;
+        SDL_Delay(ticks_rem * 1000 / ticks_freq);
+
+        do ticks_curr = SDL_GetPerformanceCounter();
+        while (ticks_curr - ticks_prev < ticks_frame);
+    }
+
+    double delta = (double)(ticks_curr - ticks_prev) / ticks_freq;
+    ticks_prev = ticks_curr;
 
     printf("FPS: %li              \n\x1b[F", SDL_lround(1/delta));
 
