@@ -54,15 +54,15 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
         },
         { /* Model */
             ECS_Components(
-                { M7_Components.Position, &(vec3){ .y = -200, .z=400 } },
+                { M7_Components.Position, &(vec3){ .y=-150, .z=600 } },
                 { M7_Components.Basis, (mat3x3 []){mat3x3_identity} },
                 { M7_Components.Teapot, &(M7_Teapot) { .scale = 100 } },
                 { M7_Components.Model, &(M7_ModelArgs) {
                     .get_mesh = M7_Teapot_GetMesh,
                     .instances = (M7_ModelInstance []) {
                         (M7_ModelInstance) {
-                            .shader_pipeline = (M7_FragmentShader []) { nullptr },
-                            .nshaders = 1,
+                            .shader_pipeline = (M7_FragmentShader []) { SD_SELECT(first_shader), SD_SELECT(second_shader) },
+                            .nshaders = 2,
                             .render_batch = 0,
                             .flags = M7_RASTERIZER_CULL_BACKFACE
                                    | M7_RASTERIZER_WRITE_DEPTH

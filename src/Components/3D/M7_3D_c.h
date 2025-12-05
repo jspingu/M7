@@ -37,7 +37,8 @@ typedef struct M7_WorldGeometry {
 
 typedef struct M7_RenderInstance {
     M7_WorldGeometry *geometry;
-    M7_FragmentShader shader;
+    List(M7_FragmentShader) *shader_pipeline;
+    ECS_Handle *shader_state;
     size_t render_batch;
     M7_RasterizerFlags flags;
 } M7_RenderInstance;

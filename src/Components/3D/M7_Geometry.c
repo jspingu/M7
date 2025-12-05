@@ -50,7 +50,7 @@ M7_WorldGeometry *SD_VARIANT(M7_World_RegisterGeometry)(ECS_Handle *self, M7_Mes
 
 #ifdef SD_BASE
 
-M7_RenderInstance *M7_WorldGeometry_Instance(M7_WorldGeometry *geometry, M7_FragmentShader shader, size_t render_batch, M7_RasterizerFlags flags) {
+M7_RenderInstance *M7_WorldGeometry_Instance(M7_WorldGeometry *geometry, M7_FragmentShader *shaders, size_t nshaders, ECS_Handle *shader_state, size_t render_batch, M7_RasterizerFlags flags) {
     M7_World *world = geometry->world;
 
     if (List_Length(world->render_batches) < render_batch + 1) {
@@ -68,10 +68,13 @@ M7_RenderInstance *M7_WorldGeometry_Instance(M7_WorldGeometry *geometry, M7_Frag
         flag_batches[flags] = List_Create(M7_RenderInstance *);
 
     M7_RenderInstance *instance = SDL_malloc(sizeof(M7_RenderInstance));
+    List(M7_FragmentShader) *fs_pipe = List_Create(M7_FragmentShader);
+    List_PushRange(fs_pipe, shaders, nshaders);
+    instance->shader_state = shader_state;
 
     *instance = (M7_RenderInstance) {
         .geometry = geometry,
-        .shader = shader,
+        .shader_pipeline = fs_pipe,
         .render_batch = render_batch,
         .flags = flags
     };
@@ -105,7 +108,9 @@ void M7_Model_Attach(ECS_Handle *self) {
     List_ForEach(mdl->instances_init, inst, {
         List_Push(mdl->instances, M7_WorldGeometry_Instance(
             mdl->geometry,
-            inst.shader_pipeline[0],
+            inst.shader_pipeline,
+            inst.nshaders,
+            self,
             inst.render_batch,
             inst.flags
         ));
@@ -161,6 +166,7 @@ void M7_RenderInstance_Free(M7_RenderInstance *instance) {
     List(M7_RenderInstance *) *flag_batch = List_Get(world->render_batches, instance->render_batch)[instance->flags];
     List_RemoveWhere(flag_batch, instanced, instanced == instance);
     List_RemoveWhere(instance->geometry->instances, instanced, instanced == instance);
+    List_Free(instance->shader_pipeline);
     SDL_free(instance);
 }
 
@@ -195,7 +201,11 @@ void M7_World_Free(void *component) {
             if (!flag_batch)
                 continue;
 
-            List_ForEach(flag_batch, instance, SDL_free(instance); );
+            List_ForEach(flag_batch, instance, { 
+                List_Free(instance->shader_pipeline);
+                SDL_free(instance);
+            });
+
             List_Free(flag_batch);
         }
     }

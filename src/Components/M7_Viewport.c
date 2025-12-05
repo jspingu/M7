@@ -1,7 +1,6 @@
 #include <SDL3/SDL.h>
 #include <M7/ECS.h>
 #include <M7/M7_ECS.h>
-#include <SDL3/SDL_pixels.h>
 
 #include "M7_Viewport_c.h"
 

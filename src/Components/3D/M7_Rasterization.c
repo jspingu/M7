@@ -27,6 +27,31 @@ static inline vec3 intersect_near(vec3 from, vec3 to, float near) {
     return vec3_add(from, vec3_mul(slope, near - from.z));
 }
 
+sd_vec4 SD_VARIANT(first_shader)(ECS_Handle *self, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts) {
+    (void)self, (void)col, (void)ts;
+    sd_float ambient = sd_float_set(0.01);
+    sd_float energy = sd_float_set(10000);
+    sd_vec3 surface_col = sd_vec3_set(0.9, 0.5, 0.5);
+
+    sd_float sqrlen = sd_vec3_dot(vs, vs);
+    sd_float rcpsql = sd_float_rcp(sqrlen);
+    sd_float rcplen = sd_float_rsqrt(sqrlen);
+
+    sd_float power = sd_float_mul(
+        sd_vec3_dot(sd_vec3_mul(vs, rcplen), sd_vec3_negate(nrml)),
+        sd_float_mul(energy, rcpsql)
+    );
+
+    sd_vec3 out = sd_vec3_mul(surface_col, sd_float_add(ambient, power));
+    return (sd_vec4){ .rgb = out };
+}
+
+sd_vec4 SD_VARIANT(second_shader)(ECS_Handle *self, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts) {
+    (void)self, (void)vs, (void)nrml, (void)ts;
+    col.g = sd_float_mul(col.g, sd_float_set(2));
+    return col;
+}
+
 void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw *triangle, int (*scanlines)[2], int range[2]) {
     M7_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, M7_Components.Rasterizer);
     M7_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, M7_Components.Canvas);
@@ -106,17 +131,6 @@ void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw *triangle,
                     fragment_nrml = sd_vec3_fmadd(nrml_xform[2], relative.z, fragment_nrml);
                     fragment_nrml = sd_vec3_normalize(fragment_nrml);
 
-            sd_vec3 col = sd_vec3_set(0.4, 0.8, 0.7);
-            sd_float intensity = sd_float_mul(
-                sd_float_mul(
-                    sd_float_negate(sd_vec3_dot(fragment_vs, fragment_nrml)),
-                    sd_float_rcp(sd_vec3_dot(fragment_vs, fragment_vs))
-                ),
-                sd_float_set(20)
-            );
-
-            col = sd_vec3_mul(col, sd_float_add(sd_float_set(0.05), intensity));
-
             sd_float mask = sd_float_clamp_mask(
                 fragment_x,
                 scanlines[i][0],
@@ -127,8 +141,11 @@ void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw *triangle,
             sd_float bg_z = canvas->depth[base + j];
             mask = sd_float_and(mask, sd_float_gt(inv_z, bg_z));
 
+            sd_vec4 col;
+            List_ForEach(triangle->shader_pipeline, shader, col = shader(triangle->shader_state, col, fragment_vs, fragment_nrml, sd_vec2_zero()); );
+
             canvas->depth[base + j] = sd_float_mask_blend(bg_z, inv_z, mask);
-            canvas->color[base + j] = sd_vec3_mask_blend(bg, col, mask);
+            canvas->color[base + j] = sd_vec3_mask_blend(bg, col.rgb, mask);
         }
     }
 }
@@ -296,6 +313,8 @@ static void M7_Rasterizer_DrawBatch(ECS_Handle *self, M7_RasterizerFlags flags, 
                 ) continue;
 
                 M7_TriangleDraw *triangle = SDL_malloc(sizeof(M7_TriangleDraw));
+                triangle->shader_pipeline = instance->shader_pipeline;
+                triangle->shader_state = instance->shader_state;
                 SDL_memcpy(triangle->vs_verts, vs_verts, sizeof(vec3 [3]));
                 SDL_memcpy(triangle->ss_verts, (vec2 [3]) { clipped[0], clipped[j], clipped[j + 1] }, sizeof(vec2 [3]));
 
