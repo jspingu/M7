@@ -408,6 +408,18 @@ static inline sd_int sd_int_gather_i8(int8_t *buf, sd_int index) {
 #endif
 }
 
+static inline void sd_int_store_unaligned(int32_t *dst, sd_int i) {
+#ifdef __AVX2__
+    _mm256_storeu_si256((__m256i *)dst, i.val);
+#elifdef __SSE2__
+    _mm_storeu_si128((__m128i *)dst, i.val);
+#elifdef __ARM_NEON
+    *((int32x4_t *)dst) = i.val;
+#else
+    *dst = i.val;
+#endif
+}
+
 static inline sd_int sd_float_to_int(sd_float f) {
 #ifdef __AVX2__
     return (sd_int){_mm256_cvtps_epi32(f.val)};
