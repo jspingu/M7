@@ -341,9 +341,9 @@ static inline sd_int sd_int_and(sd_int lhs, sd_int rhs) {
 
 static inline sd_int sd_int_or(sd_int lhs, sd_int rhs) {
 #ifdef __AVX2__
-    return (sd_int){_mm256_or_epi32(lhs.val, rhs.val)};
+    return (sd_int){_mm256_or_si256(lhs.val, rhs.val)};
 #elifdef __SSE2__
-    return (sd_int){_mm_or_epi32(lhs.val, rhs.val)};
+    return (sd_int){_mm_or_si128(lhs.val, rhs.val)};
 #elifdef __ARM_NEON
     return (sd_int){vorq_s32(lhs.val, rhs.val)};
 #else
