@@ -385,6 +385,7 @@ static inline sd_int sd_int_set(int32_t i) {
 #elifdef __ARM_NEON
     return (sd_int){vdupq_n_s32(i)};
 #else
+    return (sd_int){i};
 #endif
 }
 
