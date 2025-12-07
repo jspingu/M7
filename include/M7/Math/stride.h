@@ -18,64 +18,70 @@
 #include <arm_neon.h>
 #endif
 
-#define SD_DEFINE_TYPES(suffix,underlying_type)                \
-    typedef union sd_float_##suffix {                          \
-        underlying_type val;                                   \
-        float elems[sizeof(underlying_type) / sizeof(float)];  \
-    } sd_float_##suffix;                                       \
-                                                               \
-    typedef union sd_vec2_##suffix {                           \
-        sd_float_##suffix xy[2];                               \
-        struct {                                               \
-            sd_float_##suffix x, y;                            \
-        };                                                     \
-    } sd_vec2_##suffix;                                        \
-                                                               \
-    typedef union sd_vec3_##suffix {                           \
-        sd_float_##suffix xyz[3];                              \
-        sd_float_##suffix rgb[3];                              \
-        sd_vec2_##suffix xy;                                   \
-        struct {                                               \
-            sd_float_##suffix x, y, z;                         \
-        };                                                     \
-        struct {                                               \
-            sd_float_##suffix r, g, b;                         \
-        };                                                     \
-    } sd_vec3_##suffix;                                        \
-                                                               \
-    typedef union sd_vec4_##suffix {                           \
-        sd_float_##suffix xyzw[4];                             \
-        sd_float_##suffix rgba[4];                             \
-        sd_vec2_##suffix xy;                                   \
-        sd_vec3_##suffix xyz;                                  \
-        sd_vec3_##suffix rgb;                                  \
-        struct {                                               \
-            sd_float_##suffix x, y, z, w;                      \
-        };                                                     \
-        struct {                                               \
-            sd_float_##suffix r, g, b, a;                      \
-        };                                                     \
+#define SD_DEFINE_TYPES(suffix,float_type,int_type)       \
+    typedef union sd_int_##suffix {                       \
+        int_type val;                                     \
+        int elems[sizeof(int_type) / sizeof(int32_t)];    \
+    } sd_int_##suffix;                                    \
+                                                          \
+    typedef union sd_float_##suffix {                     \
+        float_type val;                                   \
+        float elems[sizeof(float_type) / sizeof(float)];  \
+    } sd_float_##suffix;                                  \
+                                                          \
+    typedef union sd_vec2_##suffix {                      \
+        sd_float_##suffix xy[2];                          \
+        struct {                                          \
+            sd_float_##suffix x, y;                       \
+        };                                                \
+    } sd_vec2_##suffix;                                   \
+                                                          \
+    typedef union sd_vec3_##suffix {                      \
+        sd_float_##suffix xyz[3];                         \
+        sd_float_##suffix rgb[3];                         \
+        sd_vec2_##suffix xy;                              \
+        struct {                                          \
+            sd_float_##suffix x, y, z;                    \
+        };                                                \
+        struct {                                          \
+            sd_float_##suffix r, g, b;                    \
+        };                                                \
+    } sd_vec3_##suffix;                                   \
+                                                          \
+    typedef union sd_vec4_##suffix {                      \
+        sd_float_##suffix xyzw[4];                        \
+        sd_float_##suffix rgba[4];                        \
+        sd_vec2_##suffix xy;                              \
+        sd_vec3_##suffix xyz;                             \
+        sd_vec3_##suffix rgb;                             \
+        struct {                                          \
+            sd_float_##suffix x, y, z, w;                 \
+        };                                                \
+        struct {                                          \
+            sd_float_##suffix r, g, b, a;                 \
+        };                                                \
     } sd_vec4_##suffix;
 
 #define SD_TYPEDEFS(suffix)                    \
+    typedef union sd_int_##suffix sd_int;       \
     typedef union sd_float_##suffix sd_float;  \
     typedef union sd_vec2_##suffix sd_vec2;    \
     typedef union sd_vec3_##suffix sd_vec3;    \
     typedef union sd_vec4_##suffix sd_vec4;
 
-SD_DEFINE_TYPES(scalar, float) // NOLINT(bugprone-sizeof-expression)
+SD_DEFINE_TYPES(scalar, float, int32_t) // NOLINT(bugprone-sizeof-expression)
 
 #ifdef __AVX2__
     #define SD_VARIANT(fnname)  fnname##_avx2
-    SD_DEFINE_TYPES(avx2, __m256)
+    SD_DEFINE_TYPES(avx2, __m256, __m256i)
     SD_TYPEDEFS(avx2)
 #elifdef __SSE2__
     #define SD_VARIANT(fnname)  fnname##_sse2
-    SD_DEFINE_TYPES(sse2, __m128)
+    SD_DEFINE_TYPES(sse2, __m128, __m128i)
     SD_TYPEDEFS(sse2)
 #elifdef __ARM_NEON
     #define SD_VARIANT(fnname)  fnname##_neon
-    SD_DEFINE_TYPES(neon, float32x4_t)
+    SD_DEFINE_TYPES(neon, float32x4_t, int32x4_t)
     SD_TYPEDEFS(neon)
 #else
     #define SD_VARIANT(fnname)  fnname##_scalar
@@ -277,17 +283,154 @@ static inline size_t sd_bounding_size(size_t n) {
     return n ? (n - 1) / SD_LENGTH + 1 : 0;
 }
 
-// __m128i mullo_SSE2(__m128i a, __m128i b) {
-//     __m128i shufa = _mm_shuffle_epi32(a, 0b00'11'00'01);
-//     __m128i shufb = _mm_shuffle_epi32(b, 0b00'11'00'01);
-// 
-//     __m128i mul20 = _mm_mul_epu32(a, b);
-//             mul20 = _mm_shuffle_epi32(mul20, 0b00'00'10'00);
-//     __m128i mul31 = _mm_mul_epu32(shufa, shufb);
-//             mul31 = _mm_shuffle_epi32(mul31, 0b00'00'10'00);
-// 
-//     return _mm_unpacklo_epi32(mul20, mul31);
-// }
+static inline sd_int sd_int_add(sd_int lhs, sd_int rhs) {
+#ifdef __AVX2__
+    return (sd_int){_mm256_add_epi32(lhs.val, rhs.val)};
+#elifdef __SSE2__
+    return (sd_int){_mm_add_epi32(lhs.val, rhs.val)};
+#elifdef __ARM_NEON
+    return (sd_int){vaddq_s32(lhs.val, rhs.val)};
+#else
+    return (sd_int){lhs.val + rhs.val};
+#endif
+}
+
+static inline sd_int sd_int_sub(sd_int lhs, sd_int rhs) {
+#ifdef __AVX2__
+    return (sd_int){_mm256_sub_epi32(lhs.val, rhs.val)};
+#elifdef __SSE2__
+    return (sd_int){_mm_sub_epi32(lhs.val, rhs.val)};
+#elifdef __ARM_NEON
+    return (sd_int){vsubq_s32(lhs.val, rhs.val)};
+#else
+    return (sd_int){lhs.val - rhs.val};
+#endif
+}
+
+static inline sd_int sd_int_mul(sd_int lhs, sd_int rhs) {
+#ifdef __AVX2__
+    return (sd_int){_mm256_mullo_epi32(lhs.val, rhs.val)};
+#elifdef __SSE2__
+    __m128i lhs31 = _mm_shuffle_epi32(lhs.val, 0b00'11'00'01);
+    __m128i rhs31 = _mm_shuffle_epi32(rhs.val, 0b00'11'00'01);
+
+    __m128i mul20 = _mm_mul_epi32(lhs.val, rhs.val);
+            mul20 = _mm_shuffle_epi32(mul20, 0b00'00'10'00);
+    __m128i mul31 = _mm_mul_epi32(lhs31, rhs31);
+            mul31 = _mm_shuffle_epi32(mul31, 0b00'00'10'00);
+
+    return (sd_int){_mm_unpacklo_epi32(mul20, mul31)};
+#elifdef __ARM_NEON
+    return (sd_int){vmulq_s32(lhs.val, rhs.val)};
+#else
+    return (sd_int){lhs.val * rhs.val};
+#endif
+}
+
+static inline sd_int sd_int_and(sd_int lhs, sd_int rhs) {
+#ifdef __AVX2__
+    return (sd_int){_mm256_and_si256(lhs.val, rhs.val)};
+#elifdef __SSE2__
+    return (sd_int){_mm_and_si128(lhs.val, rhs.val)};
+#elifdef __ARM_NEON
+    return (sd_int){vandq_s32(lhs.val, rhs.val)};
+#else
+    return (sd_int){lhs.val & rhs.val};
+#endif
+}
+
+static inline sd_int sd_int_or(sd_int lhs, sd_int rhs) {
+#ifdef __AVX2__
+    return (sd_int){_mm256_or_epi32(lhs.val, rhs.val)};
+#elifdef __SSE2__
+    return (sd_int){_mm_or_epi32(lhs.val, rhs.val)};
+#elifdef __ARM_NEON
+    return (sd_int){vorq_s32(lhs.val, rhs.val)};
+#else
+    return (sd_int){lhs.val | rhs.val};
+#endif
+}
+
+static inline sd_int sd_int_shl(sd_int i, int shift) {
+#ifdef __AVX2__
+    return (sd_int){_mm256_slli_epi32(i.val, shift)};
+#elifdef __SSE2__
+    return (sd_int){_mm_slli_epi32(i.val, shift)};
+#elifdef __ARM_NEON
+    int32x4_t shiftv = vdupq_n_s32(shift);
+    return (sd_int){vshlq_s32(i.val, shiftv)};
+#else
+    return (sd_int){i.val << shift};
+#endif
+}
+
+static inline sd_int sd_int_shr(sd_int i, int shift) {
+#ifdef __AVX2__
+    return (sd_int){_mm256_srai_epi32(i.val, shift)};
+#elifdef __SSE2__
+    return (sd_int){_mm_srai_epi32(i.val, shift)};
+#elifdef __ARM_NEON
+    int32x4_t shiftv = vdupq_n_s32(-shift);
+    return (sd_int){vshlq_s32(i.val, shiftv)};
+#else
+    return (sd_int){i.val >> shift};
+#endif
+}
+
+static inline sd_int sd_int_set(int32_t i) {
+#ifdef __AVX2__
+    return (sd_int){_mm256_set1_epi32(i)};
+#elifdef __SSE2__
+    return (sd_int){_mm_set1_epi32(i)};
+#elifdef __ARM_NEON
+    return (sd_int){vdupq_n_s32(i)};
+#else
+#endif
+}
+
+static inline sd_int sd_int_gather_i8(int8_t *buf, sd_int index) {
+#ifdef __AVX2__
+    return (sd_int){_mm256_i32gather_epi32((int const *)buf, index.val, 1)};
+#elifdef __SSE2__
+    alignas(SD_ALIGN) int32_t elems[4], idxs[4];
+    SDL_memcpy(idxs, &index, sizeof(sd_int));
+
+    for (int i = 0; i < 4; ++i)
+        elems[i] = buf[idxs[i]];
+
+    sd_int out;
+    SDL_memcpy(&out, elems, sizeof(sd_int));
+    return out;
+#elifdef __ARM_NEON
+    return (int32x4_t){buf[idx[0]], buf[idx[1]], buf[idx[2]], buf[idx[3]]};
+#else
+    return (sd_int){buf[index.val]};
+#endif
+}
+
+static inline sd_int sd_float_to_int(sd_float f) {
+#ifdef __AVX2__
+    return (sd_int){_mm256_cvtps_epi32(f.val)};
+#elifdef __SSE2__
+    return (sd_int){_mm_cvtps_epi32(f.val)};
+#elifdef __ARM_NEON
+    return (sd_int){vcvtq_s32_f32(f.val)};
+#else
+    return (sd_int){(int32_t)f.val};
+#endif
+}
+
+static inline sd_float sd_int_to_float(sd_int i) {
+#ifdef __AVX2__
+    return (sd_float){_mm256_cvtepi32_ps(i.val)};
+#elifdef __SSE2__
+    return (sd_float){_mm_cvtepi32_ps(i.val)};
+#elifdef __ARM_NEON
+    return (sd_float){vcvtq_f32_s32(i.val)};
+#else
+    return (sd_float){(float)i.val};
+#endif
+}
 
 static inline sd_float sd_float_add(sd_float lhs, sd_float rhs) {
 #ifdef __AVX2__
