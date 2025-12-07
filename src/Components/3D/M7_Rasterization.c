@@ -131,7 +131,7 @@ void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw *triangle,
                     fragment_nrml = sd_vec3_fmadd(nrml_xform[2], relative.z, fragment_nrml);
                     fragment_nrml = sd_vec3_normalize(fragment_nrml);
 
-            sd_float mask = sd_float_clamp_mask(
+            sd_int mask = sd_float_clamp_mask(
                 fragment_x,
                 scanlines[i][0],
                 scanlines[i][1]
@@ -139,7 +139,7 @@ void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw *triangle,
 
             /* Inverse z in depth buffer */
             sd_float bg_z = canvas->depth[base + j];
-            mask = sd_float_and(mask, sd_float_gt(inv_z, bg_z));
+            mask = sd_int_and(mask, sd_float_gt(inv_z, bg_z));
 
             sd_vec4 col;
             List_ForEach(triangle->shader_pipeline, shader, col = shader(triangle->shader_state, col, fragment_vs, fragment_nrml, sd_vec2_zero()); );
