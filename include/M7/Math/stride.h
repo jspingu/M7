@@ -345,7 +345,7 @@ static inline sd_int sd_int_or(sd_int lhs, sd_int rhs) {
 #elifdef __SSE2__
     return (sd_int){_mm_or_si128(lhs.val, rhs.val)};
 #elifdef __ARM_NEON
-    return (sd_int){vorq_s32(lhs.val, rhs.val)};
+    return (sd_int){vorrq_s32(lhs.val, rhs.val)};
 #else
     return (sd_int){lhs.val | rhs.val};
 #endif
@@ -403,7 +403,7 @@ static inline sd_int sd_int_gather_i8(int8_t *buf, sd_int index) {
     SDL_memcpy(&out, elems, sizeof(sd_int));
     return out;
 #elifdef __ARM_NEON
-    return (int32x4_t){buf[idx[0]], buf[idx[1]], buf[idx[2]], buf[idx[3]]};
+    return (sd_int){{buf[index.val[0]], buf[index.val[1]], buf[index.val[2]], buf[index.val[3]]}};
 #else
     return (sd_int){buf[index.val]};
 #endif
@@ -665,7 +665,7 @@ static inline sd_int sd_float_gt(sd_float lhs, sd_float rhs) {
 #elifdef __SSE2__
     return (sd_int){_mm_castps_si128(_mm_cmpgt_ps(lhs.val, rhs.val))};
 #elifdef __ARM_NEON
-    return (sd_int){vreinterpretq_f32_u32(vcgtq_f32(lhs.val, rhs.val))};
+    return (sd_int){vreinterpretq_s32_u32(vcgtq_f32(lhs.val, rhs.val))};
 #else
     return (sd_int){lhs.val > rhs.val ? ~0 : 0};
 #endif
