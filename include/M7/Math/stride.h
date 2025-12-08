@@ -314,9 +314,9 @@ static inline sd_int sd_int_mul(sd_int lhs, sd_int rhs) {
     __m128i lhs31 = _mm_shuffle_epi32(lhs.val, 0b00'11'00'01);
     __m128i rhs31 = _mm_shuffle_epi32(rhs.val, 0b00'11'00'01);
 
-    __m128i mul20 = _mm_mul_epi32(lhs.val, rhs.val);
+    __m128i mul20 = _mm_mul_epu32(lhs.val, rhs.val);
             mul20 = _mm_shuffle_epi32(mul20, 0b00'00'10'00);
-    __m128i mul31 = _mm_mul_epi32(lhs31, rhs31);
+    __m128i mul31 = _mm_mul_epu32(lhs31, rhs31);
             mul31 = _mm_shuffle_epi32(mul31, 0b00'00'10'00);
 
     return (sd_int){_mm_unpacklo_epi32(mul20, mul31)};
