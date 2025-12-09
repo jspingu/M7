@@ -73,18 +73,22 @@ SD_DEFINE_TYPES(scalar, float, int32_t) // NOLINT(bugprone-sizeof-expression)
 
 #ifdef __AVX2__
     #define SD_VARIANT(fnname)  fnname##_avx2
+    #define SD_LOG_LENGTH       3
     SD_DEFINE_TYPES(avx2, __m256, __m256i)
     SD_TYPEDEFS(avx2)
 #elifdef __SSE2__
     #define SD_VARIANT(fnname)  fnname##_sse2
+    #define SD_LOG_LENGTH       2
     SD_DEFINE_TYPES(sse2, __m128, __m128i)
     SD_TYPEDEFS(sse2)
 #elifdef __ARM_NEON
     #define SD_VARIANT(fnname)  fnname##_neon
+    #define SD_LOG_LENGTH       2
     SD_DEFINE_TYPES(neon, float32x4_t, int32x4_t)
     SD_TYPEDEFS(neon)
 #else
     #define SD_VARIANT(fnname)  fnname##_scalar
+    #define SD_LOG_LENGTH       0
     SD_TYPEDEFS(scalar)
 #endif
 
@@ -810,6 +814,53 @@ static inline sd_vec4 sd_vec4_set(float x, float y, float z, float w) {
         .y = sd_float_set(y),
         .z = sd_float_set(z),
         .w = sd_float_set(w)
+    };
+}
+
+static inline sd_float sd_float_gather(float *buf, sd_int index) {
+#ifdef __AVX2__
+    return (sd_float){_mm256_i32gather_ps(buf, index.val, 4)};
+#elifdef __SSE2__
+    alignas(SD_ALIGN) float elems[4];
+    alignas(SD_ALIGN) int32_t idxs[4];
+
+    SDL_memcpy(idxs, &index, sizeof(sd_int));
+
+    for (int i = 0; i < 4; ++i)
+        elems[i] = buf[idxs[i]];
+
+    sd_float out;
+    SDL_memcpy(&out, elems, sizeof(sd_float));
+    return out;
+#elifdef __ARM_NEON
+    return (sd_float){{buf[index.val[0]], buf[index.val[1]], buf[index.val[2]], buf[index.val[3]]}};
+#else
+    return (sd_float){buf[index.val]};
+#endif
+}
+
+static inline sd_vec3 sd_vec3_gather_strided(sd_vec3 *buf, sd_int index) {
+    sd_int sd_qot = sd_int_shr(index, SD_LOG_LENGTH);
+    sd_int sd_rem = sd_int_and(index, sd_int_set(SD_LENGTH - 1));
+    sd_int sd_idx = sd_int_add(sd_qot, sd_int_shl(sd_qot, 1));
+           sd_idx = sd_int_shl(sd_idx, SD_LOG_LENGTH);
+           sd_idx = sd_int_add(sd_idx, sd_rem);
+
+    return (sd_vec3) {
+        .x = sd_float_gather((float *)&buf->x, sd_idx),
+        .y = sd_float_gather((float *)&buf->y, sd_idx),
+        .z = sd_float_gather((float *)&buf->z, sd_idx)
+    };
+}
+
+static inline sd_vec4 sd_vec4_gather(float *buf, sd_int index) {
+    sd_int base = sd_int_shl(index, 2);
+
+    return (sd_vec4) {
+        .x = sd_float_gather(buf + 0, base),
+        .y = sd_float_gather(buf + 1, base),
+        .z = sd_float_gather(buf + 2, base),
+        .w = sd_float_gather(buf + 3, base)
     };
 }
 
