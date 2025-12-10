@@ -427,9 +427,9 @@ static inline void sd_int_store_unaligned(int32_t *dst, sd_int i) {
 
 static inline sd_int sd_float_to_int(sd_float f) {
 #ifdef __AVX2__
-    return (sd_int){_mm256_cvtps_epi32(f.val)};
+    return (sd_int){_mm256_cvttps_epi32(f.val)};
 #elifdef __SSE2__
-    return (sd_int){_mm_cvtps_epi32(f.val)};
+    return (sd_int){_mm_cvttps_epi32(f.val)};
 #elifdef __ARM_NEON
     return (sd_int){vcvtq_s32_f32(f.val)};
 #else
