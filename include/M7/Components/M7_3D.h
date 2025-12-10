@@ -81,32 +81,34 @@ typedef struct M7_ModelArgs {
 } M7_ModelArgs;
 
 typedef struct M7_Teapot {
-    M7_Mesh *mesh;
     float scale;
 } M7_Teapot;
 
 typedef struct M7_Torus {
-    M7_Mesh *mesh;
     size_t outer_precision, inner_precision;
     float outer_radius, inner_radius;
 } M7_Torus;
 
 typedef struct M7_Sphere {
-    M7_Mesh *mesh;
     size_t nrings, ring_precision;
     float radius;
 } M7_Sphere;
 
-SD_DECLARE(sd_vec4, first_shader, ECS_Handle *, self, sd_vec4, col, sd_vec3, vs, sd_vec3, nrml, sd_vec2, ts)
-SD_DECLARE(sd_vec4, second_shader, ECS_Handle *, self, sd_vec4, col, sd_vec3, vs, sd_vec3, nrml, sd_vec2, ts)
+typedef struct M7_Rect {
+    float width, height;
+} M7_Rect;
+
+SD_DECLARE(sd_vec4, solid_green, ECS_Handle *, self, sd_vec4, col, sd_vec3, vs, sd_vec3, nrml, sd_vec2, ts)
+SD_DECLARE(sd_vec4, checkerboard, ECS_Handle *, self, sd_vec4, col, sd_vec3, vs, sd_vec3, nrml, sd_vec2, ts)
+SD_DECLARE(sd_vec4, light, ECS_Handle *, self, sd_vec4, col, sd_vec3, vs, sd_vec3, nrml, sd_vec2, ts)
 
 M7_Mesh *M7_Teapot_GetMesh(ECS_Handle *self);
 M7_Mesh *M7_Torus_GetMesh(ECS_Handle *self);
 M7_Mesh *M7_Sphere_GetMesh(ECS_Handle *self);
+M7_Mesh *M7_Rect_GetMesh(ECS_Handle *self);
 
-void M7_Teapot_Free(void *component);
-void M7_Torus_Free(void *component);
-void M7_Sphere_Free(void *component);
+void M7_MeshPrimitive_Init(void *component, void *args);
+void M7_MeshPrimitive_Free(void *component);
 
 xform3 M7_Entity_GetXform(ECS_Handle *self);
 void M7_Entity_Xform(ECS_Handle *self, xform3 lhs);

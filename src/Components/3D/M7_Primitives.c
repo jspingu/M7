@@ -5,10 +5,9 @@
 #include <M7/Math/linalg.h>
 
 M7_Mesh *M7_Teapot_GetMesh(ECS_Handle *self) {
+    M7_Mesh **mesh = ECS_Entity_GetComponent(self, M7_Components.MeshPrimitive);
     M7_Teapot *teapot = ECS_Entity_GetComponent(self, M7_Components.Teapot);
-
-    if (teapot->mesh)
-        return teapot->mesh;
+    if (*mesh) return *mesh;
 
     SDL_IOStream *teapot_data = SDL_IOFromFile("assets/teapot_surface0.norm", "r");
     Uint8 chr;
@@ -79,21 +78,20 @@ M7_Mesh *M7_Teapot_GetMesh(ECS_Handle *self) {
         }
     }
 
-    teapot->mesh = M7_Mesh_Create(List_GetAddress(verts, 0), List_GetAddress(nrmls, 0), nullptr, List_GetAddress(faces, 0), nverts, 0, nfaces);
+    *mesh = M7_Mesh_Create(List_GetAddress(verts, 0), List_GetAddress(nrmls, 0), nullptr, List_GetAddress(faces, 0), nverts, 0, nfaces);
 
     List_Free(verts);
     List_Free(nrmls);
     List_Free(faces);
     SDL_CloseIO(teapot_data);
 
-    return teapot->mesh;
+    return *mesh;
 }
 
 M7_Mesh *M7_Torus_GetMesh(ECS_Handle *self) {
+    M7_Mesh **mesh = ECS_Entity_GetComponent(self, M7_Components.MeshPrimitive);
     M7_Torus *torus = ECS_Entity_GetComponent(self, M7_Components.Torus);
-
-    if (torus->mesh)
-        return torus->mesh;
+    if (*mesh) return *mesh;
 
     M7_Sculpture *torus_sculpt = M7_Sculpture_Create();
     List(M7_PolyChain *) *rings = List_Create(M7_PolyChain *);
@@ -117,18 +115,17 @@ M7_Mesh *M7_Torus_GetMesh(ECS_Handle *self) {
     for (size_t i = 0; i < List_Length(rings); ++i)
         M7_Sculpture_JoinPolyChains(torus_sculpt, List_Get(rings, i), List_Get(rings, (i + 1) % List_Length(rings)));
 
-    torus->mesh = M7_Sculpture_ToMesh(torus_sculpt, List_GetAddress(nrmls, 0));
+    *mesh = M7_Sculpture_ToMesh(torus_sculpt, List_GetAddress(nrmls, 0));
     List_Free(rings);
     M7_Sculpture_Free(torus_sculpt);
 
-    return torus->mesh;
+    return *mesh;
 }
 
 M7_Mesh *M7_Sphere_GetMesh(ECS_Handle *self) {
+    M7_Mesh **mesh = ECS_Entity_GetComponent(self, M7_Components.MeshPrimitive);
     M7_Sphere *sphere = ECS_Entity_GetComponent(self, M7_Components.Sphere);
-
-    if (sphere->mesh)
-        return sphere->mesh;
+    if (*mesh) return *mesh;
 
     M7_Sculpture *sphere_sculpt = M7_Sculpture_Create();
     List(M7_PolyChain *) *rings = List_Create(M7_PolyChain *);
@@ -166,30 +163,56 @@ M7_Mesh *M7_Sphere_GetMesh(ECS_Handle *self) {
     for (size_t i = 0; i < sphere->nrings - 1; ++i)
         M7_Sculpture_JoinPolyChains(sphere_sculpt, List_Get(rings, i), List_Get(rings, i + 1));
 
-    M7_Mesh *out = M7_Sculpture_ToMesh(sphere_sculpt, List_GetAddress(nrmls, 0));
+    *mesh = M7_Sculpture_ToMesh(sphere_sculpt, List_GetAddress(nrmls, 0));
     List_Free(rings);
     M7_Sculpture_Free(sphere_sculpt);
 
-    return out;
+    return *mesh;
 }
 
-void M7_Teapot_Free(void *component) {
-    M7_Teapot *teapot = component;
+M7_Mesh *M7_Rect_GetMesh(ECS_Handle *self) {
+    M7_Mesh **mesh = ECS_Entity_GetComponent(self, M7_Components.MeshPrimitive);
+    M7_Rect *rect = ECS_Entity_GetComponent(self, M7_Components.Rect);
 
-    if (teapot->mesh)
-        M7_Mesh_Free(teapot->mesh);
+    vec3 ws_verts[4] = {
+        { .x = -rect->width * 0.5f, .y = rect->height * 0.5f },
+        { .x = rect->width * 0.5f, .y = rect->height * 0.5f },
+        { .x = -rect->width * 0.5f, .y = -rect->height * 0.5f },
+        { .x = rect->width * 0.5f, .y = -rect->height * 0.5f },
+    };
+
+    vec3 ws_nrmls[4] = {
+        vec3_mul(vec3_k, -1),
+        vec3_mul(vec3_k, -1),
+        vec3_mul(vec3_k, -1),
+        vec3_mul(vec3_k, -1)
+    };
+
+    float unit = SDL_max(rect->width, rect->height);
+
+    vec2 ts_verts[4] = {
+        vec2_zero,
+        { .x = rect->width / unit },
+        { .y = rect->height / unit },
+        { .x = rect->width / unit, .y = rect->height / unit },
+    };
+
+    M7_MeshFace faces[2] = {
+        { .idx_verts = { 0, 1, 2 }, .idx_tverts = { 0, 1, 2 } },
+        { .idx_verts = { 1, 3, 2 }, .idx_tverts = { 1, 3, 2 } },
+    };
+
+    *mesh = M7_Mesh_Create(ws_verts, ws_nrmls, ts_verts, faces, 4, 4, 2);
+    return *mesh;
 }
 
-void M7_Torus_Free(void *component) {
-    M7_Torus *torus = component;
-
-    if (torus->mesh)
-        M7_Mesh_Free(torus->mesh);
+void M7_MeshPrimitive_Init(void *component, void *args) {
+    (void)args;
+    M7_Mesh **mesh = component;
+    *mesh = nullptr;
 }
 
-void M7_Sphere_Free(void *component) {
-    M7_Sphere *sphere = component;
-
-    if (sphere->mesh)
-        M7_Mesh_Free(sphere->mesh);
+void M7_MeshPrimitive_Free(void *component) {
+    M7_Mesh **mesh = component;
+    if (*mesh) M7_Mesh_Free(*mesh);
 }

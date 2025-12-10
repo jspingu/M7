@@ -52,16 +52,41 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
                 { M7_Components.Basis, (mat3x3 []){mat3x3_identity} },
             )
         },
-        { /* Model */
+        { /* Teapot */
             ECS_Components(
                 { M7_Components.Position, &(vec3){ .y=-150, .z=600 } },
                 { M7_Components.Basis, (mat3x3 []){mat3x3_identity} },
+                { M7_Components.MeshPrimitive, nullptr },
                 { M7_Components.Teapot, &(M7_Teapot) { .scale = 100 } },
                 { M7_Components.Model, &(M7_ModelArgs) {
                     .get_mesh = M7_Teapot_GetMesh,
                     .instances = (M7_ModelInstance []) {
                         (M7_ModelInstance) {
-                            .shader_pipeline = (M7_FragmentShader []) { SD_SELECT(first_shader), SD_SELECT(second_shader) },
+                            .shader_pipeline = (M7_FragmentShader []) { SD_SELECT(solid_green), SD_SELECT(light) },
+                            .nshaders = 2,
+                            .render_batch = 0,
+                            .flags = M7_RASTERIZER_CULL_BACKFACE
+                                   | M7_RASTERIZER_WRITE_DEPTH
+                                   | M7_RASTERIZER_TEST_DEPTH
+                                   | M7_RASTERIZER_INTERPOLATE_NORMALS
+                        },
+                    },
+                    .ninstances = 1
+                }},
+                { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault} }
+            )
+        },
+        { /* Floor */
+            ECS_Components(
+                { M7_Components.Position, &(vec3){ .y=-150, .z=600 } },
+                { M7_Components.Basis, (mat3x3 []){mat3x3_rotate(mat3x3_identity, vec3_i, SDL_PI_F / 2)} },
+                { M7_Components.MeshPrimitive, nullptr },
+                { M7_Components.Rect, &(M7_Rect) { .width=5000, .height=5000 } },
+                { M7_Components.Model, &(M7_ModelArgs) {
+                    .get_mesh = M7_Rect_GetMesh,
+                    .instances = (M7_ModelInstance []) {
+                        (M7_ModelInstance) {
+                            .shader_pipeline = (M7_FragmentShader []) { SD_SELECT(checkerboard), SD_SELECT(light) },
                             .nshaders = 2,
                             .render_batch = 0,
                             .flags = M7_RASTERIZER_CULL_BACKFACE

@@ -27,11 +27,25 @@ static inline vec3 intersect_near(vec3 from, vec3 to, float near) {
     return vec3_add(from, vec3_mul(slope, near - from.z));
 }
 
-sd_vec4 SD_VARIANT(first_shader)(ECS_Handle *self, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts) {
+sd_vec4 SD_VARIANT(solid_green)(ECS_Handle *self, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts) {
+    (void)self, (void)col, (void)vs, (void)nrml, (void)ts;
+    sd_vec3 green = sd_vec3_set(0.4, 0.7, 0.5);
+    return (sd_vec4) { .rgb = green };
+}
+
+sd_vec4 SD_VARIANT(checkerboard)(ECS_Handle *self, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts) {
+    (void)self, (void)col, (void)vs, (void)nrml;
+    int tile_count = 63;
+    sd_vec2 tile_coord = sd_vec2_mul(ts, sd_float_set(tile_count));
+    sd_int tile_idx = sd_int_add(sd_int_mul(sd_float_to_int(tile_coord.y), sd_int_set(tile_count)), sd_float_to_int(tile_coord.x));
+    sd_int tile_mask = sd_int_gt(sd_int_and(tile_idx, sd_int_set(1)), sd_int_set(0));
+    return sd_vec4_mask_blend(sd_vec4_zero(), sd_vec4_one(), tile_mask);
+}
+
+sd_vec4 SD_VARIANT(light)(ECS_Handle *self, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts) {
     (void)self, (void)col, (void)ts;
-    sd_float ambient = sd_float_set(0.01);
+    sd_float ambient = sd_float_set(0.001);
     sd_float energy = sd_float_set(10000);
-    sd_vec3 surface_col = sd_vec3_set(0.9, 0.5, 0.5);
 
     sd_float sqrlen = sd_vec3_dot(vs, vs);
     sd_float rcpsql = sd_float_rcp(sqrlen);
@@ -42,14 +56,8 @@ sd_vec4 SD_VARIANT(first_shader)(ECS_Handle *self, sd_vec4 col, sd_vec3 vs, sd_v
         sd_float_mul(energy, rcpsql)
     );
 
-    sd_vec3 out = sd_vec3_mul(surface_col, sd_float_add(ambient, power));
+    sd_vec3 out = sd_vec3_mul(col.rgb, sd_float_add(ambient, power));
     return (sd_vec4){ .rgb = out };
-}
-
-sd_vec4 SD_VARIANT(second_shader)(ECS_Handle *self, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts) {
-    (void)self, (void)vs, (void)nrml, (void)ts;
-    col.g = sd_float_mul(col.g, sd_float_set(2));
-    return col;
 }
 
 void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw *triangle, int (*scanlines)[2], int range[2]) {
@@ -82,6 +90,16 @@ void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw *triangle,
         sd_vec3_fmadd(ac_nrml, inv_xform[0].y, sd_vec3_mul(ab_nrml, inv_xform[0].x)),
         sd_vec3_fmadd(ac_nrml, inv_xform[1].y, sd_vec3_mul(ab_nrml, inv_xform[1].x)),
         sd_vec3_fmadd(ac_nrml, inv_xform[2].y, sd_vec3_mul(ab_nrml, inv_xform[2].x))
+    };
+
+    sd_vec2 origin_ts = sd_vec2_set(triangle->ts_verts[0].x, triangle->ts_verts[0].y);
+    sd_vec2 ab_ts = sd_vec2_sub(sd_vec2_set(triangle->ts_verts[1].x, triangle->ts_verts[1].y), origin_ts);
+    sd_vec2 ac_ts = sd_vec2_sub(sd_vec2_set(triangle->ts_verts[2].x, triangle->ts_verts[2].y), origin_ts);
+
+    sd_vec2 ts_xform[3] = {
+        sd_vec2_fmadd(ac_ts, inv_xform[0].y, sd_vec2_mul(ab_ts, inv_xform[0].x)),
+        sd_vec2_fmadd(ac_ts, inv_xform[1].y, sd_vec2_mul(ab_ts, inv_xform[1].x)),
+        sd_vec2_fmadd(ac_ts, inv_xform[2].y, sd_vec2_mul(ab_ts, inv_xform[2].x))
     };
 
     sd_vec2 midpoint = {
@@ -131,6 +149,10 @@ void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw *triangle,
                     fragment_nrml = sd_vec3_fmadd(nrml_xform[2], relative.z, fragment_nrml);
                     fragment_nrml = sd_vec3_normalize(fragment_nrml);
 
+            sd_vec2 fragment_ts = sd_vec2_fmadd(ts_xform[0], relative.x, origin_ts);
+                    fragment_ts = sd_vec2_fmadd(ts_xform[1], relative.y, fragment_ts);
+                    fragment_ts = sd_vec2_fmadd(ts_xform[2], relative.z, fragment_ts);
+
             sd_int mask = sd_float_clamp_mask(
                 fragment_x,
                 scanlines[i][0],
@@ -142,7 +164,7 @@ void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw *triangle,
             mask = sd_int_and(mask, sd_float_gt(inv_z, bg_z));
 
             sd_vec4 col;
-            List_ForEach(triangle->shader_pipeline, shader, col = shader(triangle->shader_state, col, fragment_vs, fragment_nrml, sd_vec2_zero()); );
+            List_ForEach(triangle->shader_pipeline, shader, col = shader(triangle->shader_state, col, fragment_vs, fragment_nrml, fragment_ts); );
 
             canvas->depth[base + j] = sd_float_mask_blend(bg_z, inv_z, mask);
             canvas->color[base + j] = sd_vec3_mask_blend(bg, col.rgb, mask);
@@ -323,6 +345,13 @@ static void M7_Rasterizer_DrawBatch(ECS_Handle *self, M7_RasterizerFlags flags, 
                     sd_vec3_arr_get(instance->geometry->vs_nrmls, faces[i].idx_verts[1 + !verts_cw]),
                     sd_vec3_arr_get(instance->geometry->vs_nrmls, faces[i].idx_verts[1 + verts_cw])
                 }, sizeof(vec3 [3]));
+
+                if (instance->geometry->mesh->ts_verts)
+                    SDL_memcpy(triangle->ts_verts, (vec2 [3]) {
+                        instance->geometry->mesh->ts_verts[faces[i].idx_verts[0]],
+                        instance->geometry->mesh->ts_verts[faces[i].idx_verts[1 + !verts_cw]],
+                        instance->geometry->mesh->ts_verts[faces[i].idx_verts[1 + verts_cw]]
+                    }, sizeof(vec2 [3]));
 
                 /* Compute strided bounding box */
                 triangle->sd_bounding_box.left = roundtl(min_x) / SD_LENGTH;

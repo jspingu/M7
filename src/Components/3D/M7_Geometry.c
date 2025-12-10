@@ -20,7 +20,7 @@ M7_Mesh *SD_VARIANT(M7_Mesh_Create)(vec3 *ws_verts, vec3 *ws_norms, vec2 *ts_ver
     *mesh = (M7_Mesh) {
         .ws_verts = vbuf,
         .ws_nrmls = nbuf,
-        .ts_verts = SDL_memcpy(SDL_malloc(sizeof(vec2) * nverts), ts_verts, sizeof(vec2) * nts_verts),
+        .ts_verts = nts_verts ? SDL_memcpy(SDL_malloc(sizeof(vec2) * nverts), ts_verts, sizeof(vec2) * nts_verts) : nullptr,
         .faces = SDL_memcpy(SDL_malloc(sizeof(M7_MeshFace) * nfaces), faces, sizeof(M7_MeshFace) * nfaces),
         .nverts = nverts,
         .nfaces = nfaces
@@ -90,13 +90,13 @@ void M7_Model_OnXform(ECS_Handle *self, xform3 composed) {
 }
 
 void M7_Model_Update(ECS_Handle *self, double delta) {
-    static float pitch = 0;
-    static float yaw = 0;
+    // static float pitch = 0;
+    // static float yaw = 0;
 
-    mat3x3 *basis = ECS_Entity_GetComponent(self, M7_Components.Basis);
+    // mat3x3 *basis = ECS_Entity_GetComponent(self, M7_Components.Basis);
     // pitch += 2.718 / 2 * delta;
-    yaw -= 3.141 / 4 * delta;
-    *basis = mat3x3_rotate(mat3x3_rotate(mat3x3_identity, vec3_i, pitch), vec3_j, yaw);
+    // yaw -= 3.141 / 4 * delta;
+    // *basis = mat3x3_rotate(mat3x3_rotate(mat3x3_identity, vec3_i, pitch), vec3_j, yaw);
 }
 
 void M7_Model_Attach(ECS_Handle *self) {

@@ -30,9 +30,11 @@ struct M7_Components {
     ECS_Component(mat3x3) *Basis;
 
     /* 3D primitives */
+    ECS_Component(M7_Mesh *) *MeshPrimitive;
     ECS_Component(M7_Teapot) *Teapot;
     ECS_Component(M7_Torus) *Torus;
     ECS_Component(M7_Sphere) *Sphere;
+    ECS_Component(M7_Rect) *Rect;
 };
 
 struct M7_SystemGroups {

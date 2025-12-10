@@ -32,9 +32,11 @@ void M7_3D_RegisterToECS(ECS *ecs) {
     M7_Components.Position = ECS_RegisterComponent(ecs, vec3, {});
     M7_Components.Basis = ECS_RegisterComponent(ecs, mat3x3, {});
 
-    M7_Components.Teapot = ECS_RegisterComponent(ecs, M7_Teapot, { .free = M7_Teapot_Free });
-    M7_Components.Torus = ECS_RegisterComponent(ecs, M7_Torus, { .free = M7_Torus_Free });
-    M7_Components.Sphere = ECS_RegisterComponent(ecs, M7_Sphere, { .free = M7_Sphere_Free });
+    M7_Components.MeshPrimitive = ECS_RegisterComponent(ecs, M7_Mesh *, { .init = M7_MeshPrimitive_Init, .free = M7_MeshPrimitive_Free });
+    M7_Components.Teapot = ECS_RegisterComponent(ecs, M7_Teapot, {});
+    M7_Components.Torus = ECS_RegisterComponent(ecs, M7_Torus, {});
+    M7_Components.Sphere = ECS_RegisterComponent(ecs, M7_Sphere, {});
+    M7_Components.Rect = ECS_RegisterComponent(ecs, M7_Rect, {});
 
     ECS_SystemGroup_RegisterSystem(M7_SystemGroups.Render, SD_SELECT(M7_Rasterizer_Render), M7_Components.Rasterizer);
     ECS_SystemGroup_RegisterSystem(M7_SystemGroups.RenderPresent, SD_SELECT(M7_Canvas_Present), M7_Components.Viewport, M7_Components.Canvas);
