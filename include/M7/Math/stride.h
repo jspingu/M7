@@ -331,6 +331,30 @@ static inline sd_int sd_int_mul(sd_int lhs, sd_int rhs) {
 #endif
 }
 
+static inline sd_int sd_int_lt(sd_int lhs, sd_int rhs) {
+#ifdef __AVX2__
+    return (sd_int){_mm256_cmpgt_epi32(rhs.val, lhs.val)};
+#elifdef __SSE2__
+    return (sd_int){_mm_cmplt_epi32(lhs.val, rhs.val)};
+#elifdef __ARM_NEON
+    return (sd_int){vreinterpretq_s32_u32(vcltq_s32(lhs.val, rhs.val))};
+#else
+    return (sd_int){lhs.val < rhs.val ? ~0 : 0};
+#endif
+}
+
+static inline sd_int sd_int_gt(sd_int lhs, sd_int rhs) {
+#ifdef __AVX2__
+    return (sd_int){_mm256_cmpgt_epi32(lhs.val, rhs.val)};
+#elifdef __SSE2__
+    return (sd_int){_mm_cmpgt_epi32(lhs.val, rhs.val)};
+#elifdef __ARM_NEON
+    return (sd_int){vreinterpretq_s32_u32(vcgtq_s32(lhs.val, rhs.val))};
+#else
+    return (sd_int){lhs.val > rhs.val ? ~0 : 0};
+#endif
+}
+
 static inline sd_int sd_int_and(sd_int lhs, sd_int rhs) {
 #ifdef __AVX2__
     return (sd_int){_mm256_and_si256(lhs.val, rhs.val)};
