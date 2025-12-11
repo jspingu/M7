@@ -112,7 +112,7 @@ void SD_VARIANT(M7_Canvas_Init)(void *component, void *args) {
     canvas->depth = SDL_aligned_alloc(SD_ALIGN, sizeof(sd_float) * sd_count);
 }
 
-#ifdef SD_BASE
+#ifndef SD_SRC_VARIANT
 
 void M7_Canvas_Free(void *component) {
     M7_Canvas *canvas = component;
@@ -121,4 +121,4 @@ void M7_Canvas_Free(void *component) {
     SDL_aligned_free(canvas->depth);
 }
 
-#endif /* SD_BASE */
+#endif /* SD_SRC_VARIANT */

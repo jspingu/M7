@@ -466,7 +466,7 @@ void SD_VARIANT(M7_Rasterizer_Render)(ECS_Handle *self) {
     }
 }
 
-#ifdef SD_BASE
+#ifndef SD_SRC_VARIANT
 
 void M7_Rasterizer_Attach(ECS_Handle *self) {
     M7_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, M7_Components.Rasterizer);
@@ -486,4 +486,4 @@ void M7_Rasterizer_Init(void *component, void *args) {
     };
 }
 
-#endif /* SD_BASE */
+#endif /* SD_SRC_VARIANT */

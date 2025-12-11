@@ -50,17 +50,16 @@ AVAILABLE_SIMD_EXTENSIONS = $(findstring AVX2,$(PREDEFINED_MACROS)) \
 							$(findstring SSE2,$(PREDEFINED_MACROS)) \
 							$(findstring NEON,$(PREDEFINED_MACROS))
 
-BASE_VECTORIZATION_FLAGS = -DSD_BASE
 BASE_SIMD_EXTENSION = $(firstword $(AVAILABLE_SIMD_EXTENSIONS))
 SIMD_VARIANTS = $(filter-out $(AVAILABLE_SIMD_EXTENSIONS),$(POSSIBLE_SIMD_EXTENSIONS))
 
 ifeq ($(VECTORIZATION),dynamic)
-BASE_VECTORIZATION_FLAGS += -DSD_DISPATCH_DYNAMIC
+BASE_VECTORIZATION_FLAGS = -DSD_DISPATCH_DYNAMIC
 OBJS_VECTORIZE = $(foreach v,$(SIMD_VARIANTS),$(OBJS_VECTORIZE_$v))
 DEPS_VECTORIZE = $(foreach v,$(SIMD_VARIANTS),$(DEPS_VECTORIZE_$v))
 else
 ifeq ($(VECTORIZATION),static)
-BASE_VECTORIZATION_FLAGS += -DSD_DISPATCH_STATIC
+BASE_VECTORIZATION_FLAGS = -DSD_DISPATCH_STATIC
 else
 $(error Invalid vectorization option '$(VECTORIZATION)'. Valid options are 'static' or 'dynamic')
 endif
@@ -91,15 +90,15 @@ $(OBJS): $(BLDDIR)/%.o: %.c
 
 $(OBJS_VECTORIZE_AVX2): $(BLDDIR)/%_avx2.o: %.c
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(OPTFLAGS) $(DEPFLAGS) -mavx2 -mfma -DSD_DISPATCH_DYNAMIC -c $< -o $@
+	$(CC) $(CFLAGS) $(OPTFLAGS) $(DEPFLAGS) -mavx2 -mfma -DSD_DISPATCH_DYNAMIC -DSD_SRC_VARIANT -c $< -o $@
 
 $(OBJS_VECTORIZE_SSE2): $(BLDDIR)/%_sse2.o: %.c
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(OPTFLAGS) $(DEPFLAGS) -msse2 -DSD_DISPATCH_DYNAMIC -c $< -o $@
+	$(CC) $(CFLAGS) $(OPTFLAGS) $(DEPFLAGS) -msse2 -DSD_DISPATCH_DYNAMIC -DSD_SRC_VARIANT -c $< -o $@
 
 $(OBJS_VECTORIZE_NEON): $(BLDDIR)/%_neon.o: %.c
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(OPTFLAGS) $(DEPFLAGS) -march=armv7 -DSD_DISPATCH_DYNAMIC -c $< -o $@
+	$(CC) $(CFLAGS) $(OPTFLAGS) $(DEPFLAGS) -march=armv7 -DSD_DISPATCH_DYNAMIC -DSD_SRC_VARIANT -c $< -o $@
 
 $(BLDDIR)/gamma.o: $(BLDDIR)/gamma.c
 	@mkdir -p $(BLDDIR)
