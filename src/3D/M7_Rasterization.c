@@ -44,8 +44,8 @@ sd_vec4 SD_VARIANT(checkerboard)(ECS_Handle *self, sd_vec4 col, sd_vec3 vs, sd_v
 
 sd_vec4 SD_VARIANT(light)(ECS_Handle *self, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts) {
     (void)self, (void)col, (void)ts;
-    sd_float ambient = sd_float_set(0.001);
-    sd_float energy = sd_float_set(10000);
+    sd_float ambient = sd_float_set(0.1);
+    sd_float energy = sd_float_set(20000);
 
     sd_float sqrlen = sd_vec3_dot(vs, vs);
     sd_float rcpsql = sd_float_rcp(sqrlen);
@@ -451,7 +451,7 @@ void SD_VARIANT(M7_Rasterizer_Render)(ECS_Handle *self) {
 
     /* Clear canvas */
     for (size_t i = 0; i < sd_bounding_size(canvas->width) * canvas->height; ++i) {
-        canvas->color[i] = sd_vec3_zero();
+        canvas->color[i] = sd_vec3_set(0.2, 0.5, 0.7);
         canvas->depth[i] = sd_float_zero();
     }
 

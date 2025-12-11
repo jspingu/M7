@@ -3,18 +3,20 @@
 #include <M7/M7_ECS.h>
 #include <M7/Math/linalg.h>
 
+#include "LocalComponents.h"
+
 bool vec3_eq(vec3 lhs, vec3 rhs) {
     return lhs.x == rhs.x &&
            lhs.y == rhs.y &&
            lhs.z == rhs.y;
 }
 
-void CameraMovement_Update(ECS_Handle *self, double delta) {
+void FreeCam_Update(ECS_Handle *self, double delta) {
     ECS_Handle *is = ECS_Entity_AncestorWithComponent(self, M7_Components.InputState, true);
     ECS_Handle *vp = ECS_Entity_AncestorWithComponent(self, M7_Components.Viewport, true);
     M7_Viewport *c_vp = ECS_Entity_GetComponent(vp, M7_Components.Viewport);
 
-    CameraMovement *cam = ECS_Entity_GetComponent(self, M7_Components.CameraMovement);
+    FreeCam *cam = ECS_Entity_GetComponent(self, Components.FreeCam);
     vec3 *pos = ECS_Entity_GetComponent(self, M7_Components.Position);
     mat3x3 *basis = ECS_Entity_GetComponent(self, M7_Components.Basis);
 

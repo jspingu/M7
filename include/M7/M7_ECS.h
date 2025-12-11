@@ -2,10 +2,9 @@
 #define M7_ECS_H
 
 #include <M7/ECS.h>
-#include "Components/M7_InputState.h"
-#include "Components/M7_Viewport.h"
-#include "Components/M7_3D.h"
-#include "Components/CameraMovement.h"
+#include "M7_InputState.h"
+#include "M7_3D.h"
+#include "M7_Bitmap.h"
 
 typedef void (*M7_Entity_OnSDLEvent)(ECS_Handle *, SDL_Event *);
 typedef void (*M7_Entity_Update)(ECS_Handle *, double);
@@ -15,13 +14,9 @@ typedef void (*M7_Entity_RenderPresent)(ECS_Handle *);
 typedef void (*M7_Entity_OnXform)(ECS_Handle *, xform3);
 
 struct M7_Components {
-    ECS_Component(M7_Viewport) *Viewport;
     ECS_Component(M7_InputState) *InputState;
 
-    ECS_Component(CameraMovement) *CameraMovement;
-
     /* 3D */
-    ECS_Component(M7_Canvas) *Canvas;
     ECS_Component(M7_World) *World;
     ECS_Component(M7_Rasterizer) *Rasterizer;
     ECS_Component(M7_Model) *Model;
@@ -35,6 +30,10 @@ struct M7_Components {
     ECS_Component(M7_Torus) *Torus;
     ECS_Component(M7_Sphere) *Sphere;
     ECS_Component(M7_Rect) *Rect;
+
+    /* Bitmap */
+    ECS_Component(M7_Viewport) *Viewport;
+    ECS_Component(M7_Canvas) *Canvas;
 };
 
 struct M7_SystemGroups {

@@ -5,12 +5,6 @@
 #include "M7_3D_c.h"
 
 void M7_3D_RegisterToECS(ECS *ecs) {
-    M7_Components.Canvas = ECS_RegisterComponent(ecs, M7_Canvas, {
-        .attach = SD_SELECT(M7_Canvas_Attach),
-        .init = SD_SELECT(M7_Canvas_Init),
-        .free = M7_Canvas_Free
-    });
-
     M7_Components.World = ECS_RegisterComponent(ecs, M7_World, {
         .init = M7_World_Init,
         .free = M7_World_Free,
@@ -39,8 +33,5 @@ void M7_3D_RegisterToECS(ECS *ecs) {
     M7_Components.Rect = ECS_RegisterComponent(ecs, M7_Rect, {});
 
     ECS_SystemGroup_RegisterSystem(M7_SystemGroups.Render, SD_SELECT(M7_Rasterizer_Render), M7_Components.Rasterizer);
-    ECS_SystemGroup_RegisterSystem(M7_SystemGroups.RenderPresent, SD_SELECT(M7_Canvas_Present), M7_Components.Viewport, M7_Components.Canvas);
     ECS_SystemGroup_RegisterSystem(M7_SystemGroups.OnXform, M7_Model_OnXform, M7_Components.Model);
-
-    ECS_SystemGroup_RegisterSystem(M7_SystemGroups.Update, M7_Model_Update, M7_Components.Model, M7_Components.Basis);
 }

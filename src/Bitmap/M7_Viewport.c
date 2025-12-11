@@ -2,8 +2,6 @@
 #include <M7/ECS.h>
 #include <M7/M7_ECS.h>
 
-#include "M7_Viewport_c.h"
-
 void M7_Viewport_Init(void *component, void *args) {
     M7_Viewport *vp = component;
     M7_ViewportArgs *vp_args = args;

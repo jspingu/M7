@@ -15,10 +15,10 @@ OBJS = $(SRCS:%.c=$(BLDDIR)/%.o)
 DEPS = $(SRCS:%.c=$(BLDDIR)/%.d)
 BIN = out
 
-SRCS_VECTORIZE += $(SRCDIR)/Components/3D/M7_Rasterization.c
-SRCS_VECTORIZE += $(SRCDIR)/Components/3D/M7_Geometry.c
-SRCS_VECTORIZE += $(SRCDIR)/Components/3D/M7_Canvas.c
-SRCS_VECTORIZE += $(SRCDIR)/Components/3D/M7_Xform.c
+SRCS_VECTORIZE += $(SRCDIR)/3D/M7_Rasterization.c
+SRCS_VECTORIZE += $(SRCDIR)/3D/M7_Geometry.c
+SRCS_VECTORIZE += $(SRCDIR)/3D/M7_Xform.c
+SRCS_VECTORIZE += $(SRCDIR)/Bitmap/M7_Canvas.c
 
 OBJS_VECTORIZE_AVX2 = $(SRCS_VECTORIZE:%.c=$(BLDDIR)/%_avx2.o)
 OBJS_VECTORIZE_SSE2 = $(SRCS_VECTORIZE:%.c=$(BLDDIR)/%_sse2.o)

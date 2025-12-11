@@ -6,19 +6,20 @@
 #define SDL_MAIN_USE_CALLBACKS
 #include <SDL3/SDL_main.h>
 
+#include "LocalComponents.h"
+
 #define WIDTH    960
 #define HEIGHT   540
-#define FPS_CAP  144
+#define FPS_CAP  60
 
 static Uint64 ticks_prev;
 static Uint64 ticks_freq;
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
-    (void)argc;
-    (void)argv;
-
+    (void)argc, (void)argv;
     ECS *ecs = ECS_Create();
     M7_RegisterToECS(ecs);
+    RegisterToECS(ecs);
 
     ECS_Handle *root = ECS_GetRoot(ecs);
 
@@ -47,7 +48,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
                     .near = 5,
                     .parallelism = 4
                 }},
-                { M7_Components.CameraMovement, &(CameraMovement){} },
+                { Components.FreeCam, &(FreeCam){} },
                 { M7_Components.Position, &(vec3){} },
                 { M7_Components.Basis, (mat3x3 []){mat3x3_identity} },
             )
@@ -57,9 +58,33 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
                 { M7_Components.Position, &(vec3){ .y=-150, .z=600 } },
                 { M7_Components.Basis, (mat3x3 []){mat3x3_identity} },
                 { M7_Components.MeshPrimitive, nullptr },
-                { M7_Components.Teapot, &(M7_Teapot) { .scale = 100 } },
+                { M7_Components.Teapot, &(M7_Teapot) { .scale = 50 } },
                 { M7_Components.Model, &(M7_ModelArgs) {
                     .get_mesh = M7_Teapot_GetMesh,
+                    .instances = (M7_ModelInstance []) {
+                        (M7_ModelInstance) {
+                            .shader_pipeline = (M7_FragmentShader []) { SD_SELECT(solid_green), SD_SELECT(light) },
+                            .nshaders = 2,
+                            .render_batch = 0,
+                            .flags = M7_RASTERIZER_CULL_BACKFACE
+                                   | M7_RASTERIZER_WRITE_DEPTH
+                                   | M7_RASTERIZER_TEST_DEPTH
+                                   | M7_RASTERIZER_INTERPOLATE_NORMALS
+                        },
+                    },
+                    .ninstances = 1
+                }},
+                { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault} }
+            )
+        },
+        { /* Torus */
+            ECS_Components(
+                { M7_Components.Position, &(vec3){ .x=400, .y=-100, .z=200 } },
+                { M7_Components.Basis, (mat3x3 []){mat3x3_rotate(mat3x3_identity, vec3_i, SDL_PI_F / 2)} },
+                { M7_Components.MeshPrimitive, nullptr },
+                { M7_Components.Torus, &(M7_Torus) { .outer_radius=100, .inner_radius=50, .outer_precision=32, .inner_precision=16 } },
+                { M7_Components.Model, &(M7_ModelArgs) {
+                    .get_mesh = M7_Torus_GetMesh,
                     .instances = (M7_ModelInstance []) {
                         (M7_ModelInstance) {
                             .shader_pipeline = (M7_FragmentShader []) { SD_SELECT(solid_green), SD_SELECT(light) },
@@ -92,7 +117,6 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
                             .flags = M7_RASTERIZER_CULL_BACKFACE
                                    | M7_RASTERIZER_WRITE_DEPTH
                                    | M7_RASTERIZER_TEST_DEPTH
-                                   | M7_RASTERIZER_INTERPOLATE_NORMALS
                         },
                     },
                     .ninstances = 1

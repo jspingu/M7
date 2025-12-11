@@ -2,7 +2,6 @@
 #define M7_3D_H
 
 #include <M7/ECS.h>
-#include <M7/Components/M7_Viewport.h>
 #include <M7/Collections/List.h>
 #include <M7/Math/linalg.h>
 #include <M7/Math/stride.h>
@@ -38,14 +37,6 @@ typedef struct M7_MeshFace {
     size_t idx_verts[3];
     size_t idx_tverts[3];
 } M7_MeshFace;
-
-typedef struct M7_Canvas {
-    ECS_Handle *vp;
-    sd_vec3 *color;
-    sd_float *depth;
-    int width, height;
-    int parallelism;
-} M7_Canvas;
 
 typedef struct M7_TriangleDraw {
     List(M7_FragmentShader) *shader_pipeline;

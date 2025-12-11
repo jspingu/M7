@@ -1,7 +1,7 @@
 #ifndef M7_3D_C_H
 #define M7_3D_C_H
 
-#include <M7/Components/M7_3D.h>
+#include <M7/M7_3D.h>
 #include <M7/Collections/List.h>
 #include <M7/Math/linalg.h>
 #include <M7/Math/stride.h>
@@ -81,10 +81,5 @@ void M7_World_Free(void *component);
 SD_DECLARE_VOID_RETURN(M7_Rasterizer_Render, ECS_Handle *, self)
 void M7_Rasterizer_Attach(ECS_Handle *self);
 void M7_Rasterizer_Init(void *component, void *args);
-
-SD_DECLARE_VOID_RETURN(M7_Canvas_Present, ECS_Handle *, self)
-SD_DECLARE_VOID_RETURN(M7_Canvas_Attach, ECS_Handle *, self)
-SD_DECLARE_VOID_RETURN(M7_Canvas_Init, void *, component, void *, args)
-void M7_Canvas_Free(void *component);
 
 #endif /* M7_3D_C_H */
