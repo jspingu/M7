@@ -16,6 +16,11 @@ void M7_Bitmap_RegisterToECS(ECS *ecs) {
         .free = M7_Viewport_Free
     });
 
+    M7_Components.TextureBank = ECS_RegisterComponent(ecs, M7_ResourceBank(M7_Texture *) *, {
+        .attach = M7_TextureBank_Attach,
+        .detach = M7_TextureBank_Detach
+    });
+
     ECS_SystemGroup_RegisterSystem(M7_SystemGroups.RenderPresent, SD_SELECT(M7_Canvas_Present), M7_Components.Viewport, M7_Components.Canvas);
 }
 

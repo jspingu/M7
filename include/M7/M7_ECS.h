@@ -5,6 +5,7 @@
 #include "M7_InputState.h"
 #include "M7_3D.h"
 #include "M7_Bitmap.h"
+#include "M7_Resource.h"
 
 typedef void (*M7_Entity_OnSDLEvent)(ECS_Handle *, SDL_Event *);
 typedef void (*M7_Entity_Update)(ECS_Handle *, double);
@@ -34,6 +35,7 @@ struct M7_Components {
     /* Bitmap */
     ECS_Component(M7_Viewport) *Viewport;
     ECS_Component(M7_Canvas) *Canvas;
+    ECS_Component(M7_ResourceBank(M7_Texture *) *) *TextureBank;
 };
 
 struct M7_SystemGroups {

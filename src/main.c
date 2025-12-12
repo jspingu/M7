@@ -30,6 +30,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
             .height = HEIGHT
         }},
         { M7_Components.InputState, nullptr },
+        { M7_Components.TextureBank, nullptr },
         { M7_Components.Canvas, &(M7_Canvas){
             .width = WIDTH,
             .height = HEIGHT,

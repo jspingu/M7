@@ -5,7 +5,7 @@ CC ?= gcc
 CFLAGS += -Iinclude -Wall -Wextra -Wpedantic -std=c23
 OPTFLAGS += -O3 -ffast-math
 DEPFLAGS += -MMD -MP
-LDFLAGS += -lSDL3
+LDFLAGS += -lSDL3 -lSDL3_image
 
 SRCDIR = src
 BLDDIR = build
