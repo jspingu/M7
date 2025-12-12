@@ -14,6 +14,20 @@
 #define Strmap_Set(map,key,value)     ( *(typeof(map))Strmap_InsertSized(map, key, sizeof(*map)) = value )
 #define Strmap_Remove(map,key)        ( Strmap_RemoveSized(map, key, sizeof(*map)) )
 
+/**
+ * For each value in `map`, execute the statement passed in the variadic argument.
+ * The identifier `val`, corresponding to the current mapped value, is visible in the statement.
+ */
+#define Strmap_ForEach(map,val,...)   do {                                                       \
+    Strmap *Strmap_map = (Strmap *)map;                                                          \
+    char (*Strmap_keys)[Strmap_map->key_size] = Strmap_map->keys;                                \
+    for (size_t Strmap_iter = 0; Strmap_iter < Strmap_map->capacity; ++Strmap_iter)              \
+        if (*Strmap_keys[Strmap_iter]) {                                                         \
+            typeof(*map) val = *(typeof(map))(Strmap_map->values + sizeof(*map) * Strmap_iter);  \
+            do __VA_ARGS__ while (0);                                                            \
+        }                                                                                        \
+} while (0)
+
 typedef struct Strmap {
     unsigned char *values;
     char (*keys)[];
