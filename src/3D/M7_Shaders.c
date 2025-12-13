@@ -13,7 +13,7 @@ sd_vec4 SD_VARIANT(M7_ShadeCheckerboard)(ECS_Handle *self, sd_vec4 col, sd_vec3 
     M7_Checkerboard *checkerboard = ECS_Entity_GetComponent(self, M7_Components.Checkerboard);
     sd_vec2 tile_coord = sd_vec2_mul(ts, sd_float_set(checkerboard->tiles));
     sd_int tile_idx = sd_int_add(sd_int_mul(sd_float_to_int(tile_coord.y), sd_int_set(checkerboard->tiles)), sd_float_to_int(tile_coord.x));
-    sd_int tile_mask = sd_int_gt(sd_int_and(tile_idx, sd_int_set(1)), sd_int_set(0));
+    sd_mask tile_mask = sd_int_gt(sd_int_and(tile_idx, sd_int_set(1)), sd_int_set(0));
 
     sd_vec3 out = sd_vec3_mask_blend(
         sd_vec3_set(checkerboard->r1, checkerboard->g1, checkerboard->b1),
