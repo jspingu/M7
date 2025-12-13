@@ -21,10 +21,12 @@ SRCS_VECTORIZE += $(SRCDIR)/3D/M7_Xform.c
 SRCS_VECTORIZE += $(SRCDIR)/3D/M7_Shaders.c
 SRCS_VECTORIZE += $(SRCDIR)/Bitmap/M7_Canvas.c
 
+OBJS_VECTORIZE_AVX512F = $(SRCS_VECTORIZE:%.c=$(BLDDIR)/%_avx512f.o)
 OBJS_VECTORIZE_AVX2 = $(SRCS_VECTORIZE:%.c=$(BLDDIR)/%_avx2.o)
 OBJS_VECTORIZE_SSE2 = $(SRCS_VECTORIZE:%.c=$(BLDDIR)/%_sse2.o)
 OBJS_VECTORIZE_NEON = $(SRCS_VECTORIZE:%.c=$(BLDDIR)/%_neon.o)
 
+DEPS_VECTORIZE_AVX512F = $(SRCS_VECTORIZE:%.c=$(BLDDIR)/%_avx512f.d)
 DEPS_VECTORIZE_AVX2 = $(SRCS_VECTORIZE:%.c=$(BLDDIR)/%_avx2.d)
 DEPS_VECTORIZE_SSE2 = $(SRCS_VECTORIZE:%.c=$(BLDDIR)/%_sse2.d)
 DEPS_VECTORIZE_NEON = $(SRCS_VECTORIZE:%.c=$(BLDDIR)/%_neon.d)
@@ -36,7 +38,7 @@ TARGET_ARCH = $(findstring x86_64,$(PREDEFINED_MACROS)) $(findstring i386,$(PRED
               $(findstring aarch64,$(PREDEFINED_MACROS)) $(findstring arm,$(PREDEFINED_MACROS))
 
 ifeq ($(strip $(TARGET_ARCH)),x86_64)
-POSSIBLE_SIMD_EXTENSIONS = AVX2
+POSSIBLE_SIMD_EXTENSIONS = AVX512F AVX2
 endif
 
 ifeq ($(strip $(TARGET_ARCH)),i386)
@@ -47,8 +49,9 @@ ifeq ($(strip $(TARGET_ARCH)),arm)
 POSSIBLE_SIMD_EXTENSIONS = NEON
 endif
 
-AVAILABLE_SIMD_EXTENSIONS = $(findstring AVX2,$(PREDEFINED_MACROS)) \
-							$(findstring SSE2,$(PREDEFINED_MACROS)) \
+AVAILABLE_SIMD_EXTENSIONS = $(findstring AVX512F,$(PREDEFINED_MACROS)) \
+							$(findstring AVX2,$(PREDEFINED_MACROS))    \
+							$(findstring SSE2,$(PREDEFINED_MACROS))    \
 							$(findstring NEON,$(PREDEFINED_MACROS))
 
 BASE_SIMD_EXTENSION = $(firstword $(AVAILABLE_SIMD_EXTENSIONS))
@@ -88,6 +91,10 @@ $(BIN): $(OBJS_VECTORIZE) $(OBJS) $(BLDDIR)/gamma.o
 $(OBJS): $(BLDDIR)/%.o: %.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(OPTFLAGS) $(DEPFLAGS) $(BASE_VECTORIZATION_FLAGS) -c $< -o $@
+
+$(OBJS_VECTORIZE_AVX512F): $(BLDDIR)/%_avx512f.o: %.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(OPTFLAGS) $(DEPFLAGS) -mavx512f -DSD_DISPATCH_DYNAMIC -DSD_SRC_VARIANT -c $< -o $@
 
 $(OBJS_VECTORIZE_AVX2): $(BLDDIR)/%_avx2.o: %.c
 	@mkdir -p $(dir $@)

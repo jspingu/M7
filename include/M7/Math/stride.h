@@ -1,6 +1,6 @@
 /*
  * Strided data types and functions for generic vectorization
- * Currently supports SSE2, AVX2, and NEON
+ * Currently supports SSE2, AVX2, AVX512F, and NEON
  * __AVX2__ implies that FMA is present
  */
 
@@ -10,7 +10,7 @@
 #include <SDL3/SDL.h>
 #include <limits.h>
 
-#if defined(__SSE2__) || defined(__AVX2__)
+#if defined(__SSE2__) || defined(__AVX2__) || defined(__AVX512F__)
 #include <immintrin.h>
 #endif
 
@@ -74,7 +74,12 @@
 
 SD_DEFINE_TYPES(scalar, float, int32_t, bool) // NOLINT(bugprone-sizeof-expression)
 
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    #define SD_VARIANT(fnname)  fnname##_avx512f
+    #define SD_LOG_LENGTH       4
+    SD_DEFINE_TYPES(avx512f, __m512, __m512i, __mmask16)
+    SD_TYPEDEFS(avx512f)
+#elifdef __AVX2__
     #define SD_VARIANT(fnname)  fnname##_avx2
     #define SD_LOG_LENGTH       3
     SD_DEFINE_TYPES(avx2, __m256, __m256i, __m256i)
@@ -117,7 +122,9 @@ SD_DEFINE_TYPES(scalar, float, int32_t, bool) // NOLINT(bugprone-sizeof-expressi
 
 #ifdef SD_DISPATCH_STATIC
 
-#ifdef __AVX2__
+#ifdef __AVX512F__
+#define SD_SELECT(fnname)  ( fnname##_avx512f )
+#elifdef __AVX2__
 #define SD_SELECT(fnname)  ( fnname##_avx2 )
 #elifdef __SSE2__
 #define SD_SELECT(fnname)  ( fnname##_sse2 )
@@ -130,10 +137,12 @@ SD_DEFINE_TYPES(scalar, float, int32_t, bool) // NOLINT(bugprone-sizeof-expressi
 #elifdef SD_DISPATCH_DYNAMIC
 
 #ifdef __x86_64__
-#ifdef __AVX2__
-#define SD_SELECT(fnname)  ( fnname##_avx2 )
+#ifdef __AVX512F__
+#define SD_SELECT(fnname)  ( fnname##_avx512f )
+#elifdef __AVX2__
+#define SD_SELECT(fnname)  ( SDL_HasAVX512F() ? fnname##_avx512f : fnname##_avx2 )
 #else
-#define SD_SELECT(fnname)  ( SDL_HasAVX2() ? fnname##_avx2 : fnname##_sse2 )
+#define SD_SELECT(fnname)  ( SDL_HasAVX512F() ? fnname##_avx512f : SDL_HasAVX2() ? fnname##_avx2 : fnname##_sse2 )
 #endif
 #endif /* __x86_64__ */
 
@@ -167,6 +176,7 @@ SD_DEFINE_TYPES(scalar, float, int32_t, bool) // NOLINT(bugprone-sizeof-expressi
 #define SD_ALIGN   ( alignof(sd_float) )
 
 #define SD_DECLARE(rettype,fnname,...)                              \
+    typeof(rettype) fnname##_avx512f(SD_PARAMS(__VA_ARGS__));       \
     typeof(rettype) fnname##_avx2(SD_PARAMS(__VA_ARGS__));          \
     typeof(rettype) fnname##_sse2(SD_PARAMS(__VA_ARGS__));          \
     typeof(rettype) fnname##_neon(SD_PARAMS(__VA_ARGS__));          \
@@ -177,6 +187,7 @@ SD_DEFINE_TYPES(scalar, float, int32_t, bool) // NOLINT(bugprone-sizeof-expressi
     }
 
 #define SD_DECLARE_VOID_RETURN(fnname,...)               \
+    void fnname##_avx512f(SD_PARAMS(__VA_ARGS__));       \
     void fnname##_avx2(SD_PARAMS(__VA_ARGS__));          \
     void fnname##_sse2(SD_PARAMS(__VA_ARGS__));          \
     void fnname##_neon(SD_PARAMS(__VA_ARGS__));          \
@@ -291,7 +302,9 @@ static inline size_t sd_bounding_size(size_t n) {
 }
 
 static inline sd_mask sd_mask_and(sd_mask lhs, sd_mask rhs) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return _mm512_kand(lhs, rhs);
+#elifdef __AVX2__
     return _mm256_and_si256(lhs, rhs);
 #elifdef __SSE2__
     return _mm_and_si128(lhs, rhs);
@@ -303,7 +316,9 @@ static inline sd_mask sd_mask_and(sd_mask lhs, sd_mask rhs) {
 }
 
 static inline sd_mask sd_mask_or(sd_mask lhs, sd_mask rhs) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return _mm512_kor(lhs, rhs);
+#elifdef __AVX2__
     return _mm256_or_si256(lhs, rhs);
 #elifdef __SSE2__
     return _mm_or_si128(lhs, rhs);
@@ -315,7 +330,9 @@ static inline sd_mask sd_mask_or(sd_mask lhs, sd_mask rhs) {
 }
 
 static inline sd_int sd_int_add(sd_int lhs, sd_int rhs) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return (sd_int){_mm512_add_epi32(lhs.val, rhs.val)};
+#elifdef __AVX2__
     return (sd_int){_mm256_add_epi32(lhs.val, rhs.val)};
 #elifdef __SSE2__
     return (sd_int){_mm_add_epi32(lhs.val, rhs.val)};
@@ -327,7 +344,9 @@ static inline sd_int sd_int_add(sd_int lhs, sd_int rhs) {
 }
 
 static inline sd_int sd_int_sub(sd_int lhs, sd_int rhs) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return (sd_int){_mm512_sub_epi32(lhs.val, rhs.val)};
+#elifdef __AVX2__
     return (sd_int){_mm256_sub_epi32(lhs.val, rhs.val)};
 #elifdef __SSE2__
     return (sd_int){_mm_sub_epi32(lhs.val, rhs.val)};
@@ -339,7 +358,9 @@ static inline sd_int sd_int_sub(sd_int lhs, sd_int rhs) {
 }
 
 static inline sd_int sd_int_mul(sd_int lhs, sd_int rhs) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return (sd_int){_mm512_mul_epi32(lhs.val, rhs.val)};
+#elifdef __AVX2__
     return (sd_int){_mm256_mullo_epi32(lhs.val, rhs.val)};
 #elifdef __SSE2__
     __m128i lhs31 = _mm_shuffle_epi32(lhs.val, 0b00'11'00'01);
@@ -359,7 +380,9 @@ static inline sd_int sd_int_mul(sd_int lhs, sd_int rhs) {
 }
 
 static inline sd_mask sd_int_lt(sd_int lhs, sd_int rhs) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return _mm512_cmplt_epi32_mask(lhs.val, rhs.val);
+#elifdef __AVX2__
     return _mm256_cmpgt_epi32(rhs.val, lhs.val);
 #elifdef __SSE2__
     return _mm_cmplt_epi32(lhs.val, rhs.val);
@@ -371,7 +394,9 @@ static inline sd_mask sd_int_lt(sd_int lhs, sd_int rhs) {
 }
 
 static inline sd_mask sd_int_gt(sd_int lhs, sd_int rhs) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return _mm512_cmpgt_epi32_mask(lhs.val, rhs.val);
+#elifdef __AVX2__
     return _mm256_cmpgt_epi32(lhs.val, rhs.val);
 #elifdef __SSE2__
     return _mm_cmpgt_epi32(lhs.val, rhs.val);
@@ -383,7 +408,9 @@ static inline sd_mask sd_int_gt(sd_int lhs, sd_int rhs) {
 }
 
 static inline sd_int sd_int_and(sd_int lhs, sd_int rhs) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return (sd_int){_mm512_and_si512(lhs.val, rhs.val)};
+#elifdef __AVX2__
     return (sd_int){_mm256_and_si256(lhs.val, rhs.val)};
 #elifdef __SSE2__
     return (sd_int){_mm_and_si128(lhs.val, rhs.val)};
@@ -395,7 +422,9 @@ static inline sd_int sd_int_and(sd_int lhs, sd_int rhs) {
 }
 
 static inline sd_int sd_int_or(sd_int lhs, sd_int rhs) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return (sd_int){_mm512_or_si512(lhs.val, rhs.val)};
+#elifdef __AVX2__
     return (sd_int){_mm256_or_si256(lhs.val, rhs.val)};
 #elifdef __SSE2__
     return (sd_int){_mm_or_si128(lhs.val, rhs.val)};
@@ -407,7 +436,9 @@ static inline sd_int sd_int_or(sd_int lhs, sd_int rhs) {
 }
 
 static inline sd_int sd_int_shl(sd_int i, int shift) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return (sd_int){_mm512_slli_epi32(i.val, shift)};
+#elifdef __AVX2__
     return (sd_int){_mm256_slli_epi32(i.val, shift)};
 #elifdef __SSE2__
     return (sd_int){_mm_slli_epi32(i.val, shift)};
@@ -420,7 +451,9 @@ static inline sd_int sd_int_shl(sd_int i, int shift) {
 }
 
 static inline sd_int sd_int_shr(sd_int i, int shift) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return (sd_int){_mm512_srai_epi32(i.val, shift)};
+#elifdef __AVX2__
     return (sd_int){_mm256_srai_epi32(i.val, shift)};
 #elifdef __SSE2__
     return (sd_int){_mm_srai_epi32(i.val, shift)};
@@ -433,7 +466,9 @@ static inline sd_int sd_int_shr(sd_int i, int shift) {
 }
 
 static inline sd_int sd_int_set(int32_t i) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return (sd_int){_mm512_set1_epi32(i)};
+#elifdef __AVX2__
     return (sd_int){_mm256_set1_epi32(i)};
 #elifdef __SSE2__
     return (sd_int){_mm_set1_epi32(i)};
@@ -445,7 +480,9 @@ static inline sd_int sd_int_set(int32_t i) {
 }
 
 static inline sd_int sd_int_gather_i8(int8_t *buf, sd_int index) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return (sd_int){_mm512_i32gather_epi32(index.val, buf, 1)};
+#elifdef __AVX2__
     return (sd_int){_mm256_i32gather_epi32((int const *)buf, index.val, 1)};
 #elifdef __SSE2__
     alignas(SD_ALIGN) int32_t elems[4], idxs[4];
@@ -465,7 +502,9 @@ static inline sd_int sd_int_gather_i8(int8_t *buf, sd_int index) {
 }
 
 static inline void sd_int_store_unaligned(int32_t *dst, sd_int i) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    _mm512_storeu_epi32(dst, i.val);
+#elifdef __AVX2__
     _mm256_storeu_si256((__m256i *)dst, i.val);
 #elifdef __SSE2__
     _mm_storeu_si128((__m128i *)dst, i.val);
@@ -477,7 +516,9 @@ static inline void sd_int_store_unaligned(int32_t *dst, sd_int i) {
 }
 
 static inline sd_int sd_float_to_int(sd_float f) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return (sd_int){_mm512_cvttps_epi32(f.val)};
+#elifdef __AVX2__
     return (sd_int){_mm256_cvttps_epi32(f.val)};
 #elifdef __SSE2__
     return (sd_int){_mm_cvttps_epi32(f.val)};
@@ -489,7 +530,9 @@ static inline sd_int sd_float_to_int(sd_float f) {
 }
 
 static inline sd_float sd_int_to_float(sd_int i) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return (sd_float){_mm512_cvtepi32_ps(i.val)};
+#elifdef __AVX2__
     return (sd_float){_mm256_cvtepi32_ps(i.val)};
 #elifdef __SSE2__
     return (sd_float){_mm_cvtepi32_ps(i.val)};
@@ -501,7 +544,9 @@ static inline sd_float sd_int_to_float(sd_int i) {
 }
 
 static inline sd_float sd_float_add(sd_float lhs, sd_float rhs) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return (sd_float){_mm512_add_ps(lhs.val, rhs.val)};
+#elifdef __AVX2__
     return (sd_float){_mm256_add_ps(lhs.val, rhs.val)};
 #elifdef __SSE2__
     return (sd_float){_mm_add_ps(lhs.val, rhs.val)};
@@ -515,7 +560,9 @@ static inline sd_float sd_float_add(sd_float lhs, sd_float rhs) {
 SD_DEFINE_VECFNS_BINARY_VV(add)
 
 static inline sd_float sd_float_sub(sd_float lhs, sd_float rhs) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return (sd_float){_mm512_sub_ps(lhs.val, rhs.val)};
+#elifdef __AVX2__
     return (sd_float){_mm256_sub_ps(lhs.val, rhs.val)};
 #elifdef __SSE2__
     return (sd_float){_mm_sub_ps(lhs.val, rhs.val)};
@@ -529,7 +576,9 @@ static inline sd_float sd_float_sub(sd_float lhs, sd_float rhs) {
 SD_DEFINE_VECFNS_BINARY_VV(sub)
 
 static inline sd_float sd_float_mul(sd_float lhs, sd_float rhs) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return (sd_float){_mm512_mul_ps(lhs.val, rhs.val)};
+#elifdef __AVX2__
     return (sd_float){_mm256_mul_ps(lhs.val, rhs.val)};
 #elifdef __SSE2__
     return (sd_float){_mm_mul_ps(lhs.val, rhs.val)};
@@ -543,7 +592,9 @@ static inline sd_float sd_float_mul(sd_float lhs, sd_float rhs) {
 SD_DEFINE_VECFNS_BINARY_VS(mul)
 
 static inline sd_float sd_float_abs(sd_float f) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return (sd_float){_mm512_abs_ps(f.val)};
+#elifdef __AVX2__
     __m256i minus_one = _mm256_set1_epi32(-1);
     __m256 abs_mask = _mm256_castsi256_ps(_mm256_srli_epi32(minus_one, 1));
     return (sd_float){_mm256_and_ps(f.val, abs_mask)};
@@ -561,7 +612,9 @@ static inline sd_float sd_float_abs(sd_float f) {
 SD_DEFINE_VECFNS_UNARY(abs)
 
 static inline sd_float sd_float_negate(sd_float f) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return (sd_float){_mm512_mul_ps(f.val, _mm512_set1_ps(-1))};
+#elifdef __AVX2__
     return (sd_float){_mm256_mul_ps(f.val, _mm256_set1_ps(-1))};
 #elifdef __SSE2__
     return (sd_float){_mm_mul_ps(f.val, _mm_set1_ps(-1))};
@@ -575,7 +628,9 @@ static inline sd_float sd_float_negate(sd_float f) {
 SD_DEFINE_VECFNS_UNARY(negate)
 
 static inline sd_float sd_float_rcp(sd_float f) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return (sd_float){_mm512_rcp14_ps(f.val)};
+#elifdef __AVX2__
     return (sd_float){_mm256_rcp_ps(f.val)};
 #elifdef __SSE2__
     return (sd_float){_mm_rcp_ps(f.val)};
@@ -589,7 +644,9 @@ static inline sd_float sd_float_rcp(sd_float f) {
 SD_DEFINE_VECFNS_UNARY(rcp)
 
 static inline sd_float sd_float_fmadd(sd_float multiplicand, sd_float multiplier, sd_float addend) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return (sd_float){_mm512_fmadd_ps(multiplicand.val, multiplier.val, addend.val)};
+#elifdef __AVX2__
     return (sd_float){_mm256_fmadd_ps(multiplicand.val, multiplier.val, addend.val)};
 #elifdef __ARM_NEON
     return (sd_float){vmlaq_f32(addend.val, multiplicand.val, multiplier.val)};
@@ -623,7 +680,9 @@ static inline sd_vec4 sd_vec4_fmadd(sd_vec4 multiplicand, sd_float multiplier, s
 }
 
 static inline sd_float sd_float_fmsub(sd_float multiplicand, sd_float multiplier, sd_float subtrahend) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return (sd_float){_mm512_fmsub_ps(multiplicand.val, multiplier.val, subtrahend.val)};
+#elifdef __AVX2__
     return (sd_float){_mm256_fmsub_ps(multiplicand.val, multiplier.val, subtrahend.val)};
 #elifdef __ARM_NEON
     return (sd_float){vmlaq_f32(vnegq_f32(subtrahend.val), multiplicand.val, multiplier.val)};
@@ -633,7 +692,9 @@ static inline sd_float sd_float_fmsub(sd_float multiplicand, sd_float multiplier
 }
 
 static inline sd_float sd_float_rsqrt(sd_float f) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return (sd_float){_mm512_rsqrt14_ps(f.val)};
+#elifdef __AVX2__
     return (sd_float){_mm256_rsqrt_ps(f.val)};
 #elifdef __SSE2__
     return (sd_float){_mm_rsqrt_ps(f.val)};
@@ -646,29 +707,33 @@ static inline sd_float sd_float_rsqrt(sd_float f) {
 
 SD_DEFINE_VECFNS_UNARY(rsqrt)
 
-static inline sd_float sd_float_min(sd_float f, sd_float min) {
-#ifdef __AVX2__
-    return (sd_float){_mm256_min_ps(f.val, min.val)};
+static inline sd_float sd_float_min(sd_float lhs, sd_float rhs) {
+#ifdef __AVX512F__
+    return (sd_float){_mm512_min_ps(lhs.val, rhs.val)};
+#elifdef __AVX2__
+    return (sd_float){_mm256_min_ps(lhs.val, rhs.val)};
 #elifdef __SSE2__
-    return (sd_float){_mm_min_ps(f.val, min.val)};
+    return (sd_float){_mm_min_ps(lhs.val, rhs.val)};
 #elifdef __ARM_NEON
-    return (sd_float){vminq_f32(f.val, min.val)};
+    return (sd_float){vminq_f32(lhs.val, rhs.val)};
 #else
-    return (sd_float){SDL_min(f.val, min.val)};
+    return (sd_float){SDL_min(lhs.val, rhs.val)};
 #endif
 }
 
 SD_DEFINE_VECFNS_BINARY_VV(min)
 
-static inline sd_float sd_float_max(sd_float f, sd_float max) {
-#ifdef __AVX2__
-    return (sd_float){_mm256_max_ps(f.val, max.val)};
+static inline sd_float sd_float_max(sd_float lhs, sd_float rhs) {
+#ifdef __AVX512F__
+    return (sd_float){_mm512_max_ps(lhs.val, rhs.val)};
+#elifdef __AVX2__
+    return (sd_float){_mm256_max_ps(lhs.val, rhs.val)};
 #elifdef __SSE2__
-    return (sd_float){_mm_max_ps(f.val, max.val)};
+    return (sd_float){_mm_max_ps(lhs.val, rhs.val)};
 #elifdef __ARM_NEON
-    return (sd_float){vmaxq_f32(f.val, max.val)};
+    return (sd_float){vmaxq_f32(lhs.val, rhs.val)};
 #else
-    return (sd_float){SDL_max(f.val, max.val)};
+    return (sd_float){SDL_max(lhs.val, rhs.val)};
 #endif
 }
 
@@ -703,7 +768,9 @@ static inline sd_vec4 sd_vec4_clamp(sd_vec4 v, sd_float min, sd_float max) {
 }
 
 static inline sd_mask sd_float_lt(sd_float lhs, sd_float rhs) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return _mm512_cmp_ps_mask(lhs.val, rhs.val, _CMP_LT_OQ);
+#elifdef __AVX2__
     return _mm256_castps_si256(_mm256_cmp_ps(lhs.val, rhs.val, _CMP_LT_OQ));
 #elifdef __SSE2__
     return _mm_castps_si128(_mm_cmplt_ps(lhs.val, rhs.val));
@@ -715,7 +782,9 @@ static inline sd_mask sd_float_lt(sd_float lhs, sd_float rhs) {
 }
 
 static inline sd_mask sd_float_gt(sd_float lhs, sd_float rhs) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return _mm512_cmp_ps_mask(lhs.val, rhs.val, _CMP_GT_OQ);
+#elifdef __AVX2__
     return _mm256_castps_si256(_mm256_cmp_ps(lhs.val, rhs.val, _CMP_GT_OQ));
 #elifdef __SSE2__
     return _mm_castps_si128(_mm_cmpgt_ps(lhs.val, rhs.val));
@@ -727,7 +796,11 @@ static inline sd_mask sd_float_gt(sd_float lhs, sd_float rhs) {
 }
 
 static inline sd_mask sd_float_clamp_mask(sd_float f, float min, float max) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    __mmask16 mask_gt = _mm512_cmp_ps_mask(f.val, _mm512_set1_ps(min), _CMP_GT_OQ);
+    __mmask16 mask_lt = _mm512_cmp_ps_mask(f.val, _mm512_set1_ps(max), _CMP_LT_OQ);
+    return _mm512_kand(mask_gt, mask_lt);
+#elifdef __AVX2__
     __m256 mask_gt = _mm256_cmp_ps(f.val, _mm256_set1_ps(min), _CMP_GT_OQ);
     __m256 mask_lt = _mm256_cmp_ps(f.val, _mm256_set1_ps(max), _CMP_LT_OQ);
     return _mm256_castps_si256(_mm256_and_ps(mask_gt, mask_lt));
@@ -745,7 +818,9 @@ static inline sd_mask sd_float_clamp_mask(sd_float f, float min, float max) {
 }
 
 static inline sd_float sd_float_mask_blend(sd_float bg, sd_float fg, sd_mask mask) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return (sd_float){_mm512_mask_blend_ps(mask, bg.val, fg.val)};
+#elifdef __AVX2__
     return (sd_float){_mm256_blendv_ps(bg.val, fg.val, _mm256_castsi256_ps(mask))};
 #elifdef __SSE2__
     __m128 select_bg = _mm_andnot_ps(_mm_castsi128_ps(mask), bg.val);
@@ -783,7 +858,9 @@ static inline sd_vec4 sd_vec4_mask_blend(sd_vec4 bg, sd_vec4 fg, sd_mask mask) {
 }
 
 static inline sd_float sd_float_range(void) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return (sd_float){_mm512_set_ps(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)};
+#elifdef __AVX2__
     return (sd_float){_mm256_set_ps(7, 6, 5, 4, 3, 2, 1, 0)};
 #elifdef __SSE2__
     return (sd_float){_mm_set_ps(3, 2, 1, 0)};
@@ -797,7 +874,9 @@ static inline sd_float sd_float_range(void) {
 SD_DEFINE_VECFNS_NULLARY(range)
 
 static inline sd_float sd_float_zero(void) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return (sd_float){_mm512_setzero_ps()};
+#elifdef __AVX2__
     return (sd_float){_mm256_setzero_ps()};
 #elifdef __SSE2__
     return (sd_float){_mm_setzero_ps()};
@@ -811,7 +890,9 @@ static inline sd_float sd_float_zero(void) {
 SD_DEFINE_VECFNS_NULLARY(zero)
 
 static inline sd_float sd_float_one(void) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return (sd_float){_mm512_set1_ps(1)};
+#elifdef __AVX2__
     return (sd_float){_mm256_set1_ps(1)};
 #elifdef __SSE2__
     return (sd_float){_mm_set1_ps(1)};
@@ -825,7 +906,9 @@ static inline sd_float sd_float_one(void) {
 SD_DEFINE_VECFNS_NULLARY(one)
 
 static inline sd_float sd_float_set(float f) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return (sd_float){_mm512_set1_ps(f)};
+#elifdef __AVX2__
     return (sd_float){_mm256_set1_ps(f)};
 #elifdef __SSE2__
     return (sd_float){_mm_set1_ps(f)};
@@ -861,7 +944,9 @@ static inline sd_vec4 sd_vec4_set(float x, float y, float z, float w) {
 }
 
 static inline sd_float sd_float_gather(float *buf, sd_int index) {
-#ifdef __AVX2__
+#ifdef __AVX512F__
+    return (sd_float){_mm512_i32gather_ps(index.val, buf, 4)};
+#elifdef __AVX2__
     return (sd_float){_mm256_i32gather_ps(buf, index.val, 4)};
 #elifdef __SSE2__
     alignas(SD_ALIGN) float elems[4];
