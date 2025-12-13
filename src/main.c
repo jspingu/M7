@@ -60,11 +60,12 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
                 { M7_Components.Basis, (mat3x3 []){mat3x3_identity} },
                 { M7_Components.MeshPrimitive, nullptr },
                 { M7_Components.Teapot, &(M7_Teapot) { .scale = 50 } },
+                { M7_Components.SolidColor, &(M7_SolidColor) { .r=0.7, .g=0.7, .b=1.0 } },
                 { M7_Components.Model, &(M7_ModelArgs) {
                     .get_mesh = M7_Teapot_GetMesh,
                     .instances = (M7_ModelInstance []) {
                         (M7_ModelInstance) {
-                            .shader_pipeline = (M7_FragmentShader []) { SD_SELECT(solid_green), SD_SELECT(light) },
+                            .shader_pipeline = (M7_FragmentShader []) { SD_SELECT(M7_ShadeSolidColor), SD_SELECT(M7_ShadeOriginLight) },
                             .nshaders = 2,
                             .render_batch = 0,
                             .flags = M7_RASTERIZER_CULL_BACKFACE
@@ -84,11 +85,12 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
                 { M7_Components.Basis, (mat3x3 []){mat3x3_rotate(mat3x3_identity, vec3_i, SDL_PI_F / 2)} },
                 { M7_Components.MeshPrimitive, nullptr },
                 { M7_Components.Torus, &(M7_Torus) { .outer_radius=100, .inner_radius=50, .outer_precision=32, .inner_precision=16 } },
+                { M7_Components.SolidColor, &(M7_SolidColor) { .r=0.8, .g=0.4, .b=0.1 } },
                 { M7_Components.Model, &(M7_ModelArgs) {
                     .get_mesh = M7_Torus_GetMesh,
                     .instances = (M7_ModelInstance []) {
                         (M7_ModelInstance) {
-                            .shader_pipeline = (M7_FragmentShader []) { SD_SELECT(solid_green), SD_SELECT(light) },
+                            .shader_pipeline = (M7_FragmentShader []) { SD_SELECT(M7_ShadeSolidColor), SD_SELECT(M7_ShadeOriginLight) },
                             .nshaders = 2,
                             .render_batch = 0,
                             .flags = M7_RASTERIZER_CULL_BACKFACE
@@ -108,11 +110,16 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
                 { M7_Components.Basis, (mat3x3 []){mat3x3_rotate(mat3x3_identity, vec3_i, SDL_PI_F / 2)} },
                 { M7_Components.MeshPrimitive, nullptr },
                 { M7_Components.Rect, &(M7_Rect) { .width=5000, .height=5000 } },
+                { M7_Components.Checkerboard, &(M7_Checkerboard) {
+                    .tiles = 31,
+                    .r1 = 0.4, .g1 = 0.4, .b1 = 0.8,
+                    .r2 = 1.0, .g2 = 1.0, .b2 = 1.0,
+                }},
                 { M7_Components.Model, &(M7_ModelArgs) {
                     .get_mesh = M7_Rect_GetMesh,
                     .instances = (M7_ModelInstance []) {
                         (M7_ModelInstance) {
-                            .shader_pipeline = (M7_FragmentShader []) { SD_SELECT(checkerboard), SD_SELECT(light) },
+                            .shader_pipeline = (M7_FragmentShader []) { SD_SELECT(M7_ShadeCheckerboard), SD_SELECT(M7_ShadeOriginLight) },
                             .nshaders = 2,
                             .render_batch = 0,
                             .flags = M7_RASTERIZER_CULL_BACKFACE

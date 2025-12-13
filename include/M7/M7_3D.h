@@ -2,9 +2,12 @@
 #define M7_3D_H
 
 #include <M7/ECS.h>
+#include <M7/M7_Bitmap.h>
 #include <M7/Collections/List.h>
 #include <M7/Math/linalg.h>
 #include <M7/Math/stride.h>
+
+#define M7_SHADER_DECLARE(name)  SD_DECLARE(sd_vec4, name, ECS_Handle *, self, sd_vec4, col, sd_vec3, vs, sd_vec3, nrml, sd_vec2, ts)
 
 typedef struct M7_Mesh M7_Mesh;
 typedef struct M7_Sculpture M7_Sculpture;
@@ -89,9 +92,25 @@ typedef struct M7_Rect {
     float width, height;
 } M7_Rect;
 
-SD_DECLARE(sd_vec4, solid_green, ECS_Handle *, self, sd_vec4, col, sd_vec3, vs, sd_vec3, nrml, sd_vec2, ts)
-SD_DECLARE(sd_vec4, checkerboard, ECS_Handle *, self, sd_vec4, col, sd_vec3, vs, sd_vec3, nrml, sd_vec2, ts)
-SD_DECLARE(sd_vec4, light, ECS_Handle *, self, sd_vec4, col, sd_vec3, vs, sd_vec3, nrml, sd_vec2, ts)
+typedef struct M7_SolidColor {
+    float r, g, b;
+} M7_SolidColor;
+
+typedef struct M7_Checkerboard {
+    int tiles;
+    float r1, g1, b1;
+    float r2, g2, b2;
+} M7_Checkerboard;
+
+typedef struct M7_TextureMap {
+    M7_Texture *texture;
+    char *texture_path;
+    float scale;
+} M7_TextureMap;
+
+M7_SHADER_DECLARE(M7_ShadeSolidColor)
+M7_SHADER_DECLARE(M7_ShadeCheckerboard)
+M7_SHADER_DECLARE(M7_ShadeOriginLight)
 
 M7_Mesh *M7_Teapot_GetMesh(ECS_Handle *self);
 M7_Mesh *M7_Torus_GetMesh(ECS_Handle *self);

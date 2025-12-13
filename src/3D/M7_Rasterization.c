@@ -27,39 +27,6 @@ static inline vec3 intersect_near(vec3 from, vec3 to, float near) {
     return vec3_add(from, vec3_mul(slope, near - from.z));
 }
 
-sd_vec4 SD_VARIANT(solid_green)(ECS_Handle *self, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts) {
-    (void)self, (void)col, (void)vs, (void)nrml, (void)ts;
-    sd_vec3 green = sd_vec3_set(0.4, 0.7, 0.5);
-    return (sd_vec4) { .rgb = green };
-}
-
-sd_vec4 SD_VARIANT(checkerboard)(ECS_Handle *self, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts) {
-    (void)self, (void)col, (void)vs, (void)nrml;
-    int tile_count = 63;
-    sd_vec2 tile_coord = sd_vec2_mul(ts, sd_float_set(tile_count));
-    sd_int tile_idx = sd_int_add(sd_int_mul(sd_float_to_int(tile_coord.y), sd_int_set(tile_count)), sd_float_to_int(tile_coord.x));
-    sd_int tile_mask = sd_int_gt(sd_int_and(tile_idx, sd_int_set(1)), sd_int_set(0));
-    return sd_vec4_mask_blend(sd_vec4_zero(), sd_vec4_one(), tile_mask);
-}
-
-sd_vec4 SD_VARIANT(light)(ECS_Handle *self, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts) {
-    (void)self, (void)col, (void)ts;
-    sd_float ambient = sd_float_set(0.1);
-    sd_float energy = sd_float_set(20000);
-
-    sd_float sqrlen = sd_vec3_dot(vs, vs);
-    sd_float rcpsql = sd_float_rcp(sqrlen);
-    sd_float rcplen = sd_float_rsqrt(sqrlen);
-
-    sd_float power = sd_float_mul(
-        sd_vec3_dot(sd_vec3_mul(vs, rcplen), sd_vec3_negate(nrml)),
-        sd_float_mul(energy, rcpsql)
-    );
-
-    sd_vec3 out = sd_vec3_mul(col.rgb, sd_float_add(ambient, power));
-    return (sd_vec4){ .rgb = out };
-}
-
 void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw *triangle, int (*scanlines)[2], int range[2]) {
     M7_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, M7_Components.Rasterizer);
     M7_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, M7_Components.Canvas);

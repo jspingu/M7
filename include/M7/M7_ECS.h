@@ -25,6 +25,11 @@ struct M7_Components {
     ECS_Component(vec3) *Position;
     ECS_Component(mat3x3) *Basis;
 
+    /* Shader components */
+    ECS_Component(M7_SolidColor) *SolidColor;
+    ECS_Component(M7_Checkerboard) *Checkerboard;
+    ECS_Component(M7_TextureMap) *TextureMap;
+
     /* 3D primitives */
     ECS_Component(M7_Mesh *) *MeshPrimitive;
     ECS_Component(M7_Teapot) *Teapot;

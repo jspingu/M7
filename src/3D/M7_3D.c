@@ -32,6 +32,9 @@ void M7_3D_RegisterToECS(ECS *ecs) {
     M7_Components.Sphere = ECS_RegisterComponent(ecs, M7_Sphere, {});
     M7_Components.Rect = ECS_RegisterComponent(ecs, M7_Rect, {});
 
+    M7_Components.SolidColor = ECS_RegisterComponent(ecs, M7_SolidColor, {});
+    M7_Components.Checkerboard = ECS_RegisterComponent(ecs, M7_Checkerboard, {});
+
     ECS_SystemGroup_RegisterSystem(M7_SystemGroups.Render, SD_SELECT(M7_Rasterizer_Render), M7_Components.Rasterizer);
     ECS_SystemGroup_RegisterSystem(M7_SystemGroups.OnXform, M7_Model_OnXform, M7_Components.Model);
 }
