@@ -89,16 +89,6 @@ void M7_Model_OnXform(ECS_Handle *self, xform3 composed) {
     model->geometry->xform = composed;
 }
 
-void M7_Model_Update(ECS_Handle *self, double delta) {
-    // static float pitch = 0;
-    // static float yaw = 0;
-
-    // mat3x3 *basis = ECS_Entity_GetComponent(self, M7_Components.Basis);
-    // pitch += 2.718 / 2 * delta;
-    // yaw -= 3.141 / 4 * delta;
-    // *basis = mat3x3_rotate(mat3x3_rotate(mat3x3_identity, vec3_i, pitch), vec3_j, yaw);
-}
-
 void M7_Model_Attach(ECS_Handle *self) {
     M7_Model *mdl = ECS_Entity_GetComponent(self, M7_Components.Model);
     ECS_Handle *world = ECS_Entity_AncestorWithComponent(self, M7_Components.World, true);
