@@ -70,11 +70,11 @@ M7_RenderInstance *M7_WorldGeometry_Instance(M7_WorldGeometry *geometry, M7_Frag
     M7_RenderInstance *instance = SDL_malloc(sizeof(M7_RenderInstance));
     List(M7_FragmentShader) *fs_pipe = List_Create(M7_FragmentShader);
     List_PushRange(fs_pipe, shaders, nshaders);
-    instance->shader_state = shader_state;
 
     *instance = (M7_RenderInstance) {
         .geometry = geometry,
         .shader_pipeline = fs_pipe,
+        .shader_state = shader_state,
         .render_batch = render_batch,
         .flags = flags
     };
