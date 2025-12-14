@@ -237,8 +237,8 @@ void ECS_Update(ECS *ecs) {
     ecs->length += nent_diff;
 
     /* Prepare component attachments */
-    for (size_t i = ecs->length; i > 0; --i) {
-        ECS_EntityHeader header = ecs->headers[i - 1];
+    for (size_t i = 0; i < ecs->length; ++i) {
+        ECS_EntityHeader header = ecs->headers[i];
 
         /* Copy constructed components */
         List_For(header.components_attach, 0, header.ncomponents_attach, component_construction, {
@@ -246,19 +246,19 @@ void ECS_Update(ECS *ecs) {
             ECS_Column *column = List_GetAddress(ecs->columns, component->index);
             Bitset_Set(header.active_components, component->index);
 
-            if (column->capacity < i) {
-                column->capacity = List_bounding_size(i);
+            if (column->capacity < i + 1) {
+                column->capacity = List_bounding_size(i + 1);
                 column->component_entries = SDL_realloc(column->component_entries, column->component_size * column->capacity);
             }
 
-            SDL_memcpy(column->component_entries + column->component_size * (i - 1), component_construction.structure, column->component_size);
+            SDL_memcpy(column->component_entries + column->component_size * i, component_construction.structure, column->component_size);
             SDL_free(component_construction.structure);
         });
     }
 
     /* Attach components */
-    for (size_t i = ecs->length; i > 0; --i) {
-        ECS_EntityHeader header = ecs->headers[i - 1];
+    for (size_t i = 0; i < ecs->length; ++i) {
+        ECS_EntityHeader header = ecs->headers[i];
 
         List_For(header.components_attach, 0, header.ncomponents_attach, component_construction, {
             ECS_Handle *component = component_construction.component;
