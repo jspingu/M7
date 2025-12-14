@@ -33,12 +33,15 @@ typedef struct M7_Texture {
 
 static inline sd_vec4 M7_SampleNearest(M7_Texture *texture, sd_vec2 ts) {
     sd_float unit = sd_float_set(texture->unit);
-    sd_vec2 ss = sd_vec2_mul(ts, unit);
+    sd_vec2 pixel_coord = sd_vec2_mul(ts, unit);
+
+    pixel_coord.x = sd_float_clamp(pixel_coord.x, sd_float_zero(), sd_float_set(texture->width - 1));
+    pixel_coord.y = sd_float_clamp(pixel_coord.y, sd_float_zero(), sd_float_set(texture->height - 1));
 
     sd_int pixel_index = sd_int_add(sd_int_mul(
-        sd_float_to_int(ss.y),
+        sd_float_to_int(pixel_coord.y),
         sd_int_set(texture->width)
-    ), sd_float_to_int(ss.x));
+    ), sd_float_to_int(pixel_coord.x));
 
     return sd_vec4_gather(texture->color, pixel_index);
 }
