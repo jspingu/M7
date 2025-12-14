@@ -18,10 +18,10 @@ void *M7_TextureBank_LoadTexture(ECS_Handle *self, char *path) {
 
     for (int i = 0; i < img_abgr->w * img_abgr->h; ++i) {
         uint32_t *px = img_abgr->pixels;
-        texture->color[i * 4 + 0] = (float)((px[i] >> 24) & 0xFF) / 0xFF;
+        texture->color[i * 4 + 0] = (float)gamma_decode_lut[(px[i] >> 24) & 0xFF] / 0xFFFF;
         texture->color[i * 4 + 1] = (float)gamma_decode_lut[(px[i] >> 16) & 0xFF] / 0xFFFF;
-        texture->color[i * 4 + 2] = (float)gamma_decode_lut[(px[i] >> 8) & 0xFF] / 0xFFFF;
-        texture->color[i * 4 + 3] = (float)gamma_decode_lut[px[i] & 0xFF] / 0xFFFF;
+        texture->color[i * 4 + 2] = (float)gamma_decode_lut[(px[i] >>  8) & 0xFF] / 0xFFFF;
+        texture->color[i * 4 + 3] = (float)(px[i] & 0xFF) / 0xFF;
     }
 
     SDL_DestroySurface(img_abgr);
