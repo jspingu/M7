@@ -111,14 +111,12 @@ typedef struct M7_TextureMap {
 M7_SHADER_DECLARE(M7_ShadeSolidColor)
 M7_SHADER_DECLARE(M7_ShadeCheckerboard)
 M7_SHADER_DECLARE(M7_ShadeOriginLight)
+M7_SHADER_DECLARE(M7_ShadeTextureMap)
 
 M7_Mesh *M7_Teapot_GetMesh(ECS_Handle *self);
 M7_Mesh *M7_Torus_GetMesh(ECS_Handle *self);
 M7_Mesh *M7_Sphere_GetMesh(ECS_Handle *self);
 M7_Mesh *M7_Rect_GetMesh(ECS_Handle *self);
-
-void M7_MeshPrimitive_Init(void *component, void *args);
-void M7_MeshPrimitive_Free(void *component);
 
 xform3 M7_Entity_GetXform(ECS_Handle *self);
 void M7_Entity_Xform(ECS_Handle *self, xform3 lhs);

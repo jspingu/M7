@@ -68,6 +68,14 @@ typedef struct M7_Rasterizer {
 
 void M7_3D_RegisterToECS(ECS *ecs);
 
+void M7_TextureMap_Attach(ECS_Handle *self);
+void M7_TextureMap_Detach(ECS_Handle *self);
+void M7_TextureMap_Init(void *component, void *args);
+void M7_TextureMap_Free(void *component);
+
+void M7_MeshPrimitive_Init(void *component, void *args);
+void M7_MeshPrimitive_Free(void *component);
+
 void M7_Model_Update(ECS_Handle *self, double delta);
 void M7_Model_OnXform(ECS_Handle *self, xform3 composed);
 void M7_Model_Attach(ECS_Handle *self);

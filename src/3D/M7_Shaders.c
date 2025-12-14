@@ -41,3 +41,39 @@ sd_vec4 SD_VARIANT(M7_ShadeOriginLight)(ECS_Handle *self, sd_vec4 col, sd_vec3 v
     sd_vec3 out = sd_vec3_mul(col.rgb, sd_float_add(ambient, power));
     return (sd_vec4) { .rgb = out };
 }
+
+sd_vec4 SD_VARIANT(M7_ShadeTextureMap)(ECS_Handle *self, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts) {
+    (void)col, (void)vs, (void)nrml;
+    M7_TextureMap *texture_map = ECS_Entity_GetComponent(self, M7_Components.TextureMap);
+    return M7_SampleNearest(texture_map->texture, ts) ;
+}
+
+#ifndef SD_SRC_VARIANT
+
+void M7_TextureMap_Attach(ECS_Handle *self) {
+    M7_TextureMap *texture_map = ECS_Entity_GetComponent(self, M7_Components.TextureMap);
+    ECS_Handle *tb = ECS_Entity_AncestorWithComponent(self, M7_Components.TextureBank, true);
+    M7_ResourceBank(M7_Texture *) *c_tb = *ECS_Entity_GetComponent(tb, M7_Components.TextureBank);
+    texture_map->texture = M7_ResourceBank_Get(c_tb, texture_map->texture_path);
+}
+
+void M7_TextureMap_Detach(ECS_Handle *self) {
+    M7_TextureMap *texture_map = ECS_Entity_GetComponent(self, M7_Components.TextureMap);
+    ECS_Handle *tb = ECS_Entity_AncestorWithComponent(self, M7_Components.TextureBank, true);
+    M7_ResourceBank(M7_Texture *) *c_tb = *ECS_Entity_GetComponent(tb, M7_Components.TextureBank);
+    M7_ResourceBank_Release(c_tb, texture_map->texture_path);
+}
+
+void M7_TextureMap_Init(void *component, void *args) {
+    M7_TextureMap *texture_map = component;
+    char *path = args;
+    texture_map->texture_path = SDL_malloc(SDL_strlen(path) + 1);
+    SDL_strlcpy(texture_map->texture_path, path, 64);
+}
+
+void M7_TextureMap_Free(void *component) {
+    M7_TextureMap *texture_map = component;
+    SDL_free(texture_map->texture_path);
+}
+
+#endif /* SD_SRC_VARIANT */

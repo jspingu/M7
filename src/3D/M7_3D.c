@@ -34,6 +34,12 @@ void M7_3D_RegisterToECS(ECS *ecs) {
 
     M7_Components.SolidColor = ECS_RegisterComponent(ecs, M7_SolidColor, {});
     M7_Components.Checkerboard = ECS_RegisterComponent(ecs, M7_Checkerboard, {});
+    M7_Components.TextureMap = ECS_RegisterComponent(ecs, M7_TextureMap, {
+        .attach = M7_TextureMap_Attach,
+        .detach = M7_TextureMap_Detach,
+        .init = M7_TextureMap_Init,
+        .free = M7_TextureMap_Free
+    });
 
     ECS_SystemGroup_RegisterSystem(M7_SystemGroups.Render, SD_SELECT(M7_Rasterizer_Render), M7_Components.Rasterizer);
     ECS_SystemGroup_RegisterSystem(M7_SystemGroups.OnXform, M7_Model_OnXform, M7_Components.Model);
