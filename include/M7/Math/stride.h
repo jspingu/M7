@@ -359,7 +359,7 @@ static inline sd_int sd_int_sub(sd_int lhs, sd_int rhs) {
 
 static inline sd_int sd_int_mul(sd_int lhs, sd_int rhs) {
 #ifdef __AVX512F__
-    return (sd_int){_mm512_mul_epi32(lhs.val, rhs.val)};
+    return (sd_int){_mm512_mullo_epi32(lhs.val, rhs.val)};
 #elifdef __AVX2__
     return (sd_int){_mm256_mullo_epi32(lhs.val, rhs.val)};
 #elifdef __SSE2__
