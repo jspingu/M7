@@ -10,7 +10,7 @@
 
 #define WIDTH    960
 #define HEIGHT   540
-#define FPS_CAP  60
+#define FPS_CAP  144
 
 static Uint64 ticks_prev;
 static Uint64 ticks_freq;
@@ -34,7 +34,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
         { M7_Components.Canvas, &(M7_Canvas){
             .width = WIDTH,
             .height = HEIGHT,
-            .parallelism = 4
+            .parallelism = SDL_GetNumLogicalCPUCores()
         }},
         { M7_Components.World, nullptr },
         { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault} }
@@ -47,7 +47,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
                     .project = SD_SELECT(M7_ProjectPerspective),
                     .scan = SD_SELECT(M7_ScanPerspective),
                     .near = 5,
-                    .parallelism = 4
+                    .parallelism = SDL_GetNumLogicalCPUCores()
                 }},
                 { Components.FreeCam, &(FreeCam){} },
                 { M7_Components.Position, &(vec3){} },

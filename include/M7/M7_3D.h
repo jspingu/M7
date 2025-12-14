@@ -23,7 +23,7 @@ typedef xform3 (*M7_XformComposer)(ECS_Handle *self, xform3 lhs);
 
 typedef sd_vec4 (*M7_FragmentShader)(ECS_Handle *self, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts);
 typedef sd_vec2 (*M7_VertexProjector)(ECS_Handle *self, sd_vec3 pos, sd_vec2 midpoint);
-typedef void (*M7_RasterScanner)(ECS_Handle *self, M7_TriangleDraw *tri, int (*scanlines)[2], int range[2]);
+typedef void (*M7_RasterScanner)(ECS_Handle *self, M7_TriangleDraw tri, int (*scanlines)[2], int range[2]);
 
 typedef enum M7_RasterizerFlags {
     M7_RASTERIZER_ALPHA_BLEND         = 1 << 0,
@@ -48,10 +48,6 @@ typedef struct M7_TriangleDraw {
     vec3 vs_nrmls[3];
     vec2 ts_verts[3];
     vec2 ss_verts[3];
-    struct {
-        int left, right;
-        int top, bottom;
-    } sd_bounding_box;
 } M7_TriangleDraw;
 
 typedef struct M7_RasterizerArgs {
@@ -144,6 +140,6 @@ M7_RenderInstance *M7_WorldGeometry_Instance(M7_WorldGeometry *geometry, M7_Frag
 void M7_WorldGeometry_Free(M7_WorldGeometry *geometry);
 
 SD_DECLARE(sd_vec2, M7_ProjectPerspective, ECS_Handle *, self, sd_vec3, point, sd_vec2, midpoint)
-SD_DECLARE_VOID_RETURN(M7_ScanPerspective, ECS_Handle *, self, M7_TriangleDraw *, tri, int (*)[2], scanlines, int [2], range)
+SD_DECLARE_VOID_RETURN(M7_ScanPerspective, ECS_Handle *, self, M7_TriangleDraw, tri, int (*)[2], scanlines, int [2], range)
 
 #endif /* M7_3D_H */
