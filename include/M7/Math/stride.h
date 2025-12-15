@@ -943,19 +943,19 @@ static inline sd_vec4 sd_vec4_set(float x, float y, float z, float w) {
     };
 }
 
-sd_float sd_float_blend(sd_float bg, sd_float fg, sd_float coeff) {
+static inline sd_float sd_float_blend(sd_float bg, sd_float fg, sd_float coeff) {
     return sd_float_fmadd(sd_float_sub(fg, bg), coeff, bg);
 }
 
-sd_vec2 sd_vec2_blend(sd_vec2 bg, sd_vec2 fg, sd_float coeff) {
+static inline sd_vec2 sd_vec2_blend(sd_vec2 bg, sd_vec2 fg, sd_float coeff) {
     return sd_vec2_fmadd(sd_vec2_sub(fg, bg), coeff, bg);
 }
 
-sd_vec3 sd_vec3_blend(sd_vec3 bg, sd_vec3 fg, sd_float coeff) {
+static inline sd_vec3 sd_vec3_blend(sd_vec3 bg, sd_vec3 fg, sd_float coeff) {
     return sd_vec3_fmadd(sd_vec3_sub(fg, bg), coeff, bg);
 }
 
-sd_vec4 sd_vec4_blend(sd_vec4 bg, sd_vec4 fg, sd_float coeff) {
+static inline sd_vec4 sd_vec4_blend(sd_vec4 bg, sd_vec4 fg, sd_float coeff) {
     return sd_vec4_fmadd(sd_vec4_sub(fg, bg), coeff, bg);
 }
 
@@ -1089,13 +1089,13 @@ static inline sd_vec3 sd_vec3_normalize(sd_vec3 v) {
     return sd_vec3_mul(v, rcplen);
 }
 
-sd_vec2 sd_vec2_reflect(sd_vec2 v, sd_vec2 nrml) {
+static inline sd_vec2 sd_vec2_reflect(sd_vec2 v, sd_vec2 nrml) {
     sd_vec2 prj = sd_vec2_mul(v, sd_vec2_dot(v, nrml));
     sd_vec2 rej = sd_vec2_sub(v, prj);
     return sd_vec2_add(rej, sd_vec2_negate(prj));
 }
 
-sd_vec3 sd_vec3_reflect(sd_vec3 v, sd_vec3 nrml) {
+static inline sd_vec3 sd_vec3_reflect(sd_vec3 v, sd_vec3 nrml) {
     sd_vec3 prj = sd_vec3_mul(v, sd_vec3_dot(v, nrml));
     sd_vec3 rej = sd_vec3_sub(v, prj);
     return sd_vec3_add(rej, sd_vec3_negate(prj));
