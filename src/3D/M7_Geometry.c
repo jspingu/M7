@@ -20,7 +20,7 @@ M7_Mesh *SD_VARIANT(M7_Mesh_Create)(vec3 *ws_verts, vec3 *ws_norms, vec2 *ts_ver
     *mesh = (M7_Mesh) {
         .ws_verts = vbuf,
         .ws_nrmls = nbuf,
-        .ts_verts = nts_verts ? SDL_memcpy(SDL_malloc(sizeof(vec2) * nverts), ts_verts, sizeof(vec2) * nts_verts) : nullptr,
+        .ts_verts = nts_verts ? SDL_memcpy(SDL_malloc(sizeof(vec2) * nts_verts), ts_verts, sizeof(vec2) * nts_verts) : nullptr,
         .faces = SDL_memcpy(SDL_malloc(sizeof(M7_MeshFace) * nfaces), faces, sizeof(M7_MeshFace) * nfaces),
         .nverts = nverts,
         .nfaces = nfaces
