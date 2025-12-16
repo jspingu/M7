@@ -629,13 +629,20 @@ SD_DEFINE_VECFNS_UNARY(negate)
 
 static inline sd_float sd_float_rcp(sd_float f) {
 #ifdef __AVX512F__
-    return (sd_float){_mm512_rcp14_ps(f.val)};
+    __m512 est = _mm512_rcp14_ps(f.val);
+    __m512 two = _mm512_set1_ps(2);
+    return (sd_float){_mm512_mul_ps(est, _mm512_fnmadd_ps(f.val, est, two))};
 #elifdef __AVX2__
-    return (sd_float){_mm256_rcp_ps(f.val)};
+    __m256 est = _mm256_rcp_ps(f.val);
+    __m256 two = _mm256_set1_ps(2);
+    return (sd_float){_mm256_mul_ps(est, _mm256_fnmadd_ps(f.val, est, two))};
 #elifdef __SSE2__
-    return (sd_float){_mm_rcp_ps(f.val)};
+    __m128 est = _mm_rcp_ps(f.val);
+    __m128 rhs = _mm_mul_ps(f.val, _mm_mul_ps(est, est));
+    return (sd_float){_mm_sub_ps(_mm_add_ps(est, est), rhs)};
 #elifdef __ARM_NEON
-    return (sd_float){vrecpeq_f32(f.val)};
+    float32x4_t est = vrecpeq_f32(f.val);
+    return (sd_float){vmulq_f32(est, vrecpsq_f32(f.val, est))};
 #else
     return (sd_float){1 / f.val};
 #endif
@@ -645,13 +652,28 @@ SD_DEFINE_VECFNS_UNARY(rcp)
 
 static inline sd_float sd_float_rsqrt(sd_float f) {
 #ifdef __AVX512F__
-    return (sd_float){_mm512_rsqrt14_ps(f.val)};
+    __m512 est = _mm512_rsqrt14_ps(f.val);
+    __m512 hlfest = _mm512_mul_ps(est, _mm512_set1_ps(0.5));
+    __m512 sqrest = _mm512_mul_ps(est, est);
+    __m512 three = _mm512_set1_ps(3);
+    return (sd_float){_mm512_mul_ps(hlfest, _mm512_fnmadd_ps(f.val, sqrest, three))};
 #elifdef __AVX2__
-    return (sd_float){_mm256_rsqrt_ps(f.val)};
+    __m256 est = _mm256_rsqrt_ps(f.val);
+    __m256 hlfest = _mm256_mul_ps(est, _mm256_set1_ps(0.5));
+    __m256 sqrest = _mm256_mul_ps(est, est);
+    __m256 three = _mm256_set1_ps(3);
+    return (sd_float){_mm256_mul_ps(hlfest, _mm256_fnmadd_ps(f.val, sqrest, three))};
 #elifdef __SSE2__
-    return (sd_float){_mm_rsqrt_ps(f.val)};
+    __m128 est = _mm_rsqrt_ps(f.val);
+    __m128 hlfest = _mm_mul_ps(est, _mm_set1_ps(0.5));
+    __m128 sqrest = _mm_mul_ps(est, est);
+    __m128 three = _mm_set1_ps(3);
+    __m128 rhs = _mm_sub_ps(three, _mm_mul_ps(f.val, sqrest));
+    return (sd_float){_mm_mul_ps(hlfest, rhs)};
 #elifdef __ARM_NEON
-    return (sd_float){vrsqrteq_f32(f.val)};
+    float32x4_t est = vrsqrteq_f32(f.val);
+    float32x4_t sqrest = vmulq_f32(est, est);
+    return (sd_float){vmulq_f32(est, vrsqrtsq_f32(f.val, sqrest))};
 #else
     return (sd_float){1 / SDL_sqrtf(f.val)};
 #endif
