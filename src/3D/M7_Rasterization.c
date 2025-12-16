@@ -256,9 +256,9 @@ static void M7_Rasterizer_DrawBatch(ECS_Handle *self, List(M7_RenderInstance *) 
 
                 if (instance->geometry->mesh->ts_verts)
                     SDL_memcpy(triangle.ts_verts, (vec2 [3]) {
-                        instance->geometry->mesh->ts_verts[faces[i].idx_verts[0]],
-                        instance->geometry->mesh->ts_verts[faces[i].idx_verts[1 + !verts_cw]],
-                        instance->geometry->mesh->ts_verts[faces[i].idx_verts[1 + verts_cw]]
+                        instance->geometry->mesh->ts_verts[faces[i].idx_tverts[0]],
+                        instance->geometry->mesh->ts_verts[faces[i].idx_tverts[1 + !verts_cw]],
+                        instance->geometry->mesh->ts_verts[faces[i].idx_tverts[1 + verts_cw]]
                     }, sizeof(vec2 [3]));
 
                 M7_Rasterizer_DrawTriangle(self, triangle, scanlines, bounds);
