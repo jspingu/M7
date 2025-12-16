@@ -643,6 +643,34 @@ static inline sd_float sd_float_rcp(sd_float f) {
 
 SD_DEFINE_VECFNS_UNARY(rcp)
 
+static inline sd_float sd_float_rsqrt(sd_float f) {
+#ifdef __AVX512F__
+    return (sd_float){_mm512_rsqrt14_ps(f.val)};
+#elifdef __AVX2__
+    return (sd_float){_mm256_rsqrt_ps(f.val)};
+#elifdef __SSE2__
+    return (sd_float){_mm_rsqrt_ps(f.val)};
+#elifdef __ARM_NEON
+    return (sd_float){vrsqrteq_f32(f.val)};
+#else
+    return (sd_float){1 / SDL_sqrtf(f.val)};
+#endif
+}
+
+SD_DEFINE_VECFNS_UNARY(rsqrt)
+
+static inline sd_float sd_float_trunc(sd_float f) {
+    return sd_int_to_float(sd_float_to_int(f));
+}
+
+SD_DEFINE_VECFNS_UNARY(trunc)
+
+static inline sd_float sd_float_frac(sd_float f) {
+    return sd_float_sub(f, sd_float_trunc(f));
+}
+
+SD_DEFINE_VECFNS_UNARY(frac)
+
 static inline sd_float sd_float_fmadd(sd_float multiplicand, sd_float multiplier, sd_float addend) {
 #ifdef __AVX512F__
     return (sd_float){_mm512_fmadd_ps(multiplicand.val, multiplier.val, addend.val)};
@@ -691,21 +719,21 @@ static inline sd_float sd_float_fmsub(sd_float multiplicand, sd_float multiplier
 #endif
 }
 
-static inline sd_float sd_float_rsqrt(sd_float f) {
-#ifdef __AVX512F__
-    return (sd_float){_mm512_rsqrt14_ps(f.val)};
-#elifdef __AVX2__
-    return (sd_float){_mm256_rsqrt_ps(f.val)};
-#elifdef __SSE2__
-    return (sd_float){_mm_rsqrt_ps(f.val)};
-#elifdef __ARM_NEON
-    return (sd_float){vrsqrteq_f32(f.val)};
-#else
-    return (sd_float){1 / SDL_sqrtf(f.val)};
-#endif
+static inline sd_float sd_float_blend(sd_float bg, sd_float fg, sd_float coeff) {
+    return sd_float_fmadd(sd_float_sub(fg, bg), coeff, bg);
 }
 
-SD_DEFINE_VECFNS_UNARY(rsqrt)
+static inline sd_vec2 sd_vec2_blend(sd_vec2 bg, sd_vec2 fg, sd_float coeff) {
+    return sd_vec2_fmadd(sd_vec2_sub(fg, bg), coeff, bg);
+}
+
+static inline sd_vec3 sd_vec3_blend(sd_vec3 bg, sd_vec3 fg, sd_float coeff) {
+    return sd_vec3_fmadd(sd_vec3_sub(fg, bg), coeff, bg);
+}
+
+static inline sd_vec4 sd_vec4_blend(sd_vec4 bg, sd_vec4 fg, sd_float coeff) {
+    return sd_vec4_fmadd(sd_vec4_sub(fg, bg), coeff, bg);
+}
 
 static inline sd_float sd_float_min(sd_float lhs, sd_float rhs) {
 #ifdef __AVX512F__
@@ -941,22 +969,6 @@ static inline sd_vec4 sd_vec4_set(float x, float y, float z, float w) {
         .z = sd_float_set(z),
         .w = sd_float_set(w)
     };
-}
-
-static inline sd_float sd_float_blend(sd_float bg, sd_float fg, sd_float coeff) {
-    return sd_float_fmadd(sd_float_sub(fg, bg), coeff, bg);
-}
-
-static inline sd_vec2 sd_vec2_blend(sd_vec2 bg, sd_vec2 fg, sd_float coeff) {
-    return sd_vec2_fmadd(sd_vec2_sub(fg, bg), coeff, bg);
-}
-
-static inline sd_vec3 sd_vec3_blend(sd_vec3 bg, sd_vec3 fg, sd_float coeff) {
-    return sd_vec3_fmadd(sd_vec3_sub(fg, bg), coeff, bg);
-}
-
-static inline sd_vec4 sd_vec4_blend(sd_vec4 bg, sd_vec4 fg, sd_float coeff) {
-    return sd_vec4_fmadd(sd_vec4_sub(fg, bg), coeff, bg);
 }
 
 static inline sd_float sd_float_gather(float *buf, sd_int index) {
