@@ -23,7 +23,7 @@ static inline vec3 intersect_near(vec3 from, vec3 to, float near) {
     return vec3_add(from, vec3_mul(slope, near - from.z));
 }
 
-void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw triangle, int (*scanlines)[2], int range[2]) {
+void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw triangle, M7_RasterizerFlags flags, int (*scanlines)[2], int range[2]) {
     M7_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, M7_Components.Rasterizer);
     M7_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, M7_Components.Canvas);
 
@@ -124,12 +124,12 @@ void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw triangle, 
 
             /* Inverse z in depth buffer */
             sd_float bg_z = canvas->depth[base + j];
-            mask = sd_mask_and(mask, sd_float_gt(inv_z, bg_z));
+            mask = sd_mask_and(mask, sd_mask_or(sd_float_gt(inv_z, bg_z), sd_mask_set(!(flags & M7_RASTERIZER_TEST_DEPTH))));
 
             sd_vec4 col;
             List_ForEach(triangle.shader_pipeline, shader, col = shader(triangle.shader_state, col, fragment_vs, fragment_nrml, fragment_ts); );
 
-            canvas->depth[base + j] = sd_float_mask_blend(bg_z, inv_z, mask);
+            canvas->depth[base + j] = sd_float_mask_blend(bg_z, inv_z, sd_mask_and(mask, sd_mask_set(flags & M7_RASTERIZER_WRITE_DEPTH)));
             canvas->color[base + j] = sd_vec3_mask_blend(bg, col.rgb, mask);
         }
     }
@@ -153,7 +153,7 @@ static void Trace(int width, int bounds[2], int (*scanlines)[2], vec2 line[2]) {
     }
 }
 
-static void M7_Rasterizer_DrawTriangle(ECS_Handle *self, M7_TriangleDraw triangle, int (*scanlines)[2], int bounds[2]) {
+static void M7_Rasterizer_DrawTriangle(ECS_Handle *self, M7_TriangleDraw triangle, M7_RasterizerFlags flags, int (*scanlines)[2], int bounds[2]) {
     M7_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, M7_Components.Rasterizer);
     M7_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, M7_Components.Canvas);
 
@@ -166,7 +166,7 @@ static void M7_Rasterizer_DrawTriangle(ECS_Handle *self, M7_TriangleDraw triangl
     for (int i = 0; i < 3; ++i)
         Trace(canvas->width, bounds, scanlines, (vec2 [2]) { triangle.ss_verts[i], triangle.ss_verts[(i + 1) % 3] });
 
-    rasterizer->scan(self, triangle, scanlines, (int [2]) { high, low });
+    rasterizer->scan(self, triangle, flags, scanlines, (int [2]) { high, low });
 }
 
 static void M7_Rasterizer_DrawBatch(ECS_Handle *self, List(M7_RenderInstance *) *batch, M7_RasterizerFlags flags, int (*scanlines)[2], int bounds[2]) {
@@ -261,7 +261,7 @@ static void M7_Rasterizer_DrawBatch(ECS_Handle *self, List(M7_RenderInstance *) 
                         instance->geometry->mesh->ts_verts[faces[i].idx_tverts[1 + verts_cw]]
                     }, sizeof(vec2 [3]));
 
-                M7_Rasterizer_DrawTriangle(self, triangle, scanlines, bounds);
+                M7_Rasterizer_DrawTriangle(self, triangle, flags, scanlines, bounds);
             }
         }
     });

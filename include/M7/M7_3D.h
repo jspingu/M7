@@ -9,6 +9,17 @@
 
 #define M7_SHADER_DECLARE(name)  SD_DECLARE(sd_vec4, name, ECS_Handle *, self, sd_vec4, col, sd_vec3, vs, sd_vec3, nrml, sd_vec2, ts)
 
+typedef enum M7_RasterizerFlags {
+    M7_RASTERIZER_ALPHA_BLEND         = 1 << 0,
+    M7_RASTERIZER_ALPHA_SCISSOR       = 1 << 1,
+    M7_RASTERIZER_WRITE_DEPTH         = 1 << 2,
+    M7_RASTERIZER_TEST_DEPTH          = 1 << 3,
+    M7_RASTERIZER_INTERPOLATE_NORMALS = 1 << 4,
+    M7_RASTERIZER_CULL_BACKFACE       = 1 << 5,
+    M7_RASTERIZER_SORT_TRIANGLES      = 1 << 6,
+    M7_RASTERIZER_FLAG_COMBINATIONS   = 1 << 7
+} M7_RasterizerFlags;
+
 typedef struct M7_Mesh M7_Mesh;
 typedef struct M7_Sculpture M7_Sculpture;
 typedef struct M7_PolyChain M7_PolyChain;
@@ -23,18 +34,7 @@ typedef xform3 (*M7_XformComposer)(ECS_Handle *self, xform3 lhs);
 
 typedef sd_vec4 (*M7_FragmentShader)(ECS_Handle *self, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts);
 typedef sd_vec2 (*M7_VertexProjector)(ECS_Handle *self, sd_vec3 pos, sd_vec2 midpoint);
-typedef void (*M7_RasterScanner)(ECS_Handle *self, M7_TriangleDraw tri, int (*scanlines)[2], int range[2]);
-
-typedef enum M7_RasterizerFlags {
-    M7_RASTERIZER_ALPHA_BLEND         = 1 << 0,
-    M7_RASTERIZER_ALPHA_SCISSOR       = 1 << 1,
-    M7_RASTERIZER_WRITE_DEPTH         = 1 << 2,
-    M7_RASTERIZER_TEST_DEPTH          = 1 << 3,
-    M7_RASTERIZER_INTERPOLATE_NORMALS = 1 << 4,
-    M7_RASTERIZER_CULL_BACKFACE       = 1 << 5,
-    M7_RASTERIZER_SORT_TRIANGLES      = 1 << 6,
-    M7_RASTERIZER_FLAG_COMBINATIONS   = 1 << 7
-} M7_RasterizerFlags;
+typedef void (*M7_RasterScanner)(ECS_Handle *self, M7_TriangleDraw triangle, M7_RasterizerFlags flags, int (*scanlines)[2], int range[2]);
 
 typedef struct M7_MeshFace {
     size_t idx_verts[3];
@@ -145,6 +145,6 @@ M7_RenderInstance *M7_WorldGeometry_Instance(M7_WorldGeometry *geometry, M7_Frag
 void M7_WorldGeometry_Free(M7_WorldGeometry *geometry);
 
 SD_DECLARE(sd_vec2, M7_ProjectPerspective, ECS_Handle *, self, sd_vec3, point, sd_vec2, midpoint)
-SD_DECLARE_VOID_RETURN(M7_ScanPerspective, ECS_Handle *, self, M7_TriangleDraw, tri, int (*)[2], scanlines, int [2], range)
+SD_DECLARE_VOID_RETURN(M7_ScanPerspective, ECS_Handle *, self, M7_TriangleDraw, triangle, M7_RasterizerFlags, flags, int (*)[2], scanlines, int [2], range)
 
 #endif /* M7_3D_H */
