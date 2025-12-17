@@ -329,6 +329,35 @@ static inline sd_mask sd_mask_or(sd_mask lhs, sd_mask rhs) {
 #endif
 }
 
+static inline sd_mask sd_mask_not(sd_mask m) {
+#ifdef __AVX512F__
+    return _mm512_knot(m);
+#elifdef __AVX2__
+    return _mm256_xor_si256(m, _mm256_set1_epi32(-1));
+#elifdef __SSE2__
+    return _mm_xor_si128(m, _mm_set1_epi32(-1));
+#elifdef __ARM_NEON
+    return vmvnq_u32(m);
+#else
+    return !m;
+#endif
+}
+
+static inline sd_mask sd_mask_set(bool b) {
+#ifdef __AVX512F__
+    return _mm512_int2mask(-(b > 0));
+#elifdef __AVX2__
+    return _mm256_cmpgt_epi32(_mm256_set1_epi32(b), _mm256_setzero_si256());
+#elifdef __SSE2__
+    return _mm_cmpgt_epi32(_mm_set1_epi32(b), _mm_setzero_si128());
+#elifdef __ARM_NEON
+    uint32x4_t tst = vdupq_n_u32(b);
+    return vtstq_u32(tst, tst);
+#else
+    return b;
+#endif
+}
+
 static inline sd_int sd_int_add(sd_int lhs, sd_int rhs) {
 #ifdef __AVX512F__
     return (sd_int){_mm512_add_epi32(lhs.val, rhs.val)};
