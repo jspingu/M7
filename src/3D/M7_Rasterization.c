@@ -274,11 +274,9 @@ static int RenderToSubCanvas(void *data) {
     M7_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, M7_Components.Canvas);
     size_t sd_width = sd_bounding_size(canvas->width);
 
-    /* Clear canvas */
-    for (size_t i = sd_width * render->bounds[0]; i < sd_width * render->bounds[1]; ++i) {
-        canvas->color[i] = sd_vec3_set(0.2, 0.5, 0.7);
+    /* Reset depth */
+    for (size_t i = sd_width * render->bounds[0]; i < sd_width * render->bounds[1]; ++i)
         canvas->depth[i] = sd_float_zero();
-    }
 
     /* Draw geometry in batches, according to render order and rasterizer flags */
     for (size_t i = 0; i < List_Length(world->render_batches); ++i) {

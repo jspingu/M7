@@ -12,6 +12,11 @@
 #define HEIGHT   540
 #define FPS_CAP  144
 
+enum RenderBatches {
+    Sky,
+    Opaque
+};
+
 static Uint64 ticks_prev;
 static Uint64 ticks_freq;
 
@@ -54,6 +59,25 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
                 { M7_Components.Basis, (mat3x3 []){mat3x3_identity} },
             )
         },
+        { /* Sky */
+            ECS_Components(
+                { M7_Components.MeshPrimitive, nullptr },
+                { M7_Components.TextureMap, "assets/Nalovardo.png" },
+                { M7_Components.Cubemap, &(M7_Cubemap) { .scale = 10 } },
+                { M7_Components.Model, &(M7_ModelArgs) {
+                    .get_mesh = M7_Cubemap_GetMesh,
+                    .instances = (M7_ModelInstance []) {
+                        (M7_ModelInstance) {
+                            .shader_pipeline = (M7_FragmentShader []) { SD_SELECT(M7_ShadeTextureMap) },
+                            .nshaders = 1,
+                            .render_batch = Sky
+                        }
+                    },
+                    .ninstances = 1
+                }},
+                { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeCubemap} }
+            )
+        },
         { /* Teapot */
             ECS_Components(
                 { M7_Components.Position, &(vec3){ .y=-150, .z=600 } },
@@ -67,7 +91,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
                         (M7_ModelInstance) {
                             .shader_pipeline = (M7_FragmentShader []) { SD_SELECT(M7_ShadeSolidColor), SD_SELECT(M7_ShadeOriginLight) },
                             .nshaders = 2,
-                            .render_batch = 0,
+                            .render_batch = Opaque,
                             .flags = M7_RASTERIZER_CULL_BACKFACE
                                    | M7_RASTERIZER_WRITE_DEPTH
                                    | M7_RASTERIZER_TEST_DEPTH
@@ -92,7 +116,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
                         (M7_ModelInstance) {
                             .shader_pipeline = (M7_FragmentShader []) { SD_SELECT(M7_ShadeSolidColor), SD_SELECT(M7_ShadeOriginLight) },
                             .nshaders = 2,
-                            .render_batch = 0,
+                            .render_batch = Opaque,
                             .flags = M7_RASTERIZER_CULL_BACKFACE
                                    | M7_RASTERIZER_WRITE_DEPTH
                                    | M7_RASTERIZER_TEST_DEPTH
@@ -110,19 +134,18 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
                 { M7_Components.Basis, (mat3x3 []){mat3x3_rotate(mat3x3_identity, vec3_i, SDL_PI_F / 2)} },
                 { M7_Components.MeshPrimitive, nullptr },
                 { M7_Components.Rect, &(M7_Rect) { .width=2000, .height=2000 } },
-                // { M7_Components.Checkerboard, &(M7_Checkerboard) {
-                //     .tiles = 31,
-                //     .r1 = 0.4, .g1 = 0.4, .b1 = 0.8,
-                //     .r2 = 1.0, .g2 = 1.0, .b2 = 1.0,
-                // }},
-                { M7_Components.TextureMap, "assets/wow_cool_sprite.png" },
+                { M7_Components.Checkerboard, &(M7_Checkerboard) {
+                    .tiles = 31,
+                    .r1 = 0.4, .g1 = 0.4, .b1 = 0.8,
+                    .r2 = 1.0, .g2 = 1.0, .b2 = 1.0,
+                }},
                 { M7_Components.Model, &(M7_ModelArgs) {
                     .get_mesh = M7_Rect_GetMesh,
                     .instances = (M7_ModelInstance []) {
                         (M7_ModelInstance) {
-                            .shader_pipeline = (M7_FragmentShader []) { SD_SELECT(M7_ShadeTextureMap), SD_SELECT(M7_ShadeOriginLight) },
+                            .shader_pipeline = (M7_FragmentShader []) { SD_SELECT(M7_ShadeCheckerboard), SD_SELECT(M7_ShadeOriginLight) },
                             .nshaders = 2,
-                            .render_batch = 0,
+                            .render_batch = Opaque,
                             .flags = M7_RASTERIZER_CULL_BACKFACE
                                    | M7_RASTERIZER_WRITE_DEPTH
                                    | M7_RASTERIZER_TEST_DEPTH
