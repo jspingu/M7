@@ -88,6 +88,10 @@ typedef struct M7_Rect {
     float width, height;
 } M7_Rect;
 
+typedef struct M7_Cubemap {
+    float scale;
+} M7_Cubemap;
+
 typedef struct M7_SolidColor {
     float r, g, b;
 } M7_SolidColor;
@@ -113,6 +117,7 @@ M7_Mesh *M7_Teapot_GetMesh(ECS_Handle *self);
 M7_Mesh *M7_Torus_GetMesh(ECS_Handle *self);
 M7_Mesh *M7_Sphere_GetMesh(ECS_Handle *self);
 M7_Mesh *M7_Rect_GetMesh(ECS_Handle *self);
+M7_Mesh *M7_Cubemap_GetMesh(ECS_Handle *self);
 
 xform3 M7_Entity_GetXform(ECS_Handle *self);
 void M7_Entity_Xform(ECS_Handle *self, xform3 lhs);

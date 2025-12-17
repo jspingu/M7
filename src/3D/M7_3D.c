@@ -31,6 +31,7 @@ void M7_3D_RegisterToECS(ECS *ecs) {
     M7_Components.Torus = ECS_RegisterComponent(ecs, M7_Torus, {});
     M7_Components.Sphere = ECS_RegisterComponent(ecs, M7_Sphere, {});
     M7_Components.Rect = ECS_RegisterComponent(ecs, M7_Rect, {});
+    M7_Components.Cubemap = ECS_RegisterComponent(ecs, M7_Cubemap, {});
 
     M7_Components.SolidColor = ECS_RegisterComponent(ecs, M7_SolidColor, {});
     M7_Components.Checkerboard = ECS_RegisterComponent(ecs, M7_Checkerboard, {});

@@ -36,6 +36,7 @@ struct M7_Components {
     ECS_Component(M7_Torus) *Torus;
     ECS_Component(M7_Sphere) *Sphere;
     ECS_Component(M7_Rect) *Rect;
+    ECS_Component(M7_Cubemap) *Cubemap;
 
     /* Bitmap */
     ECS_Component(M7_Viewport) *Viewport;

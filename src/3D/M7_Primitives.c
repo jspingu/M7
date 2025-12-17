@@ -173,6 +173,7 @@ M7_Mesh *M7_Sphere_GetMesh(ECS_Handle *self) {
 M7_Mesh *M7_Rect_GetMesh(ECS_Handle *self) {
     M7_Mesh **mesh = ECS_Entity_GetComponent(self, M7_Components.MeshPrimitive);
     M7_Rect *rect = ECS_Entity_GetComponent(self, M7_Components.Rect);
+    if (*mesh) return *mesh;
 
     vec3 ws_verts[4] = {
         { .x = -rect->width * 0.5f, .y = rect->height * 0.5f },
@@ -203,6 +204,43 @@ M7_Mesh *M7_Rect_GetMesh(ECS_Handle *self) {
     };
 
     *mesh = M7_Mesh_Create(ws_verts, ws_nrmls, ts_verts, faces, 4, 4, 2);
+    return *mesh;
+}
+
+M7_Mesh *M7_Cubemap_GetMesh(ECS_Handle *self) {
+    M7_Mesh **mesh = ECS_Entity_GetComponent(self, M7_Components.MeshPrimitive);
+    M7_Cubemap *cubemap = ECS_Entity_GetComponent(self, M7_Components.Cubemap);
+    if (*mesh) return *mesh;
+
+    vec3 ws_verts[8] = {
+        { .x=-1, .y=1, .z=-1 }, { .x=1, .y=1, .z=-1 },
+        { .x=-1, .y=1, .z=1 }, { .x=1, .y=1, .z=1 },
+        { .x=-1, .y=-1, .z=-1 }, { .x=1, .y=-1, .z=-1 },
+        { .x=-1, .y=-1, .z=1 }, { .x=1, .y=-1, .z=1 },
+    };
+
+    for (int i = 0; i < 8; ++i)
+        ws_verts[i] = vec3_mul(ws_verts[i], cubemap->scale);
+
+    vec3 dummy_nrmls[8] = {};
+
+    vec2 ts_verts[14] = {
+        { .x=1.0/4, .y=0.0/4 }, { .x=2.0/4, .y=0.0/4 },
+        { .x=0.0/4, .y=1.0/4 }, { .x=1.0/4, .y=1.0/4 }, { .x=2.0/4, .y=1.0/4 }, { .x=3.0/4, .y=1.0/4 }, { .x=4.0/4, .y=1.0/4 },
+        { .x=0.0/4, .y=2.0/4 }, { .x=1.0/4, .y=2.0/4 }, { .x=2.0/4, .y=2.0/4 }, { .x=3.0/4, .y=2.0/4 }, { .x=4.0/4, .y=2.0/4 },
+        { .x=1.0/4, .y=3.0/4 }, { .x=2.0/4, .y=3.0/4 },
+    };
+
+    M7_MeshFace faces[12] = {
+        { .idx_verts = { 0, 1, 3 }, .idx_tverts = { 0, 1, 4 } }, { .idx_verts = { 0, 3, 2 }, .idx_tverts = { 0, 4, 3 } },
+        { .idx_verts = { 0, 4, 5 }, .idx_tverts = { 6, 11, 10 } }, { .idx_verts = { 0, 5, 1 }, .idx_tverts = { 6, 10, 5 } },
+        { .idx_verts = { 0, 6, 4 }, .idx_tverts = { 2, 8, 7 } }, { .idx_verts = { 0, 2, 6 }, .idx_tverts = { 2, 3, 8 } },
+        { .idx_verts = { 2, 7, 6 }, .idx_tverts = { 3, 9, 8 } }, { .idx_verts = { 2, 3, 7 }, .idx_tverts = { 3, 4, 9 } },
+        { .idx_verts = { 3, 1, 5 }, .idx_tverts = { 4, 5, 10 } }, { .idx_verts = { 3, 5, 7 }, .idx_tverts = { 4, 10, 9 } },
+        { .idx_verts = { 4, 6, 7 }, .idx_tverts = { 12, 8, 9 } }, { .idx_verts = { 4, 7, 5 }, .idx_tverts = { 12, 9, 13 } },
+    };
+
+    *mesh = M7_Mesh_Create(ws_verts, dummy_nrmls, ts_verts, faces, 8, 14, 12);
     return *mesh;
 }
 
