@@ -26,6 +26,7 @@ static inline vec3 intersect_near(vec3 from, vec3 to, float near) {
 void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw triangle, M7_RasterizerFlags flags, int (*scanlines)[2], int range[2]) {
     M7_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, M7_Components.Rasterizer);
     M7_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, M7_Components.Canvas);
+    M7_PerspectiveFOV *perspective_fov = ECS_Entity_GetComponent(self, M7_Components.PerspectiveFOV);
 
     sd_vec3 origin = sd_vec3_set(triangle.vs_verts[0].x, triangle.vs_verts[0].y, triangle.vs_verts[0].z);
     sd_vec3 ab = sd_vec3_sub(sd_vec3_set(triangle.vs_verts[1].x, triangle.vs_verts[1].y, triangle.vs_verts[1].z), origin);
@@ -70,7 +71,7 @@ void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw triangle, 
         .y = sd_float_set(canvas->height * 0.5f)
     };
 
-    sd_float normalize_ss = sd_float_rcp(midpoint.x);
+    sd_float normalize_ss = sd_float_mul(sd_float_set(perspective_fov->tan_half_fov), sd_float_rcp(midpoint.x));
 
     for (int i = range[0]; i < range[1]; ++i) {
         int base = i * sd_bounding_size(canvas->width);
@@ -384,6 +385,14 @@ void M7_Rasterizer_Init(void *component, void *args) {
         .near = rasterizer_args->near,
         .parallelism = rasterizer_args->parallelism
     };
+}
+
+void M7_PerspectiveFOV_Init(void *component, void *args) {
+    M7_PerspectiveFOV *perspective_fov = component;
+    float *fov = args;
+
+    perspective_fov->fov = *fov;
+    perspective_fov->tan_half_fov = SDL_tanf(*fov / 2);
 }
 
 #endif /* SD_SRC_VARIANT */

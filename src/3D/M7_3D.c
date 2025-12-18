@@ -25,6 +25,7 @@ void M7_3D_RegisterToECS(ECS *ecs) {
     M7_Components.XformComposer = ECS_RegisterComponent(ecs, M7_XformComposer, {});
     M7_Components.Position = ECS_RegisterComponent(ecs, vec3, {});
     M7_Components.Basis = ECS_RegisterComponent(ecs, mat3x3, {});
+    M7_Components.PerspectiveFOV = ECS_RegisterComponent(ecs, M7_PerspectiveFOV, { .init = M7_PerspectiveFOV_Init });
 
     M7_Components.MeshPrimitive = ECS_RegisterComponent(ecs, M7_Mesh *, { .init = M7_MeshPrimitive_Init, .free = M7_MeshPrimitive_Free });
     M7_Components.Teapot = ECS_RegisterComponent(ecs, M7_Teapot, {});

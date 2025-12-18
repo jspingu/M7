@@ -90,4 +90,6 @@ SD_DECLARE_VOID_RETURN(M7_Rasterizer_Render, ECS_Handle *, self)
 void M7_Rasterizer_Attach(ECS_Handle *self);
 void M7_Rasterizer_Init(void *component, void *args);
 
+void M7_PerspectiveFOV_Init(void *component, void *args);
+
 #endif /* M7_3D_C_H */

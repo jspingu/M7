@@ -48,10 +48,11 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
     ECS_Entity_AddChildren(root, 
         { /* Camera */
             ECS_Components(
+                { M7_Components.PerspectiveFOV, &(float) { 5 * SDL_PI_F / 8 }},
                 { M7_Components.Rasterizer, &(M7_RasterizerArgs) {
                     .project = SD_SELECT(M7_ProjectPerspective),
                     .scan = SD_SELECT(M7_ScanPerspective),
-                    .near = 5,
+                    .near = 1,
                     .parallelism = SDL_GetNumLogicalCPUCores()
                 }},
                 { Components.FreeCam, &(FreeCam){} },
@@ -63,7 +64,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
             ECS_Components(
                 { M7_Components.MeshPrimitive, nullptr },
                 { M7_Components.TextureMap, "assets/Nalovardo.png" },
-                { M7_Components.Cubemap, &(M7_Cubemap) { .scale = 10 } },
+                { M7_Components.Cubemap, &(M7_Cubemap) { .scale = 1000 } },
                 { M7_Components.Model, &(M7_ModelArgs) {
                     .get_mesh = M7_Cubemap_GetMesh,
                     .instances = (M7_ModelInstance []) {

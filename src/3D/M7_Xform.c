@@ -4,12 +4,10 @@
 #include <M7/Math/stride.h>
 
 sd_vec2 SD_VARIANT(M7_ProjectPerspective)(ECS_Handle *self, sd_vec3 pos, sd_vec2 midpoint) {
-    (void)self;
+    M7_PerspectiveFOV *perspective_fov = ECS_Entity_GetComponent(self, M7_Components.PerspectiveFOV);
 
-    sd_vec2 normalized = sd_vec2_mul((sd_vec2) {
-        .x = pos.x,
-        .y = sd_float_negate(pos.y)
-    }, sd_float_rcp(pos.z));
+    sd_vec2 normalized = { .x = pos.x, .y = sd_float_negate(pos.y) };
+            normalized = sd_vec2_mul(normalized, sd_float_rcp(sd_float_mul(pos.z, sd_float_set(perspective_fov->tan_half_fov))));
 
     return sd_vec2_add(midpoint, sd_vec2_mul(normalized, midpoint.x));
 }

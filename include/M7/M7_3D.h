@@ -57,6 +57,11 @@ typedef struct M7_RasterizerArgs {
     int parallelism;
 } M7_RasterizerArgs;
 
+typedef struct M7_PerspectiveFOV {
+    float fov;
+    float tan_half_fov;
+} M7_PerspectiveFOV;
+
 typedef struct M7_ModelInstance {
    M7_FragmentShader *shader_pipeline;
    size_t nshaders;
