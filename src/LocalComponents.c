@@ -56,6 +56,7 @@ void FreeCam_Update(ECS_Handle *self, double delta) {
     *pos = vec3_add(*pos, vec3_mul(input_axis, 250 * delta));
 
     vec2 mouse_motion = M7_InputState_GetMouseMotion(is);
+
     cam->yaw += mouse_motion.x * 0.15 * delta;
     cam->yaw = cam->yaw - SDL_floor(cam->yaw / (2 * SDL_PI_F)) * 2 * SDL_PI_F;
     cam->pitch += mouse_motion.y * 0.15 * delta;

@@ -57,15 +57,16 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
                             .slope = { .x=0, .y=0 },
                             .scale = { .x=0.5, .y=0.5 }
                         }},
+                        { M7_Components.PerspectiveFOV, &(float) { 5 * SDL_PI_F / 8 } },
                         { M7_Components.Rasterizer, &(M7_RasterizerArgs) {
                             .project = SD_SELECT(M7_ProjectParallel),
                             .scan = SD_SELECT(M7_ScanLinear),
-                            .near = -1000000,
+                            .near = -10000,
                             .parallelism = SDL_GetNumLogicalCPUCores()
                         }},
                         { M7_Components.Position, &(vec3){} },
                         { M7_Components.Basis, (mat3x3 []){mat3x3_identity} },
-                        { Components.FreeCam, nullptr }
+                        { Components.FreeCam, &(FreeCam){} }
                     )
                 },
                 { /* Teapot */
@@ -170,7 +171,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
             ECS_Children(
                 { /* Skybox camera */
                     ECS_Components(
-                        { M7_Components.PerspectiveFOV, &(float) { SDL_PI_F / 2 } },
+                        { M7_Components.PerspectiveFOV, &(float) { 5 * SDL_PI_F / 8 } },
                         { M7_Components.Rasterizer, &(M7_RasterizerArgs) {
                             .project = SD_SELECT(M7_ProjectPerspective),
                             .scan = SD_SELECT(M7_ScanPerspective),
@@ -179,7 +180,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
                         }},
                         { M7_Components.Position, &(vec3){}},
                         { M7_Components.Basis, (mat3x3 []){mat3x3_identity}},
-                        { Components.FreeCam, nullptr }
+                        { Components.FreeCam, &(FreeCam){} }
                     )
                 }
             )

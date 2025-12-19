@@ -270,7 +270,6 @@ static void M7_Rasterizer_DrawBatch(ECS_Handle *self, List(M7_RenderInstance *) 
         size_t nfaces = instance->geometry->mesh->nfaces;
 
         for (size_t i = 0; i < nfaces; ++i) {
-            /* Cull backface or correct the vertex ordering */
             vec3 vs_verts[3];
 
             SDL_memcpy(vs_verts, &(sd_vec3_scalar [3]) {
@@ -279,14 +278,6 @@ static void M7_Rasterizer_DrawBatch(ECS_Handle *self, List(M7_RenderInstance *) 
                 sd_vec3_arr_get(instance->geometry->vs_verts, faces[i].idx_verts[2])
             }, sizeof(vec3 [3]));
 
-            vec3 nrml = vec3_cross(vec3_sub(vs_verts[1], vs_verts[0]), vec3_sub(vs_verts[2], vs_verts[0]));
-            bool verts_cw = vec3_dot(vs_verts[0], nrml) < 0;
-
-            if (flags & M7_RASTERIZER_CULL_BACKFACE && !verts_cw)
-                continue;
-
-            SDL_memcpy(vs_verts, (vec3 [3]) { vs_verts[0], vs_verts[1 + !verts_cw], vs_verts[1 + verts_cw] }, sizeof(vec3 [3]));
-
             /* Perform near plane clipping */
             vec2 ss_verts[3];
             vec2 clipped[4];
@@ -294,8 +285,8 @@ static void M7_Rasterizer_DrawBatch(ECS_Handle *self, List(M7_RenderInstance *) 
 
             SDL_memcpy(ss_verts, (sd_vec2_scalar [3]) {
                 sd_vec2_arr_get(instance->geometry->ss_verts, faces[i].idx_verts[0]),
-                sd_vec2_arr_get(instance->geometry->ss_verts, faces[i].idx_verts[1 + !verts_cw]),
-                sd_vec2_arr_get(instance->geometry->ss_verts, faces[i].idx_verts[1 + verts_cw]),
+                sd_vec2_arr_get(instance->geometry->ss_verts, faces[i].idx_verts[1]),
+                sd_vec2_arr_get(instance->geometry->ss_verts, faces[i].idx_verts[2]),
             }, sizeof(vec2 [3]));
 
             for (int j = 0; j < 3; ++j) {
@@ -331,13 +322,21 @@ static void M7_Rasterizer_DrawBatch(ECS_Handle *self, List(M7_RenderInstance *) 
                     min_y > bounds[1] || max_y < bounds[0] 
                 ) continue;
 
+                bool verts_cw = vec2_dot(
+                    vec2_orthogonal(vec2_sub(clipped[j], clipped[0])),
+                    vec2_sub(clipped[j + 1], clipped[0])
+                ) > 0;
+
+                if (flags & M7_RASTERIZER_CULL_BACKFACE && !verts_cw)
+                    continue;;
+
                 M7_TriangleDraw triangle = {
                     .shader_pipeline = instance->shader_pipeline,
                     .shader_state = instance->shader_state
                 };
 
-                SDL_memcpy(triangle.vs_verts, vs_verts, sizeof(vec3 [3]));
-                SDL_memcpy(triangle.ss_verts, (vec2 [3]) { clipped[0], clipped[j], clipped[j + 1] }, sizeof(vec2 [3]));
+                SDL_memcpy(triangle.vs_verts, (vec3 [3]) { vs_verts[0], vs_verts[1 + !verts_cw], vs_verts[1 + verts_cw] }, sizeof(vec3 [3]));
+                SDL_memcpy(triangle.ss_verts, (vec2 [3]) { clipped[0], clipped[j + !verts_cw], clipped[j + verts_cw] }, sizeof(vec2 [3]));
 
                 SDL_memcpy(triangle.vs_nrmls, (sd_vec3_scalar [3]) {
                     sd_vec3_arr_get(instance->geometry->vs_nrmls, faces[i].idx_verts[0]),
