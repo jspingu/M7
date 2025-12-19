@@ -41,27 +41,116 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
             .height = HEIGHT,
             .parallelism = SDL_GetNumLogicalCPUCores()
         }},
-        { M7_Components.World, nullptr },
-        { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault} }
+        { Components.GrabMouse, &(bool){} }
     );
 
     ECS_Entity_AddChildren(root, 
-        { /* Camera */
+        { /* Main world */
             ECS_Components(
-                { M7_Components.PerspectiveFOV, &(float) { 5 * SDL_PI_F / 8 }},
-                { M7_Components.Rasterizer, &(M7_RasterizerArgs) {
-                    .project = SD_SELECT(M7_ProjectPerspective),
-                    .scan = SD_SELECT(M7_ScanPerspective),
-                    .near = 1,
-                    .parallelism = SDL_GetNumLogicalCPUCores()
-                }},
-                { Components.FreeCam, &(FreeCam){} },
-                { M7_Components.Position, &(vec3){} },
-                { M7_Components.Basis, (mat3x3 []){mat3x3_identity} },
+                { M7_Components.World, nullptr },
+                { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault}}
+            ),
+            ECS_Children(
+                { /* Camera */
+                    ECS_Components(
+                        { M7_Components.ParallelProjector, &(M7_ParallelProjector) {
+                            .slope = { .x=0, .y=0 },
+                            .scale = { .x=0.5, .y=0.5 }
+                        }},
+                        { M7_Components.Rasterizer, &(M7_RasterizerArgs) {
+                            .project = SD_SELECT(M7_ProjectParallel),
+                            .scan = SD_SELECT(M7_ScanLinear),
+                            .near = -1000000,
+                            .parallelism = SDL_GetNumLogicalCPUCores()
+                        }},
+                        { M7_Components.Position, &(vec3){} },
+                        { M7_Components.Basis, (mat3x3 []){mat3x3_identity} },
+                        { Components.FreeCam, nullptr }
+                    )
+                },
+                { /* Teapot */
+                    ECS_Components(
+                        { M7_Components.Position, &(vec3){ .y=-150, .z=600 } },
+                        { M7_Components.Basis, (mat3x3 []){mat3x3_identity} },
+                        { M7_Components.MeshPrimitive, nullptr },
+                        { M7_Components.Teapot, &(M7_Teapot) { .scale = 50 } },
+                        { M7_Components.SolidColor, &(M7_SolidColor) { .r=0.7, .g=0.7, .b=1.0 } },
+                        { M7_Components.Model, &(M7_ModelArgs) {
+                            .get_mesh = M7_Teapot_GetMesh,
+                            .instances = (M7_ModelInstance []) {
+                                (M7_ModelInstance) {
+                                    .shader_pipeline = (M7_FragmentShader []) { SD_SELECT(M7_ShadeSolidColor), SD_SELECT(M7_ShadeOriginLight) },
+                                    .nshaders = 2,
+                                    .render_batch = Opaque,
+                                    .flags = M7_RASTERIZER_CULL_BACKFACE
+                                           | M7_RASTERIZER_WRITE_DEPTH
+                                           | M7_RASTERIZER_TEST_DEPTH
+                                           | M7_RASTERIZER_INTERPOLATE_NORMALS
+                                },
+                            },
+                            .ninstances = 1
+                        }},
+                        { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault} }
+                    )
+                },
+                { /* Torus */
+                    ECS_Components(
+                        { M7_Components.Position, &(vec3){ .x=400, .y=-100, .z=200 } },
+                        { M7_Components.Basis, (mat3x3 []){mat3x3_rotate(mat3x3_identity, vec3_i, SDL_PI_F / 2)} },
+                        { M7_Components.MeshPrimitive, nullptr },
+                        { M7_Components.Torus, &(M7_Torus) { .outer_radius=100, .inner_radius=50, .outer_precision=32, .inner_precision=16 } },
+                        { M7_Components.SolidColor, &(M7_SolidColor) { .r=0.8, .g=0.4, .b=0.1 } },
+                        { M7_Components.Model, &(M7_ModelArgs) {
+                            .get_mesh = M7_Torus_GetMesh,
+                            .instances = (M7_ModelInstance []) {
+                                (M7_ModelInstance) {
+                                    .shader_pipeline = (M7_FragmentShader []) { SD_SELECT(M7_ShadeSolidColor), SD_SELECT(M7_ShadeOriginLight) },
+                                    .nshaders = 2,
+                                    .render_batch = Opaque,
+                                    .flags = M7_RASTERIZER_CULL_BACKFACE
+                                           | M7_RASTERIZER_WRITE_DEPTH
+                                           | M7_RASTERIZER_TEST_DEPTH
+                                           | M7_RASTERIZER_INTERPOLATE_NORMALS
+                                },
+                            },
+                            .ninstances = 1
+                        }},
+                        { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault} }
+                    )
+                },
+                { /* Floor */
+                    ECS_Components(
+                        { M7_Components.Position, &(vec3){ .y=-150, .z=600 } },
+                        { M7_Components.Basis, (mat3x3 []){mat3x3_rotate(mat3x3_identity, vec3_i, SDL_PI_F / 2)} },
+                        { M7_Components.MeshPrimitive, nullptr },
+                        { M7_Components.Rect, &(M7_Rect) { .width=2000, .height=2000 } },
+                        { M7_Components.Checkerboard, &(M7_Checkerboard) {
+                            .tiles = 31,
+                            .r1 = 0.4, .g1 = 0.4, .b1 = 0.8,
+                            .r2 = 1.0, .g2 = 1.0, .b2 = 1.0,
+                        }},
+                        { M7_Components.Model, &(M7_ModelArgs) {
+                            .get_mesh = M7_Rect_GetMesh,
+                            .instances = (M7_ModelInstance []) {
+                                (M7_ModelInstance) {
+                                    .shader_pipeline = (M7_FragmentShader []) { SD_SELECT(M7_ShadeCheckerboard), SD_SELECT(M7_ShadeOriginLight) },
+                                    .nshaders = 2,
+                                    .render_batch = Opaque,
+                                    .flags = M7_RASTERIZER_CULL_BACKFACE
+                                           | M7_RASTERIZER_WRITE_DEPTH
+                                           | M7_RASTERIZER_TEST_DEPTH
+                                },
+                            },
+                            .ninstances = 1
+                        }},
+                        { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault} }
+                    )
+                }
             )
         },
-        { /* Sky */
+        { /* Skybox world */
             ECS_Components(
+                { M7_Components.World, nullptr },
                 { M7_Components.MeshPrimitive, nullptr },
                 { M7_Components.TextureMap, "assets/Nalovardo.png" },
                 { M7_Components.Cubemap, &(M7_Cubemap) { .scale = 1000 } },
@@ -77,86 +166,24 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
                     .ninstances = 1
                 }},
                 { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeCubemap} }
+            ),
+            ECS_Children(
+                { /* Skybox camera */
+                    ECS_Components(
+                        { M7_Components.PerspectiveFOV, &(float) { SDL_PI_F / 2 } },
+                        { M7_Components.Rasterizer, &(M7_RasterizerArgs) {
+                            .project = SD_SELECT(M7_ProjectPerspective),
+                            .scan = SD_SELECT(M7_ScanPerspective),
+                            .near = 1,
+                            .parallelism = SDL_GetNumLogicalCPUCores()
+                        }},
+                        { M7_Components.Position, &(vec3){}},
+                        { M7_Components.Basis, (mat3x3 []){mat3x3_identity}},
+                        { Components.FreeCam, nullptr }
+                    )
+                }
             )
         },
-        { /* Teapot */
-            ECS_Components(
-                { M7_Components.Position, &(vec3){ .y=-150, .z=600 } },
-                { M7_Components.Basis, (mat3x3 []){mat3x3_identity} },
-                { M7_Components.MeshPrimitive, nullptr },
-                { M7_Components.Teapot, &(M7_Teapot) { .scale = 50 } },
-                { M7_Components.SolidColor, &(M7_SolidColor) { .r=0.7, .g=0.7, .b=1.0 } },
-                { M7_Components.Model, &(M7_ModelArgs) {
-                    .get_mesh = M7_Teapot_GetMesh,
-                    .instances = (M7_ModelInstance []) {
-                        (M7_ModelInstance) {
-                            .shader_pipeline = (M7_FragmentShader []) { SD_SELECT(M7_ShadeSolidColor), SD_SELECT(M7_ShadeOriginLight) },
-                            .nshaders = 2,
-                            .render_batch = Opaque,
-                            .flags = M7_RASTERIZER_CULL_BACKFACE
-                                   | M7_RASTERIZER_WRITE_DEPTH
-                                   | M7_RASTERIZER_TEST_DEPTH
-                                   | M7_RASTERIZER_INTERPOLATE_NORMALS
-                        },
-                    },
-                    .ninstances = 1
-                }},
-                { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault} }
-            )
-        },
-        { /* Torus */
-            ECS_Components(
-                { M7_Components.Position, &(vec3){ .x=400, .y=-100, .z=200 } },
-                { M7_Components.Basis, (mat3x3 []){mat3x3_rotate(mat3x3_identity, vec3_i, SDL_PI_F / 2)} },
-                { M7_Components.MeshPrimitive, nullptr },
-                { M7_Components.Torus, &(M7_Torus) { .outer_radius=100, .inner_radius=50, .outer_precision=32, .inner_precision=16 } },
-                { M7_Components.SolidColor, &(M7_SolidColor) { .r=0.8, .g=0.4, .b=0.1 } },
-                { M7_Components.Model, &(M7_ModelArgs) {
-                    .get_mesh = M7_Torus_GetMesh,
-                    .instances = (M7_ModelInstance []) {
-                        (M7_ModelInstance) {
-                            .shader_pipeline = (M7_FragmentShader []) { SD_SELECT(M7_ShadeSolidColor), SD_SELECT(M7_ShadeOriginLight) },
-                            .nshaders = 2,
-                            .render_batch = Opaque,
-                            .flags = M7_RASTERIZER_CULL_BACKFACE
-                                   | M7_RASTERIZER_WRITE_DEPTH
-                                   | M7_RASTERIZER_TEST_DEPTH
-                                   | M7_RASTERIZER_INTERPOLATE_NORMALS
-                        },
-                    },
-                    .ninstances = 1
-                }},
-                { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault} }
-            )
-        },
-        { /* Floor */
-            ECS_Components(
-                { M7_Components.Position, &(vec3){ .y=-150, .z=600 } },
-                { M7_Components.Basis, (mat3x3 []){mat3x3_rotate(mat3x3_identity, vec3_i, SDL_PI_F / 2)} },
-                { M7_Components.MeshPrimitive, nullptr },
-                { M7_Components.Rect, &(M7_Rect) { .width=2000, .height=2000 } },
-                { M7_Components.Checkerboard, &(M7_Checkerboard) {
-                    .tiles = 31,
-                    .r1 = 0.4, .g1 = 0.4, .b1 = 0.8,
-                    .r2 = 1.0, .g2 = 1.0, .b2 = 1.0,
-                }},
-                { M7_Components.Model, &(M7_ModelArgs) {
-                    .get_mesh = M7_Rect_GetMesh,
-                    .instances = (M7_ModelInstance []) {
-                        (M7_ModelInstance) {
-                            .shader_pipeline = (M7_FragmentShader []) { SD_SELECT(M7_ShadeCheckerboard), SD_SELECT(M7_ShadeOriginLight) },
-                            .nshaders = 2,
-                            .render_batch = Opaque,
-                            .flags = M7_RASTERIZER_CULL_BACKFACE
-                                   | M7_RASTERIZER_WRITE_DEPTH
-                                   | M7_RASTERIZER_TEST_DEPTH
-                        },
-                    },
-                    .ninstances = 1
-                }},
-                { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault} }
-            )
-        }
     );
 
     ECS_Update(ecs);

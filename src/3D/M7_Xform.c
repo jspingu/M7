@@ -3,6 +3,16 @@
 #include <M7/Math/linalg.h>
 #include <M7/Math/stride.h>
 
+sd_vec2 SD_VARIANT(M7_ProjectParallel)(ECS_Handle *self, sd_vec3 pos, sd_vec2 midpoint) {
+    M7_ParallelProjector *parallel_projector = ECS_Entity_GetComponent(self, M7_Components.ParallelProjector);
+    sd_vec2 projected = sd_vec2_fmadd(sd_vec2_set(parallel_projector->slope.x, parallel_projector->slope.y), pos.z, pos.xy);
+
+    return sd_vec2_add(midpoint, (sd_vec2) {
+        .x = sd_float_mul(projected.x, sd_float_set(parallel_projector->scale.x)),
+        .y = sd_float_negate(sd_float_mul(projected.y, sd_float_set(parallel_projector->scale.y)))
+    });
+}
+
 sd_vec2 SD_VARIANT(M7_ProjectPerspective)(ECS_Handle *self, sd_vec3 pos, sd_vec2 midpoint) {
     M7_PerspectiveFOV *perspective_fov = ECS_Entity_GetComponent(self, M7_Components.PerspectiveFOV);
 

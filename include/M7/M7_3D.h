@@ -57,6 +57,11 @@ typedef struct M7_RasterizerArgs {
     int parallelism;
 } M7_RasterizerArgs;
 
+typedef struct M7_ParallelProjector {
+    vec2 slope;
+    vec2 scale;
+} M7_ParallelProjector;
+
 typedef struct M7_PerspectiveFOV {
     float fov;
     float tan_half_fov;
@@ -148,6 +153,9 @@ void M7_RenderInstance_Free(M7_RenderInstance *instance);
 
 M7_RenderInstance *M7_WorldGeometry_Instance(M7_WorldGeometry *geometry, M7_FragmentShader *shaders, size_t nshaders, ECS_Handle *shader_state, size_t render_batch, M7_RasterizerFlags flags);
 void M7_WorldGeometry_Free(M7_WorldGeometry *geometry);
+
+SD_DECLARE(sd_vec2, M7_ProjectParallel, ECS_Handle *, self, sd_vec3, point, sd_vec2, midpoint)
+SD_DECLARE_VOID_RETURN(M7_ScanLinear, ECS_Handle *, self, M7_TriangleDraw, triangle, M7_RasterizerFlags, flags, int (*)[2], scanlines, int [2], range)
 
 SD_DECLARE(sd_vec2, M7_ProjectPerspective, ECS_Handle *, self, sd_vec3, point, sd_vec2, midpoint)
 SD_DECLARE_VOID_RETURN(M7_ScanPerspective, ECS_Handle *, self, M7_TriangleDraw, triangle, M7_RasterizerFlags, flags, int (*)[2], scanlines, int [2], range)

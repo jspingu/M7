@@ -24,6 +24,7 @@ struct M7_Components {
     ECS_Component(M7_XformComposer) *XformComposer;
     ECS_Component(vec3) *Position;
     ECS_Component(mat3x3) *Basis;
+    ECS_Component(M7_ParallelProjector) *ParallelProjector;
     ECS_Component(M7_PerspectiveFOV) *PerspectiveFOV;
 
     /* Shader components */
