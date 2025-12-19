@@ -62,6 +62,10 @@ void FreeCam_Update(ECS_Handle *self, double delta) {
     cam->pitch += mouse_motion.y * 0.15 * delta;
     cam->pitch = SDL_clamp(cam->pitch, -SDL_PI_F / 2, SDL_PI_F / 2);
 
+    ECS_Handle *fov = ECS_Entity_AncestorWithComponent(self, M7_Components.PerspectiveFOV, true);
+    float fov_curr = ECS_Entity_GetComponent(fov, M7_Components.PerspectiveFOV)->fov;
+    M7_PerspectiveFOV_Set(fov, fov_curr - M7_InputState_GetWheelMotion(is).y * 16 * delta);
+
     *basis = mat3x3_rotate(
         mat3x3_rotate(mat3x3_identity, vec3_i, cam->pitch),
         vec3_j, cam->yaw

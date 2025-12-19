@@ -57,11 +57,11 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
                             .slope = { .x=0, .y=0 },
                             .scale = { .x=0.5, .y=0.5 }
                         }},
-                        { M7_Components.PerspectiveFOV, &(float) { 5 * SDL_PI_F / 8 } },
+                        { M7_Components.PerspectiveFOV, &(float) { SDL_PI_F / 2 } },
                         { M7_Components.Rasterizer, &(M7_RasterizerArgs) {
-                            .project = SD_SELECT(M7_ProjectParallel),
-                            .scan = SD_SELECT(M7_ScanLinear),
-                            .near = -10000,
+                            .project = SD_SELECT(M7_ProjectPerspective),
+                            .scan = SD_SELECT(M7_ScanPerspective),
+                            .near = 1,
                             .parallelism = SDL_GetNumLogicalCPUCores()
                         }},
                         { M7_Components.Position, &(vec3){} },
@@ -171,7 +171,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
             ECS_Children(
                 { /* Skybox camera */
                     ECS_Components(
-                        { M7_Components.PerspectiveFOV, &(float) { 5 * SDL_PI_F / 8 } },
+                        { M7_Components.PerspectiveFOV, &(float) { SDL_PI_F / 2 } },
                         { M7_Components.Rasterizer, &(M7_RasterizerArgs) {
                             .project = SD_SELECT(M7_ProjectPerspective),
                             .scan = SD_SELECT(M7_ScanPerspective),

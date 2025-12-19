@@ -476,6 +476,12 @@ void M7_Rasterizer_Init(void *component, void *args) {
     };
 }
 
+void M7_PerspectiveFOV_Set(ECS_Handle *self, float fov) {
+    M7_PerspectiveFOV *perspective_fov = ECS_Entity_GetComponent(self, M7_Components.PerspectiveFOV);
+    perspective_fov->fov = fov;
+    perspective_fov->tan_half_fov = SDL_tanf(fov / 2);
+}
+
 void M7_PerspectiveFOV_Init(void *component, void *args) {
     M7_PerspectiveFOV *perspective_fov = component;
     float *fov = args;

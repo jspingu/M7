@@ -25,6 +25,11 @@ vec2 M7_InputState_GetMouseMotion(ECS_Handle *self) {
     return is->mouse_motion;
 }
 
+vec2 M7_InputState_GetWheelMotion(ECS_Handle *self) {
+    M7_InputState *is = ECS_Entity_GetComponent(self, M7_Components.InputState);
+    return is->wheel_motion;
+}
+
 void M7_InputState_OnSDLEvent(ECS_Handle *self, SDL_Event *ev) {
     M7_InputState *is = ECS_Entity_GetComponent(self, M7_Components.InputState);
 
@@ -43,6 +48,13 @@ void M7_InputState_OnSDLEvent(ECS_Handle *self, SDL_Event *ev) {
                 .y = ev->motion.yrel
             };
             break;
+
+        case SDL_EVENT_MOUSE_WHEEL:
+            is->wheel_motion = (vec2) {
+                .x = ev->wheel.x,
+                .y = ev->wheel.y
+            };
+            break;
     }
 }
 
@@ -50,6 +62,7 @@ void M7_InputState_Step(ECS_Handle *self) {
     M7_InputState *is = ECS_Entity_GetComponent(self, M7_Components.InputState);
     SDL_memcpy(*is->prev, *is->curr, sizeof(*is->curr));
     is->mouse_motion = vec2_zero;
+    is->wheel_motion = vec2_zero;
 }
 
 void M7_InputState_Init(void *component, void *args) {

@@ -160,4 +160,6 @@ SD_DECLARE_VOID_RETURN(M7_ScanLinear, ECS_Handle *, self, M7_TriangleDraw, trian
 SD_DECLARE(sd_vec2, M7_ProjectPerspective, ECS_Handle *, self, sd_vec3, point, sd_vec2, midpoint)
 SD_DECLARE_VOID_RETURN(M7_ScanPerspective, ECS_Handle *, self, M7_TriangleDraw, triangle, M7_RasterizerFlags, flags, int (*)[2], scanlines, int [2], range)
 
+void M7_PerspectiveFOV_Set(ECS_Handle *self, float fov);
+
 #endif /* M7_3D_H */
