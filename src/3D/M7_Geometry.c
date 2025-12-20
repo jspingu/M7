@@ -7,15 +7,17 @@
 
 #include "M7_3D_c.h"
 
-M7_Mesh *SD_VARIANT(M7_Mesh_Create)(vec3 *ws_verts, vec3 *ws_norms, vec2 *ts_verts, M7_MeshFace *faces, size_t nverts, size_t nts_verts, size_t nfaces) {
+M7_Mesh *SD_VARIANT(M7_Mesh_Create)(vec3 *ws_verts, vec3 *ws_nrmls, vec2 *ts_verts, M7_MeshFace *faces, size_t nverts, size_t nts_verts, size_t nfaces) {
     M7_Mesh *mesh = SDL_malloc(sizeof(M7_Mesh));
     sd_vec3 *vbuf = SDL_aligned_alloc(SD_ALIGN, sizeof(sd_vec3) * sd_bounding_size(nverts));
-    sd_vec3 *nbuf = SDL_aligned_alloc(SD_ALIGN, sizeof(sd_vec3) * sd_bounding_size(nverts));
+    sd_vec3 *nbuf = ws_nrmls ? SDL_aligned_alloc(SD_ALIGN, sizeof(sd_vec3) * sd_bounding_size(nverts)) : nullptr;
 
-    for (size_t i = 0; i < nverts; ++i) {
+    for (size_t i = 0; i < nverts; ++i)
         sd_vec3_arr_set(vbuf, i, ws_verts[i].x, ws_verts[i].y, ws_verts[i].z);
-        sd_vec3_arr_set(nbuf, i, ws_norms[i].x, ws_norms[i].y, ws_norms[i].z);
-    }
+
+    if (nbuf)
+        for (size_t i = 0; i < nverts; ++i)
+            sd_vec3_arr_set(nbuf, i, ws_nrmls[i].x, ws_nrmls[i].y, ws_nrmls[i].z);
 
     *mesh = (M7_Mesh) {
         .ws_verts = vbuf,
@@ -39,7 +41,7 @@ M7_WorldGeometry *SD_VARIANT(M7_World_RegisterGeometry)(ECS_Handle *self, M7_Mes
         .instances = List_Create(M7_RenderInstance *),
         .mesh = mesh,
         .vs_verts = SDL_aligned_alloc(SD_ALIGN, sizeof(sd_vec3) * sd_count),
-        .vs_nrmls = SDL_aligned_alloc(SD_ALIGN, sizeof(sd_vec3) * sd_count),
+        .vs_nrmls = mesh->ws_nrmls ? SDL_aligned_alloc(SD_ALIGN, sizeof(sd_vec3) * sd_count) : nullptr,
         .ss_verts = SDL_aligned_alloc(SD_ALIGN, sizeof(sd_vec2) * sd_count),
         .xform = { mat3x3_identity, vec3_zero }
     };

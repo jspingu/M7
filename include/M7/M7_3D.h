@@ -137,7 +137,7 @@ xform3 M7_XformComposeBillboard(ECS_Handle *self, xform3 lhs);
 xform3 M7_XformComposeCubemap(ECS_Handle *self, xform3 lhs);
 xform3 M7_XformComposeAbsolute(ECS_Handle *self, xform3 lhs);
 
-SD_DECLARE(M7_Mesh *, M7_Mesh_Create, vec3 *, ws_verts, vec3 *, ws_norms, vec2 *, ts_verts, M7_MeshFace *, faces, size_t, nverts, size_t, nts_verts, size_t, nfaces)
+SD_DECLARE(M7_Mesh *, M7_Mesh_Create, vec3 *, ws_verts, vec3 *, ws_nrmls, vec2 *, ts_verts, M7_MeshFace *, faces, size_t, nverts, size_t, nts_verts, size_t, nfaces)
 void M7_Mesh_Free(M7_Mesh *mesh);
 
 void M7_Sculpture_JoinPolyChains(M7_Sculpture *sculpture, M7_PolyChain *pc1, M7_PolyChain *pc2);

@@ -338,11 +338,12 @@ static void M7_Rasterizer_DrawBatch(ECS_Handle *self, List(M7_RenderInstance *) 
                 SDL_memcpy(triangle.vs_verts, (vec3 [3]) { vs_verts[0], vs_verts[1 + !verts_cw], vs_verts[1 + verts_cw] }, sizeof(vec3 [3]));
                 SDL_memcpy(triangle.ss_verts, (vec2 [3]) { clipped[0], clipped[j + !verts_cw], clipped[j + verts_cw] }, sizeof(vec2 [3]));
 
-                SDL_memcpy(triangle.vs_nrmls, (sd_vec3_scalar [3]) {
-                    sd_vec3_arr_get(instance->geometry->vs_nrmls, faces[i].idx_verts[0]),
-                    sd_vec3_arr_get(instance->geometry->vs_nrmls, faces[i].idx_verts[1 + !verts_cw]),
-                    sd_vec3_arr_get(instance->geometry->vs_nrmls, faces[i].idx_verts[1 + verts_cw])
-                }, sizeof(vec3 [3]));
+                if (instance->geometry->vs_nrmls)
+                    SDL_memcpy(triangle.vs_nrmls, (sd_vec3_scalar [3]) {
+                        sd_vec3_arr_get(instance->geometry->vs_nrmls, faces[i].idx_verts[0]),
+                        sd_vec3_arr_get(instance->geometry->vs_nrmls, faces[i].idx_verts[1 + !verts_cw]),
+                        sd_vec3_arr_get(instance->geometry->vs_nrmls, faces[i].idx_verts[1 + verts_cw])
+                    }, sizeof(vec3 [3]));
 
                 if (instance->geometry->mesh->ts_verts)
                     SDL_memcpy(triangle.ts_verts, (vec2 [3]) {
@@ -413,17 +414,17 @@ void SD_VARIANT(M7_Rasterizer_Render)(ECS_Handle *self) {
         };
 
         for (size_t i = 0; i < sd_count; ++i) {
-            sd_vec3 vs_vert = sd_vec3_fmadd(sd_xform[0], wg->mesh->ws_verts[i].x, translation);
-                    vs_vert = sd_vec3_fmadd(sd_xform[1], wg->mesh->ws_verts[i].y, vs_vert);
-                    vs_vert = sd_vec3_fmadd(sd_xform[2], wg->mesh->ws_verts[i].z, vs_vert);
+            wg->vs_verts[i] = sd_vec3_fmadd(sd_xform[0], wg->mesh->ws_verts[i].x, translation);
+            wg->vs_verts[i] = sd_vec3_fmadd(sd_xform[1], wg->mesh->ws_verts[i].y, wg->vs_verts[i]);
+            wg->vs_verts[i] = sd_vec3_fmadd(sd_xform[2], wg->mesh->ws_verts[i].z, wg->vs_verts[i]);
 
-            sd_vec3 vs_nrml = sd_vec3_mul(sd_xform[0], wg->mesh->ws_nrmls[i].x);
-                    vs_nrml = sd_vec3_fmadd(sd_xform[1], wg->mesh->ws_nrmls[i].y, vs_nrml);
-                    vs_nrml = sd_vec3_fmadd(sd_xform[2], wg->mesh->ws_nrmls[i].z, vs_nrml);
+            if (wg->vs_nrmls) {
+                wg->vs_nrmls[i] = sd_vec3_mul(sd_xform[0], wg->mesh->ws_nrmls[i].x);
+                wg->vs_nrmls[i] = sd_vec3_fmadd(sd_xform[1], wg->mesh->ws_nrmls[i].y, wg->vs_nrmls[i]);
+                wg->vs_nrmls[i] = sd_vec3_fmadd(sd_xform[2], wg->mesh->ws_nrmls[i].z, wg->vs_nrmls[i]);
+            }
 
-            wg->vs_verts[i] = vs_vert;
-            wg->vs_nrmls[i] = vs_nrml;
-            wg->ss_verts[i] = rasterizer->project(self, vs_vert, sd_vec2_set(canvas->width * 0.5f, canvas->height * 0.5f));
+            wg->ss_verts[i] = rasterizer->project(self, wg->vs_verts[i], sd_vec2_set(canvas->width * 0.5f, canvas->height * 0.5f));
         }
     });
 
