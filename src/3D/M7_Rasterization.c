@@ -65,6 +65,9 @@ void SD_VARIANT(M7_ScanLinear)(ECS_Handle *self, M7_TriangleDraw triangle, M7_Ra
         sd_vec2_fmadd(ac_ts, inv_xform[1].y, sd_vec2_mul(ab_ts, inv_xform[1].x))
     };
 
+    vec3 scalar_nrml = vec3_cross(vec3_sub(triangle.vs_verts[1], triangle.vs_verts[0]), vec3_sub(triangle.vs_verts[2], triangle.vs_verts[0]));
+    sd_vec3 nrml = sd_vec3_set(scalar_nrml.x, scalar_nrml.y, scalar_nrml.y);
+
     for (int i = range[0]; i < range[1]; ++i) {
         int base = i * sd_bounding_size(canvas->width);
         int sd_left = scanlines[i][0] / SD_LENGTH;
@@ -84,30 +87,31 @@ void SD_VARIANT(M7_ScanLinear)(ECS_Handle *self, M7_TriangleDraw triangle, M7_Ra
                     fragment_vs = sd_vec3_fmadd(vs_xform[1], relative.y, fragment_vs);
 
             sd_float inv_z = sd_float_rcp(fragment_vs.z);
+            sd_vec3 fragment_nrml;
 
-            sd_vec3 fragment_nrml = sd_vec3_fmadd(nrml_xform[0], relative.x, origin_nrml);
-                    fragment_nrml = sd_vec3_fmadd(nrml_xform[1], relative.y, fragment_nrml);
-                    fragment_nrml = sd_vec3_normalize(fragment_nrml);
+            if (flags & M7_RASTERIZER_INTERPOLATE_NORMALS) {
+                fragment_nrml = sd_vec3_fmadd(nrml_xform[0], relative.x, origin_nrml);
+                fragment_nrml = sd_vec3_fmadd(nrml_xform[1], relative.y, fragment_nrml);
+            } else fragment_nrml = nrml;
+
+            fragment_nrml = sd_vec3_normalize(fragment_nrml);
 
             sd_vec2 fragment_ts = sd_vec2_fmadd(ts_xform[0], relative.x, origin_ts);
                     fragment_ts = sd_vec2_fmadd(ts_xform[1], relative.y, fragment_ts);
 
-            sd_mask mask = sd_float_clamp_mask(
-                fragment.x,
-                scanlines[i][0],
-                scanlines[i][1]
-            );
-
-            sd_vec3 bg = canvas->color[base + j];
-
-            /* Inverse z in depth buffer */
-            sd_float bg_z = canvas->depth[base + j];
-            mask = sd_mask_and(mask, sd_mask_or(sd_float_gt(inv_z, bg_z), sd_mask_set(!(flags & M7_RASTERIZER_TEST_DEPTH))));
-
             sd_vec4 col;
             List_ForEach(triangle.shader_pipeline, shader, col = shader(triangle.shader_state, col, fragment_vs, fragment_nrml, fragment_ts); );
 
-            canvas->depth[base + j] = sd_float_mask_blend(bg_z, inv_z, sd_mask_and(mask, sd_mask_set(flags & M7_RASTERIZER_WRITE_DEPTH)));
+            sd_vec3 bg = canvas->color[base + j];
+            sd_float bg_z = canvas->depth[base + j];
+            sd_mask mask = sd_float_clamp_mask(fragment.x, scanlines[i][0], scanlines[i][1]);
+
+            if (flags & M7_RASTERIZER_TEST_DEPTH)
+                mask = sd_mask_and(mask, sd_float_gt(inv_z, bg_z));
+
+            if (flags & M7_RASTERIZER_WRITE_DEPTH)
+                canvas->depth[base + j] = sd_float_mask_blend(bg_z, inv_z, mask);
+
             canvas->color[base + j] = sd_vec3_mask_blend(bg, col.rgb, mask);
         }
     }
@@ -195,32 +199,33 @@ void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw triangle, 
             };
 
             sd_vec3 relative = sd_vec3_sub(fragment_vs, origin);
+            sd_vec3 fragment_nrml;
 
-            sd_vec3 fragment_nrml = sd_vec3_fmadd(nrml_xform[0], relative.x, origin_nrml);
-                    fragment_nrml = sd_vec3_fmadd(nrml_xform[1], relative.y, fragment_nrml);
-                    fragment_nrml = sd_vec3_fmadd(nrml_xform[2], relative.z, fragment_nrml);
-                    fragment_nrml = sd_vec3_normalize(fragment_nrml);
+            if (flags & M7_RASTERIZER_INTERPOLATE_NORMALS) {
+                fragment_nrml = sd_vec3_fmadd(nrml_xform[0], relative.x, origin_nrml);
+                fragment_nrml = sd_vec3_fmadd(nrml_xform[1], relative.y, fragment_nrml);
+                fragment_nrml = sd_vec3_fmadd(nrml_xform[2], relative.z, fragment_nrml);
+            } else fragment_nrml = nrml;
+
+            fragment_nrml = sd_vec3_normalize(fragment_nrml);
 
             sd_vec2 fragment_ts = sd_vec2_fmadd(ts_xform[0], relative.x, origin_ts);
                     fragment_ts = sd_vec2_fmadd(ts_xform[1], relative.y, fragment_ts);
                     fragment_ts = sd_vec2_fmadd(ts_xform[2], relative.z, fragment_ts);
 
-            sd_mask mask = sd_float_clamp_mask(
-                fragment_x,
-                scanlines[i][0],
-                scanlines[i][1]
-            );
-
-            sd_vec3 bg = canvas->color[base + j];
-
-            /* Inverse z in depth buffer */
-            sd_float bg_z = canvas->depth[base + j];
-            mask = sd_mask_and(mask, sd_mask_or(sd_float_gt(inv_z, bg_z), sd_mask_set(!(flags & M7_RASTERIZER_TEST_DEPTH))));
-
             sd_vec4 col;
             List_ForEach(triangle.shader_pipeline, shader, col = shader(triangle.shader_state, col, fragment_vs, fragment_nrml, fragment_ts); );
 
-            canvas->depth[base + j] = sd_float_mask_blend(bg_z, inv_z, sd_mask_and(mask, sd_mask_set(flags & M7_RASTERIZER_WRITE_DEPTH)));
+            sd_vec3 bg = canvas->color[base + j];
+            sd_float bg_z = canvas->depth[base + j];
+            sd_mask mask = sd_float_clamp_mask(fragment_x, scanlines[i][0], scanlines[i][1]);
+
+            if (flags & M7_RASTERIZER_TEST_DEPTH)
+                mask = sd_mask_and(mask, sd_float_gt(inv_z, bg_z));
+
+            if (flags & M7_RASTERIZER_WRITE_DEPTH)
+                canvas->depth[base + j] = sd_float_mask_blend(bg_z, inv_z, mask);
+
             canvas->color[base + j] = sd_vec3_mask_blend(bg, col.rgb, mask);
         }
     }
