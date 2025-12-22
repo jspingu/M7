@@ -93,7 +93,24 @@ M7_PolyChain *M7_Sculpture_Ellipse(M7_Sculpture *sculpture, vec3 center, vec3 ax
     return chain;
 }
 
-M7_Mesh *M7_Sculpture_ToMesh(M7_Sculpture *sculpture, vec3 *nrmls) {
+M7_Mesh *M7_Sculpture_ToMesh(M7_Sculpture *sculpture) {
+    size_t nverts = List_Length(sculpture->verts);
+    vec3 *nrmls = SDL_malloc(sizeof(vec3) * nverts);
+
+    for (size_t i = 0; i < nverts; ++i) {
+        vec3 nrml = vec3_zero;
+
+        List_ForEach(sculpture->faces, face, {
+            if (face.idx_verts[0] == i || face.idx_verts[1] == i || face.idx_verts[2] == i)
+                nrml = vec3_add(nrml, vec3_cross(
+                    vec3_sub(List_Get(sculpture->verts, face.idx_verts[1]), List_Get(sculpture->verts, face.idx_verts[0])),
+                    vec3_sub(List_Get(sculpture->verts, face.idx_verts[2]), List_Get(sculpture->verts, face.idx_verts[0]))
+                ));
+        });
+
+        nrmls[i] = vec3_normalize(nrml);
+    }
+
     M7_Mesh *mesh = M7_Mesh_Create(
         List_GetAddress(sculpture->verts, 0),
         nrmls,

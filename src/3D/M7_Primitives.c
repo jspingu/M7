@@ -95,7 +95,6 @@ M7_Mesh *M7_Torus_GetMesh(ECS_Handle *self) {
 
     M7_Sculpture *torus_sculpt = M7_Sculpture_Create();
     List(M7_PolyChain *) *rings = List_Create(M7_PolyChain *);
-    List(vec3) *nrmls = List_Create(vec3);
 
     for (size_t i = 0; i < torus->outer_precision; ++i) {
         vec3 outer_rot = vec3_rotate(vec3_i, vec3_k, 2 * SDL_PI_F / torus->outer_precision * i);
@@ -107,15 +106,12 @@ M7_Mesh *M7_Torus_GetMesh(ECS_Handle *self) {
             vec3_mul(vec3_k, torus->inner_radius),
             torus->inner_precision
         ));
-
-        for (size_t j = 0; j < torus->inner_precision; ++j)
-            List_Push(nrmls, vec3_rotate(outer_rot, vec3_cross(outer_rot, vec3_k), 2 * SDL_PI_F / torus->inner_precision * j));
     }
 
     for (size_t i = 0; i < List_Length(rings); ++i)
         M7_Sculpture_JoinPolyChains(torus_sculpt, List_Get(rings, i), List_Get(rings, (i + 1) % List_Length(rings)));
 
-    *mesh = M7_Sculpture_ToMesh(torus_sculpt, List_GetAddress(nrmls, 0));
+    *mesh = M7_Sculpture_ToMesh(torus_sculpt);
     List_Free(rings);
     M7_Sculpture_Free(torus_sculpt);
 
@@ -129,11 +125,9 @@ M7_Mesh *M7_Sphere_GetMesh(ECS_Handle *self) {
 
     M7_Sculpture *sphere_sculpt = M7_Sculpture_Create();
     List(M7_PolyChain *) *rings = List_Create(M7_PolyChain *);
-    List(vec3) *nrmls = List_Create(vec3);
     float rot = SDL_PI_F / (sphere->nrings + 1);
 
     M7_PolyChain *bottom = M7_Sculpture_Vertex(sphere_sculpt, vec3_mul(vec3_j, -sphere->radius));
-    List_Push(nrmls, vec3_mul(vec3_j, -1));
 
     for (size_t i = 1; i < sphere->nrings + 1; ++i) {
         float y = -SDL_cosf(rot * i) * sphere->radius;
@@ -146,16 +140,9 @@ M7_Mesh *M7_Sphere_GetMesh(ECS_Handle *self) {
             vec3_mul(vec3_k, x),
             sphere->ring_precision
         ));
-
-        for (size_t j = 0; j < sphere->ring_precision; ++j) {
-            vec3 base = vec3_mul(vec3_j, y);
-            vec3 rot = vec3_rotate(vec3_mul(vec3_i, x), vec3_mul(vec3_j, -1), 2 * SDL_PI_F / sphere->ring_precision * j);
-            List_Push(nrmls, vec3_normalize(vec3_add(base, rot)));
-        }
     }
 
     M7_PolyChain *top = M7_Sculpture_Vertex(sphere_sculpt, vec3_mul(vec3_j, sphere->radius));
-    List_Push(nrmls, vec3_j);
 
     M7_Sculpture_JoinPolyChains(sphere_sculpt, bottom, List_Get(rings, 0));
     M7_Sculpture_JoinPolyChains(sphere_sculpt, List_Get(rings, List_Length(rings) - 1), top);
@@ -163,7 +150,7 @@ M7_Mesh *M7_Sphere_GetMesh(ECS_Handle *self) {
     for (size_t i = 0; i < sphere->nrings - 1; ++i)
         M7_Sculpture_JoinPolyChains(sphere_sculpt, List_Get(rings, i), List_Get(rings, i + 1));
 
-    *mesh = M7_Sculpture_ToMesh(sphere_sculpt, List_GetAddress(nrmls, 0));
+    *mesh = M7_Sculpture_ToMesh(sphere_sculpt);
     List_Free(rings);
     M7_Sculpture_Free(sphere_sculpt);
 
