@@ -1153,13 +1153,13 @@ static inline sd_vec3 sd_vec3_normalize(sd_vec3 v) {
 }
 
 static inline sd_vec2 sd_vec2_reflect(sd_vec2 v, sd_vec2 nrml) {
-    sd_vec2 prj = sd_vec2_mul(v, sd_vec2_dot(v, nrml));
+    sd_vec2 prj = sd_vec2_mul(nrml, sd_vec2_dot(v, nrml));
     sd_vec2 rej = sd_vec2_sub(v, prj);
     return sd_vec2_add(rej, sd_vec2_negate(prj));
 }
 
 static inline sd_vec3 sd_vec3_reflect(sd_vec3 v, sd_vec3 nrml) {
-    sd_vec3 prj = sd_vec3_mul(v, sd_vec3_dot(v, nrml));
+    sd_vec3 prj = sd_vec3_mul(nrml, sd_vec3_dot(v, nrml));
     sd_vec3 rej = sd_vec3_sub(v, prj);
     return sd_vec3_add(rej, sd_vec3_negate(prj));
 }
