@@ -22,7 +22,7 @@ static int PresentThread(void *data) {
         for (int j = 0; j < sd_qot; ++j) {
             sd_vec3 col = base[j];
             col = sd_vec3_clamp(col, sd_float_zero(), sd_float_one());
-            col = sd_vec3_mul(col, sd_float_set(0xFFFF));
+            col = sd_vec3_muls(col, sd_float_set(0xFFFF));
 
             sd_int byte = sd_int_set(0xFF);
 

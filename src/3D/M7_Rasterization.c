@@ -34,8 +34,8 @@ void SD_VARIANT(M7_ScanLinear)(ECS_Handle *self, M7_TriangleDraw triangle, M7_Ra
     sd_float inv_disc = sd_float_rcp(sd_float_sub(sd_float_mul(ab.x, ac.y), sd_float_mul(ab.y, ac.x)));
 
     sd_vec2 inv_xform[2] = {
-        sd_vec2_mul((sd_vec2) { .x = ac.y, .y = sd_float_negate(ab.y) }, inv_disc),
-        sd_vec2_mul((sd_vec2) { .x = sd_float_negate(ac.x), .y = ab.x }, inv_disc)
+        sd_vec2_muls((sd_vec2) { .x = ac.y, .y = sd_float_negate(ab.y) }, inv_disc),
+        sd_vec2_muls((sd_vec2) { .x = sd_float_negate(ac.x), .y = ab.x }, inv_disc)
     };
 
     sd_vec3 origin_vs = sd_vec3_set(triangle.vs_verts[0].x, triangle.vs_verts[0].y, triangle.vs_verts[0].z);
@@ -43,8 +43,8 @@ void SD_VARIANT(M7_ScanLinear)(ECS_Handle *self, M7_TriangleDraw triangle, M7_Ra
     sd_vec3 ac_vs = sd_vec3_sub(sd_vec3_set(triangle.vs_verts[2].x, triangle.vs_verts[2].y, triangle.vs_verts[2].z), origin_vs);
 
     sd_vec3 vs_xform[2] = {
-        sd_vec3_fmadd(ac_vs, inv_xform[0].y, sd_vec3_mul(ab_vs, inv_xform[0].x)),
-        sd_vec3_fmadd(ac_vs, inv_xform[1].y, sd_vec3_mul(ab_vs, inv_xform[1].x))
+        sd_vec3_fmadd(ac_vs, inv_xform[0].y, sd_vec3_muls(ab_vs, inv_xform[0].x)),
+        sd_vec3_fmadd(ac_vs, inv_xform[1].y, sd_vec3_muls(ab_vs, inv_xform[1].x))
     };
 
     sd_vec3 origin_nrml = sd_vec3_set(triangle.vs_nrmls[0].x, triangle.vs_nrmls[0].y, triangle.vs_nrmls[0].z);
@@ -52,8 +52,8 @@ void SD_VARIANT(M7_ScanLinear)(ECS_Handle *self, M7_TriangleDraw triangle, M7_Ra
     sd_vec3 ac_nrml = sd_vec3_sub(sd_vec3_set(triangle.vs_nrmls[2].x, triangle.vs_nrmls[2].y, triangle.vs_nrmls[2].z), origin_nrml);
 
     sd_vec3 nrml_xform[2] = {
-        sd_vec3_fmadd(ac_nrml, inv_xform[0].y, sd_vec3_mul(ab_nrml, inv_xform[0].x)),
-        sd_vec3_fmadd(ac_nrml, inv_xform[1].y, sd_vec3_mul(ab_nrml, inv_xform[1].x))
+        sd_vec3_fmadd(ac_nrml, inv_xform[0].y, sd_vec3_muls(ab_nrml, inv_xform[0].x)),
+        sd_vec3_fmadd(ac_nrml, inv_xform[1].y, sd_vec3_muls(ab_nrml, inv_xform[1].x))
     };
 
     sd_vec2 origin_ts = sd_vec2_set(triangle.ts_verts[0].x, triangle.ts_verts[0].y);
@@ -61,8 +61,8 @@ void SD_VARIANT(M7_ScanLinear)(ECS_Handle *self, M7_TriangleDraw triangle, M7_Ra
     sd_vec2 ac_ts = sd_vec2_sub(sd_vec2_set(triangle.ts_verts[2].x, triangle.ts_verts[2].y), origin_ts);
 
     sd_vec2 ts_xform[2] = {
-        sd_vec2_fmadd(ac_ts, inv_xform[0].y, sd_vec2_mul(ab_ts, inv_xform[0].x)),
-        sd_vec2_fmadd(ac_ts, inv_xform[1].y, sd_vec2_mul(ab_ts, inv_xform[1].x))
+        sd_vec2_fmadd(ac_ts, inv_xform[0].y, sd_vec2_muls(ab_ts, inv_xform[0].x)),
+        sd_vec2_fmadd(ac_ts, inv_xform[1].y, sd_vec2_muls(ab_ts, inv_xform[1].x))
     };
 
     vec3 scalar_nrml = vec3_cross(vec3_sub(triangle.vs_verts[1], triangle.vs_verts[0]), vec3_sub(triangle.vs_verts[2], triangle.vs_verts[0]));
@@ -135,9 +135,9 @@ void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw triangle, 
     sd_float inv_pgram_area = sd_float_rcp(sd_vec3_dot(ab, perp_ac));
 
     sd_vec2 inv_xform[3] = {
-        sd_vec2_mul((sd_vec2) { .x = perp_ac.x, .y = perp_ab.x }, inv_pgram_area),
-        sd_vec2_mul((sd_vec2) { .x = perp_ac.y, .y = perp_ab.y }, inv_pgram_area),
-        sd_vec2_mul((sd_vec2) { .x = perp_ac.z, .y = perp_ab.z }, inv_pgram_area)
+        sd_vec2_muls((sd_vec2) { .x = perp_ac.x, .y = perp_ab.x }, inv_pgram_area),
+        sd_vec2_muls((sd_vec2) { .x = perp_ac.y, .y = perp_ab.y }, inv_pgram_area),
+        sd_vec2_muls((sd_vec2) { .x = perp_ac.z, .y = perp_ab.z }, inv_pgram_area)
     };
 
     sd_vec3 origin_nrml = sd_vec3_set(triangle.vs_nrmls[0].x, triangle.vs_nrmls[0].y, triangle.vs_nrmls[0].z);
@@ -145,9 +145,9 @@ void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw triangle, 
     sd_vec3 ac_nrml = sd_vec3_sub(sd_vec3_set(triangle.vs_nrmls[2].x, triangle.vs_nrmls[2].y, triangle.vs_nrmls[2].z), origin_nrml);
 
     sd_vec3 nrml_xform[3] = {
-        sd_vec3_fmadd(ac_nrml, inv_xform[0].y, sd_vec3_mul(ab_nrml, inv_xform[0].x)),
-        sd_vec3_fmadd(ac_nrml, inv_xform[1].y, sd_vec3_mul(ab_nrml, inv_xform[1].x)),
-        sd_vec3_fmadd(ac_nrml, inv_xform[2].y, sd_vec3_mul(ab_nrml, inv_xform[2].x))
+        sd_vec3_fmadd(ac_nrml, inv_xform[0].y, sd_vec3_muls(ab_nrml, inv_xform[0].x)),
+        sd_vec3_fmadd(ac_nrml, inv_xform[1].y, sd_vec3_muls(ab_nrml, inv_xform[1].x)),
+        sd_vec3_fmadd(ac_nrml, inv_xform[2].y, sd_vec3_muls(ab_nrml, inv_xform[2].x))
     };
 
     sd_vec2 origin_ts = sd_vec2_set(triangle.ts_verts[0].x, triangle.ts_verts[0].y);
@@ -155,9 +155,9 @@ void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw triangle, 
     sd_vec2 ac_ts = sd_vec2_sub(sd_vec2_set(triangle.ts_verts[2].x, triangle.ts_verts[2].y), origin_ts);
 
     sd_vec2 ts_xform[3] = {
-        sd_vec2_fmadd(ac_ts, inv_xform[0].y, sd_vec2_mul(ab_ts, inv_xform[0].x)),
-        sd_vec2_fmadd(ac_ts, inv_xform[1].y, sd_vec2_mul(ab_ts, inv_xform[1].x)),
-        sd_vec2_fmadd(ac_ts, inv_xform[2].y, sd_vec2_mul(ab_ts, inv_xform[2].x))
+        sd_vec2_fmadd(ac_ts, inv_xform[0].y, sd_vec2_muls(ab_ts, inv_xform[0].x)),
+        sd_vec2_fmadd(ac_ts, inv_xform[1].y, sd_vec2_muls(ab_ts, inv_xform[1].x)),
+        sd_vec2_fmadd(ac_ts, inv_xform[2].y, sd_vec2_muls(ab_ts, inv_xform[2].x))
     };
 
     sd_vec2 midpoint = {
@@ -179,7 +179,7 @@ void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw triangle, 
 
             sd_float fragment_y = sd_float_add(sd_float_set(i), sd_float_set(0.5));
 
-            sd_vec2 proj_plane = sd_vec2_mul(sd_vec2_sub(
+            sd_vec2 proj_plane = sd_vec2_muls(sd_vec2_sub(
                 (sd_vec2) { .x = fragment_x, .y = midpoint.y },
                 (sd_vec2) { .x = midpoint.x, .y = fragment_y }
             ), normalize_ss);
@@ -424,7 +424,7 @@ void SD_VARIANT(M7_Rasterizer_Render)(ECS_Handle *self) {
             wg->vs_verts[i] = sd_vec3_fmadd(sd_xform[2], wg->mesh->ws_verts[i].z, wg->vs_verts[i]);
 
             if (wg->vs_nrmls) {
-                wg->vs_nrmls[i] = sd_vec3_mul(sd_xform[0], wg->mesh->ws_nrmls[i].x);
+                wg->vs_nrmls[i] = sd_vec3_muls(sd_xform[0], wg->mesh->ws_nrmls[i].x);
                 wg->vs_nrmls[i] = sd_vec3_fmadd(sd_xform[1], wg->mesh->ws_nrmls[i].y, wg->vs_nrmls[i]);
                 wg->vs_nrmls[i] = sd_vec3_fmadd(sd_xform[2], wg->mesh->ws_nrmls[i].z, wg->vs_nrmls[i]);
             }
