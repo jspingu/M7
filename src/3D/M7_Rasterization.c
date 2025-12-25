@@ -66,7 +66,7 @@ void SD_VARIANT(M7_ScanLinear)(ECS_Handle *self, M7_TriangleDraw triangle, M7_Ra
     };
 
     vec3 scalar_nrml = vec3_cross(vec3_sub(triangle.vs_verts[1], triangle.vs_verts[0]), vec3_sub(triangle.vs_verts[2], triangle.vs_verts[0]));
-    sd_vec3 nrml = sd_vec3_set(scalar_nrml.x, scalar_nrml.y, scalar_nrml.y);
+    sd_vec3 nrml = sd_vec3_set(scalar_nrml.x, scalar_nrml.y, scalar_nrml.z);
 
     for (int i = range[0]; i < range[1]; ++i) {
         int base = i * sd_bounding_size(canvas->width);
