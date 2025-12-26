@@ -27,6 +27,7 @@ typedef struct M7_WorldGeometry M7_WorldGeometry;
 typedef struct M7_RenderInstance M7_RenderInstance;
 typedef struct M7_World M7_World;
 typedef struct M7_Model M7_Model;
+typedef struct M7_ModelInstance M7_ModelInstance;
 typedef struct M7_Rasterizer M7_Rasterizer;
 typedef struct M7_TriangleDraw M7_TriangleDraw;
 
@@ -67,18 +68,16 @@ typedef struct M7_PerspectiveFOV {
     float tan_half_fov;
 } M7_PerspectiveFOV;
 
-typedef struct M7_ModelInstance {
-   M7_FragmentShader *shader_pipeline;
-   size_t nshaders;
-   size_t render_batch;
-   M7_RasterizerFlags flags;
-} M7_ModelInstance;
-
 typedef struct M7_ModelArgs {
     M7_Mesh *(*get_mesh)(ECS_Handle *self);
-    M7_ModelInstance *instances;
-    size_t ninstances;
 } M7_ModelArgs;
+
+typedef struct M7_ModelInstanceArgs {
+    M7_FragmentShader *shader_pipeline;
+    size_t nshaders;
+    size_t render_batch;
+    M7_RasterizerFlags flags;
+} M7_ModelInstanceArgs;
 
 typedef struct M7_Teapot {
     float scale;

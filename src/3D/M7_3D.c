@@ -18,8 +18,14 @@ void M7_3D_RegisterToECS(ECS *ecs) {
     M7_Components.Model = ECS_RegisterComponent(ecs, M7_Model, {
         .attach = M7_Model_Attach,
         .detach = M7_Model_Detach,
-        .init = M7_Model_Init,
-        .free = M7_Model_Free
+        .init = M7_Model_Init
+    });
+
+    M7_Components.ModelInstance = ECS_RegisterComponent(ecs, M7_RenderInstance, {
+        .attach = M7_ModelInstance_Attach,
+        .detach = M7_ModelInstance_Detach,
+        .init = M7_ModelInstance_Init,
+        .free = M7_ModelInstance_Free
     });
 
     M7_Components.XformComposer = ECS_RegisterComponent(ecs, M7_XformComposer, {});

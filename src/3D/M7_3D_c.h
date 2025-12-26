@@ -50,12 +50,17 @@ typedef struct M7_World {
 } M7_World;
 
 typedef struct M7_Model {
-    M7_Mesh *(*get_mesh)(ECS_Handle *self);
     M7_WorldGeometry *geometry;
-    M7_RenderInstance *instance;
-    List(M7_RenderInstance *) *instances;
-    List(M7_ModelInstance) *instances_init;
+    M7_Mesh *(*get_mesh)(ECS_Handle *self);
 } M7_Model;
+
+typedef struct M7_ModelInstance {
+    M7_RenderInstance *instance;
+    M7_FragmentShader *shader_pipeline;
+    size_t nshaders;
+    size_t render_batch;
+    M7_RasterizerFlags flags;
+} M7_ModelInstance;
 
 typedef struct M7_Rasterizer {
     ECS_Handle *world;
@@ -81,7 +86,11 @@ void M7_Model_OnXform(ECS_Handle *self, xform3 composed);
 void M7_Model_Attach(ECS_Handle *self);
 void M7_Model_Detach(ECS_Handle *self);
 void M7_Model_Init(void *component, void *args);
-void M7_Model_Free(void *component);
+
+void M7_ModelInstance_Attach(ECS_Handle *self);
+void M7_ModelInstance_Detach(ECS_Handle *self);
+void M7_ModelInstance_Init(void *component, void *args);
+void M7_ModelInstance_Free(void *component);
 
 void M7_World_Init(void *component, void *args);
 void M7_World_Free(void *component);

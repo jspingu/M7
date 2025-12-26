@@ -93,25 +93,34 @@ void M7_Model_OnXform(ECS_Handle *self, xform3 composed) {
 
 void M7_Model_Attach(ECS_Handle *self) {
     M7_Model *mdl = ECS_Entity_GetComponent(self, M7_Components.Model);
-    ECS_Handle *world = ECS_Entity_AncestorWithComponent(self, M7_Components.World, true);
+    ECS_Handle *world = ECS_Entity_AncestorWithComponent(self, M7_Components.World, false);
     M7_Mesh *mesh = mdl->get_mesh(self);
     mdl->geometry = M7_World_RegisterGeometry(world, mesh);
+}
 
-    List_ForEach(mdl->instances_init, inst, {
-        List_Push(mdl->instances, M7_WorldGeometry_Instance(
-            mdl->geometry,
-            inst.shader_pipeline,
-            inst.nshaders,
-            self,
-            inst.render_batch,
-            inst.flags
-        ));
-    });
+void M7_ModelInstance_Attach(ECS_Handle *self) {
+    M7_ModelInstance *mdlinst = ECS_Entity_GetComponent(self, M7_Components.ModelInstance);
+    ECS_Handle *mdl = ECS_Entity_AncestorWithComponent(self, M7_Components.Model, false);
+    M7_WorldGeometry *geometry = ECS_Entity_GetComponent(mdl, M7_Components.Model)->geometry;
+
+    mdlinst->instance = M7_WorldGeometry_Instance(
+        geometry,
+        mdlinst->shader_pipeline,
+        mdlinst->nshaders,
+        self,
+        mdlinst->render_batch,
+        mdlinst->flags
+    );
 }
 
 void M7_Model_Detach(ECS_Handle *self) {
     M7_Model *mdl = ECS_Entity_GetComponent(self, M7_Components.Model);
     M7_WorldGeometry_Free(mdl->geometry);
+}
+
+void M7_ModelInstance_Detach(ECS_Handle *self) {
+    M7_ModelInstance *mdlinst = ECS_Entity_GetComponent(self, M7_Components.ModelInstance);
+    M7_RenderInstance_Free(mdlinst->instance);
 }
 
 void M7_World_Init(void *component, void *args) {
@@ -125,31 +134,26 @@ void M7_World_Init(void *component, void *args) {
 void M7_Model_Init(void *component, void *args) {
     M7_Model *mdl = component;
     M7_ModelArgs *mdl_args = args;
-
     mdl->get_mesh = mdl_args->get_mesh;
-    mdl->instances = List_Create(M7_RenderInstance *);
-    mdl->instances_init = List_Create(M7_ModelInstance);
-
-    for (size_t i = 0; i < mdl_args->ninstances; ++i) {
-        M7_ModelInstance inst = mdl_args->instances[i];
-        M7_ModelInstance *new_inst = List_PushSpace(mdl->instances_init, 1);
-        size_t nshaders = inst.nshaders;
-
-        SDL_memcpy(new_inst, &inst, sizeof(M7_ModelInstance));
-
-        new_inst->shader_pipeline = SDL_memcpy(
-            SDL_malloc(sizeof(M7_FragmentShader) * nshaders),
-            mdl_args->instances[i].shader_pipeline,
-            sizeof(M7_FragmentShader) * nshaders
-        );
-    }
 }
 
-void M7_Model_Free(void *component) {
-    M7_Model *mdl = component;
-    List_Free(mdl->instances_init);
-    List_ForEach(mdl->instances_init, inst, SDL_free(inst.shader_pipeline); );
-    List_Free(mdl->instances);
+void M7_ModelInstance_Init(void *component, void *args) {
+    M7_ModelInstance *mdlinst = component;
+    M7_ModelInstanceArgs *mdlinst_args = args;
+    mdlinst->nshaders = mdlinst_args->nshaders;
+    mdlinst->render_batch = mdlinst_args->render_batch;
+    mdlinst->flags = mdlinst_args->flags;
+
+    mdlinst->shader_pipeline = SDL_memcpy(
+        SDL_malloc(sizeof(M7_FragmentShader) * mdlinst->nshaders),
+        mdlinst_args->shader_pipeline,
+        sizeof(M7_FragmentShader) * mdlinst->nshaders
+    );
+}
+
+void M7_ModelInstance_Free(void *component) {
+    M7_ModelInstance *mdlinst = component;
+    SDL_free(mdlinst->shader_pipeline);
 }
 
 void M7_RenderInstance_Free(M7_RenderInstance *instance) {

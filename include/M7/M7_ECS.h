@@ -21,6 +21,7 @@ struct M7_Components {
     ECS_Component(M7_World) *World;
     ECS_Component(M7_Rasterizer) *Rasterizer;
     ECS_Component(M7_Model) *Model;
+    ECS_Component(M7_ModelInstance) *ModelInstance;
     ECS_Component(M7_XformComposer) *XformComposer;
     ECS_Component(vec3) *Position;
     ECS_Component(mat3x3) *Basis;
