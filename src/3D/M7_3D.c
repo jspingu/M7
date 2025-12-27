@@ -41,9 +41,21 @@ void M7_3D_RegisterToECS(ECS *ecs) {
     M7_Components.Rect = ECS_RegisterComponent(ecs, M7_Rect, {});
     M7_Components.Cubemap = ECS_RegisterComponent(ecs, M7_Cubemap, {});
 
-    M7_Components.SolidColor = ECS_RegisterComponent(ecs, M7_SolidColor, {});
-    M7_Components.Checkerboard = ECS_RegisterComponent(ecs, M7_Checkerboard, {});
-    M7_Components.TextureMap = ECS_RegisterComponent(ecs, M7_TextureMap, {
+    M7_Components.SolidColor = ECS_RegisterComponent(ecs, M7_ShaderComponent, {
+        .init = M7_SolidColor_Init,
+        .free = M7_ShaderComponent_Free
+    });
+
+    M7_Components.Checkerboard = ECS_RegisterComponent(ecs, M7_ShaderComponent, {
+        .init = M7_Checkerboard_Init,
+        .free = M7_ShaderComponent_Free
+    });
+
+    M7_Components.Lighting = ECS_RegisterComponent(ecs, M7_ShaderComponent, {
+        .init = M7_Lighting_Init
+    });
+
+    M7_Components.TextureMap = ECS_RegisterComponent(ecs, M7_ShaderComponent, {
         .attach = M7_TextureMap_Attach,
         .detach = M7_TextureMap_Detach,
         .init = M7_TextureMap_Init,

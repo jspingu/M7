@@ -52,7 +52,7 @@ M7_WorldGeometry *SD_VARIANT(M7_World_RegisterGeometry)(ECS_Handle *self, M7_Mes
 
 #ifndef SD_SRC_VARIANT
 
-M7_RenderInstance *M7_WorldGeometry_Instance(M7_WorldGeometry *geometry, M7_FragmentShader *shaders, size_t nshaders, ECS_Handle *shader_state, size_t render_batch, M7_RasterizerFlags flags) {
+M7_RenderInstance *M7_WorldGeometry_Instance(M7_WorldGeometry *geometry, M7_FragmentShader *shader_pipeline, void **shader_states, size_t nshaders, size_t render_batch, M7_RasterizerFlags flags) {
     M7_World *world = geometry->world;
 
     if (List_Length(world->render_batches) < render_batch + 1) {
@@ -70,13 +70,12 @@ M7_RenderInstance *M7_WorldGeometry_Instance(M7_WorldGeometry *geometry, M7_Frag
         flag_batches[flags] = List_Create(M7_RenderInstance *);
 
     M7_RenderInstance *instance = SDL_malloc(sizeof(M7_RenderInstance));
-    List(M7_FragmentShader) *fs_pipe = List_Create(M7_FragmentShader);
-    List_PushRange(fs_pipe, shaders, nshaders);
 
     *instance = (M7_RenderInstance) {
         .geometry = geometry,
-        .shader_pipeline = fs_pipe,
-        .shader_state = shader_state,
+        .shader_pipeline = SDL_memcpy(SDL_malloc(sizeof(M7_FragmentShader) * nshaders), shader_pipeline, sizeof(M7_FragmentShader) * nshaders),
+        .shader_states = SDL_memcpy(SDL_malloc(sizeof(void *) * nshaders), shader_states, sizeof(void *) * nshaders),
+        .nshaders = nshaders,
         .render_batch = render_batch,
         .flags = flags
     };
@@ -103,14 +102,18 @@ void M7_ModelInstance_Attach(ECS_Handle *self, ECS_Component(void) *component) {
     ECS_Handle *mdl = ECS_Entity_AncestorWithComponent(self, M7_Components.Model, false);
     M7_WorldGeometry *geometry = ECS_Entity_GetComponent(mdl, M7_Components.Model)->geometry;
 
-    mdlinst->instance = M7_WorldGeometry_Instance(
-        geometry,
-        mdlinst->shader_pipeline,
-        mdlinst->nshaders,
-        self,
-        mdlinst->render_batch,
-        mdlinst->flags
-    );
+    M7_FragmentShader *shader_pipeline = SDL_malloc(sizeof(M7_FragmentShader) * mdlinst->nshaders);
+    void **shader_states = SDL_malloc(sizeof(void *) * mdlinst->nshaders);
+
+    for (size_t i = 0; i < mdlinst->nshaders; ++i) {
+        M7_ShaderComponent *shader_component = ECS_Entity_GetComponent(self, mdlinst->shader_components[i]);
+        shader_pipeline[i] = shader_component->callback;
+        shader_states[i] = shader_component->state;
+    }
+
+    mdlinst->instance = M7_WorldGeometry_Instance(geometry, shader_pipeline, shader_states, mdlinst->nshaders, mdlinst->render_batch, mdlinst->flags);
+    SDL_free(shader_pipeline);
+    SDL_free(shader_states);
 }
 
 void M7_Model_Detach(ECS_Handle *self, ECS_Component(void) *component) {
@@ -144,16 +147,16 @@ void M7_ModelInstance_Init(void *component, void *args) {
     mdlinst->render_batch = mdlinst_args->render_batch;
     mdlinst->flags = mdlinst_args->flags;
 
-    mdlinst->shader_pipeline = SDL_memcpy(
-        SDL_malloc(sizeof(M7_FragmentShader) * mdlinst->nshaders),
-        mdlinst_args->shader_pipeline,
-        sizeof(M7_FragmentShader) * mdlinst->nshaders
+    mdlinst->shader_components = SDL_memcpy(
+        SDL_malloc(sizeof(ECS_Component(M7_ShaderComponent) *) * mdlinst->nshaders),
+        mdlinst_args->shader_components,
+        sizeof(ECS_Component(M7_ShaderComponent) *) * mdlinst->nshaders
     );
 }
 
 void M7_ModelInstance_Free(void *component) {
     M7_ModelInstance *mdlinst = component;
-    SDL_free(mdlinst->shader_pipeline);
+    SDL_free(mdlinst->shader_components);
 }
 
 void M7_RenderInstance_Free(M7_RenderInstance *instance) {

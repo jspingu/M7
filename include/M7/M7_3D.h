@@ -7,7 +7,7 @@
 #include <M7/Math/linalg.h>
 #include <M7/Math/stride.h>
 
-#define M7_SHADER_DECLARE(name)  SD_DECLARE(sd_vec4, name, ECS_Handle *, self, sd_vec4, col, sd_vec3, vs, sd_vec3, nrml, sd_vec2, ts)
+#define M7_SHADER_DECLARE(name)  SD_DECLARE(sd_vec4, name, void *, state, sd_vec4, col, sd_vec3, vs, sd_vec3, nrml, sd_vec2, ts)
 
 typedef enum M7_RasterizerFlags {
     M7_RASTERIZER_ALPHA_BLEND         = 1 << 0,
@@ -33,9 +33,14 @@ typedef struct M7_TriangleDraw M7_TriangleDraw;
 
 typedef xform3 (*M7_XformComposer)(ECS_Handle *self, xform3 lhs);
 
-typedef sd_vec4 (*M7_FragmentShader)(ECS_Handle *self, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts);
+typedef sd_vec4 (*M7_FragmentShader)(void *state, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts);
 typedef sd_vec2 (*M7_VertexProjector)(ECS_Handle *self, sd_vec3 pos, sd_vec2 midpoint);
 typedef void (*M7_RasterScanner)(ECS_Handle *self, M7_TriangleDraw triangle, M7_RasterizerFlags flags, int (*scanlines)[2], int range[2]);
+
+typedef struct M7_ShaderComponent {
+    M7_FragmentShader callback;
+    void *state;
+} M7_ShaderComponent;
 
 typedef struct M7_MeshFace {
     size_t idx_verts[3];
@@ -43,8 +48,9 @@ typedef struct M7_MeshFace {
 } M7_MeshFace;
 
 typedef struct M7_TriangleDraw {
-    List(M7_FragmentShader) *shader_pipeline;
-    ECS_Handle *shader_state;
+    M7_FragmentShader *shader_pipeline;
+    void **shader_states;
+    size_t nshaders;
     vec3 vs_verts[3];
     vec3 vs_nrmls[3];
     vec2 ts_verts[3];
@@ -73,7 +79,7 @@ typedef struct M7_ModelArgs {
 } M7_ModelArgs;
 
 typedef struct M7_ModelInstanceArgs {
-    M7_FragmentShader *shader_pipeline;
+    ECS_Component(M7_ShaderComponent) **shader_components;
     size_t nshaders;
     size_t render_batch;
     M7_RasterizerFlags flags;
@@ -150,7 +156,7 @@ SD_DECLARE(M7_WorldGeometry *, M7_World_RegisterGeometry, ECS_Handle *, self, M7
 
 void M7_RenderInstance_Free(M7_RenderInstance *instance);
 
-M7_RenderInstance *M7_WorldGeometry_Instance(M7_WorldGeometry *geometry, M7_FragmentShader *shaders, size_t nshaders, ECS_Handle *shader_state, size_t render_batch, M7_RasterizerFlags flags);
+M7_RenderInstance *M7_WorldGeometry_Instance(M7_WorldGeometry *geometry, M7_FragmentShader *shader_pipeline, void **shader_states, size_t nshaders, size_t render_batch, M7_RasterizerFlags flags);
 void M7_WorldGeometry_Free(M7_WorldGeometry *geometry);
 
 SD_DECLARE(sd_vec2, M7_ProjectParallel, ECS_Handle *, self, sd_vec3, point, sd_vec2, midpoint)

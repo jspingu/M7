@@ -100,7 +100,9 @@ void SD_VARIANT(M7_ScanLinear)(ECS_Handle *self, M7_TriangleDraw triangle, M7_Ra
                     fragment_ts = sd_vec2_fmadd(ts_xform[1], relative.y, fragment_ts);
 
             sd_vec4 col;
-            List_ForEach(triangle.shader_pipeline, shader, col = shader(triangle.shader_state, col, fragment_vs, fragment_nrml, fragment_ts); );
+
+            for (size_t i = 0; i < triangle.nshaders; ++i)
+                col = triangle.shader_pipeline[i](triangle.shader_states[i], col, fragment_vs, fragment_nrml, fragment_ts);
 
             sd_vec3 bg = canvas->color[base + j];
             sd_float bg_z = canvas->depth[base + j];
@@ -214,7 +216,9 @@ void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw triangle, 
                     fragment_ts = sd_vec2_fmadd(ts_xform[2], relative.z, fragment_ts);
 
             sd_vec4 col;
-            List_ForEach(triangle.shader_pipeline, shader, col = shader(triangle.shader_state, col, fragment_vs, fragment_nrml, fragment_ts); );
+
+            for (size_t i = 0; i < triangle.nshaders; ++i)
+                col = triangle.shader_pipeline[i](triangle.shader_states[i], col, fragment_vs, fragment_nrml, fragment_ts);
 
             sd_vec3 bg = canvas->color[base + j];
             sd_float bg_z = canvas->depth[base + j];
@@ -337,7 +341,8 @@ static void M7_Rasterizer_DrawBatch(ECS_Handle *self, List(M7_RenderInstance *) 
 
                 M7_TriangleDraw triangle = {
                     .shader_pipeline = instance->shader_pipeline,
-                    .shader_state = instance->shader_state
+                    .shader_states = instance->shader_states,
+                    .nshaders = instance->nshaders
                 };
 
                 SDL_memcpy(triangle.vs_verts, (vec3 [3]) { vs_verts[0], vs_verts[1 + !verts_cw], vs_verts[1 + verts_cw] }, sizeof(vec3 [3]));

@@ -29,9 +29,10 @@ struct M7_Components {
     ECS_Component(M7_PerspectiveFOV) *PerspectiveFOV;
 
     /* Shader components */
-    ECS_Component(M7_SolidColor) *SolidColor;
-    ECS_Component(M7_Checkerboard) *Checkerboard;
-    ECS_Component(M7_TextureMap) *TextureMap;
+    ECS_Component(M7_ShaderComponent) *SolidColor;
+    ECS_Component(M7_ShaderComponent) *Checkerboard;
+    ECS_Component(M7_ShaderComponent) *TextureMap;
+    ECS_Component(M7_ShaderComponent) *Lighting;
 
     /* 3D primitives */
     ECS_Component(M7_Mesh *) *MeshPrimitive;

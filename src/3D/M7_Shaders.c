@@ -2,15 +2,15 @@
 #include <M7/M7_ECS.h>
 #include <M7/Math/stride.h>
 
-sd_vec4 SD_VARIANT(M7_ShadeSolidColor)(ECS_Handle *self, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts) {
+sd_vec4 SD_VARIANT(M7_ShadeSolidColor)(void *state, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts) {
     (void)col, (void)vs, (void)nrml, (void)ts;
-    M7_SolidColor *solid_color = ECS_Entity_GetComponent(self, M7_Components.SolidColor);
+    M7_SolidColor *solid_color = state;
     return sd_vec4_set(solid_color->r, solid_color->g, solid_color->b, 1);
 }
 
-sd_vec4 SD_VARIANT(M7_ShadeCheckerboard)(ECS_Handle *self, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts) {
+sd_vec4 SD_VARIANT(M7_ShadeCheckerboard)(void *state, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts) {
     (void)col, (void)vs, (void)nrml;
-    M7_Checkerboard *checkerboard = ECS_Entity_GetComponent(self, M7_Components.Checkerboard);
+    M7_Checkerboard *checkerboard = state;
     sd_vec2 tile_coord = sd_vec2_muls(ts, sd_float_set(checkerboard->tiles));
     sd_int tile_idx = sd_int_add(sd_int_mul(sd_float_to_int(tile_coord.y), sd_int_set(checkerboard->tiles)), sd_float_to_int(tile_coord.x));
     sd_mask tile_mask = sd_int_gt(sd_int_and(tile_idx, sd_int_set(1)), sd_int_set(0));
@@ -22,8 +22,8 @@ sd_vec4 SD_VARIANT(M7_ShadeCheckerboard)(ECS_Handle *self, sd_vec4 col, sd_vec3 
     );
 }
 
-sd_vec4 SD_VARIANT(M7_ShadeOriginLight)(ECS_Handle *self, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts) {
-    (void)self, (void)col, (void)ts;
+sd_vec4 SD_VARIANT(M7_ShadeOriginLight)(void *state, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts) {
+    (void)state, (void)col, (void)ts;
     sd_float ambient = sd_float_set(0.08);
     sd_float energy = sd_float_set(10000);
     sd_float reflectivity = sd_float_set(0.6);
@@ -54,36 +54,69 @@ sd_vec4 SD_VARIANT(M7_ShadeOriginLight)(ECS_Handle *self, sd_vec4 col, sd_vec3 v
     return col;
 }
 
-sd_vec4 SD_VARIANT(M7_ShadeTextureMap)(ECS_Handle *self, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts) {
+sd_vec4 SD_VARIANT(M7_ShadeTextureMap)(void *state, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts) {
     (void)col, (void)vs, (void)nrml;
-    M7_TextureMap *texture_map = ECS_Entity_GetComponent(self, M7_Components.TextureMap);
+    M7_TextureMap *texture_map = state;
     return M7_SampleNearest(texture_map->texture, ts) ;
 }
 
 #ifndef SD_SRC_VARIANT
 
 void M7_TextureMap_Attach(ECS_Handle *self, ECS_Component(void) *component) {
-    M7_TextureMap *texture_map = ECS_Entity_GetComponent(self, component);
-    ECS_Handle *tb = ECS_Entity_AncestorWithComponent(self, M7_Components.TextureBank, true);
+    M7_ShaderComponent *shader_component = ECS_Entity_GetComponent(self, component);
+    M7_TextureMap *texture_map = shader_component->state;
+    ECS_Handle *tb = ECS_Entity_AncestorWithComponent(self, M7_Components.TextureBank, false);
     texture_map->texture = M7_ResourceBank_Get(tb, M7_Components.TextureBank, texture_map->texture_path);
 }
 
 void M7_TextureMap_Detach(ECS_Handle *self, ECS_Component(void) *component) {
-    M7_TextureMap *texture_map = ECS_Entity_GetComponent(self, component);
-    ECS_Handle *tb = ECS_Entity_AncestorWithComponent(self, M7_Components.TextureBank, true);
+    M7_ShaderComponent *shader_component = ECS_Entity_GetComponent(self, component);
+    M7_TextureMap *texture_map = shader_component->state;
+    ECS_Handle *tb = ECS_Entity_AncestorWithComponent(self, M7_Components.TextureBank, false);
     M7_ResourceBank_Release(tb, M7_Components.TextureBank, texture_map->texture_path);
 }
 
+void M7_SolidColor_Init(void *component, void *args) {
+    M7_ShaderComponent *shader_component = component;
+    shader_component->callback = SD_SELECT(M7_ShadeSolidColor);
+    shader_component->state = SDL_malloc(sizeof(M7_SolidColor));
+    SDL_memcpy(shader_component->state, args, sizeof(M7_SolidColor));
+}
+
+void M7_Checkerboard_Init(void *component, void *args) {
+    M7_ShaderComponent *shader_component = component;
+    shader_component->callback = SD_SELECT(M7_ShadeCheckerboard);
+    shader_component->state = SDL_malloc(sizeof(M7_Checkerboard));
+    SDL_memcpy(shader_component->state, args, sizeof(M7_Checkerboard));
+}
+
 void M7_TextureMap_Init(void *component, void *args) {
-    M7_TextureMap *texture_map = component;
+    M7_ShaderComponent *shader_component = component;
+    shader_component->callback = SD_SELECT(M7_ShadeTextureMap);
+    shader_component->state = SDL_malloc(sizeof(M7_TextureMap));
+
+    M7_TextureMap *texture_map = shader_component->state;
     char *path = args;
     texture_map->texture_path = SDL_malloc(SDL_strlen(path) + 1);
     SDL_strlcpy(texture_map->texture_path, path, 64);
 }
 
+void M7_Lighting_Init(void *component, void *args) {
+    (void)args;
+    M7_ShaderComponent *shader_component = component;
+    shader_component->callback = SD_SELECT(M7_ShadeOriginLight);
+}
+
 void M7_TextureMap_Free(void *component) {
-    M7_TextureMap *texture_map = component;
+    M7_ShaderComponent *shader_component = component;
+    M7_TextureMap *texture_map = shader_component->state;
     SDL_free(texture_map->texture_path);
+    SDL_free(texture_map);
+}
+
+void M7_ShaderComponent_Free(void *component) {
+    M7_ShaderComponent *shader_component = component;
+    SDL_free(shader_component->state);
 }
 
 #endif /* SD_SRC_VARIANT */

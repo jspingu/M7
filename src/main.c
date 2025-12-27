@@ -80,8 +80,9 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
                     ),
                     ECS_Children({ECS_Components(
                         { M7_Components.SolidColor, &(M7_SolidColor) { .r=0.7, .g=0.7, .b=1.0 } },
+                        { M7_Components.Lighting, nullptr },
                         { M7_Components.ModelInstance, &(M7_ModelInstanceArgs) {
-                            .shader_pipeline = (M7_FragmentShader []) { SD_SELECT(M7_ShadeSolidColor), SD_SELECT(M7_ShadeOriginLight) },
+                            .shader_components = (ECS_Component(M7_ShaderComponent) *[]) { M7_Components.SolidColor, M7_Components.Lighting },
                             .nshaders = 2,
                             .render_batch = Opaque,
                             .flags = M7_RASTERIZER_CULL_BACKFACE
@@ -106,8 +107,9 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
                             .r1 = 0.4, .g1 = 0.4, .b1 = 0.8,
                             .r2 = 1.0, .g2 = 1.0, .b2 = 1.0,
                         }},
+                        { M7_Components.Lighting, nullptr },
                         { M7_Components.ModelInstance, &(M7_ModelInstanceArgs) {
-                            .shader_pipeline = (M7_FragmentShader []) { SD_SELECT(M7_ShadeCheckerboard), SD_SELECT(M7_ShadeOriginLight) },
+                            .shader_components = (ECS_Component(M7_ShaderComponent) *[]) { M7_Components.Checkerboard, M7_Components.Lighting },
                             .nshaders = 2,
                             .render_batch = Opaque,
                             .flags = M7_RASTERIZER_CULL_BACKFACE
@@ -148,7 +150,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
                     ECS_Children({ECS_Components(
                         { M7_Components.TextureMap, "assets/Nalovardo.png" },
                         { M7_Components.ModelInstance, &(M7_ModelInstanceArgs) {
-                            .shader_pipeline = (M7_FragmentShader []) { SD_SELECT(M7_ShadeTextureMap) },
+                            .shader_components = (ECS_Component(M7_ShaderComponent) *[]) { M7_Components.TextureMap },
                             .nshaders = 1,
                             .render_batch = Sky,
                             .flags = 0

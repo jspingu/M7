@@ -37,8 +37,9 @@ typedef struct M7_WorldGeometry {
 
 typedef struct M7_RenderInstance {
     M7_WorldGeometry *geometry;
-    List(M7_FragmentShader) *shader_pipeline;
-    ECS_Handle *shader_state;
+    M7_FragmentShader *shader_pipeline;
+    void **shader_states;
+    size_t nshaders;
     size_t render_batch;
     M7_RasterizerFlags flags;
 } M7_RenderInstance;
@@ -56,7 +57,7 @@ typedef struct M7_Model {
 
 typedef struct M7_ModelInstance {
     M7_RenderInstance *instance;
-    M7_FragmentShader *shader_pipeline;
+    ECS_Component(M7_ShaderComponent) **shader_components;
     size_t nshaders;
     size_t render_batch;
     M7_RasterizerFlags flags;
@@ -72,6 +73,11 @@ typedef struct M7_Rasterizer {
 } M7_Rasterizer;
 
 void M7_3D_RegisterToECS(ECS *ecs);
+
+void M7_SolidColor_Init(void *component, void *args);
+void M7_Checkerboard_Init(void *component, void *args);
+void M7_Lighting_Init(void *component, void *args);
+void M7_ShaderComponent_Free(void *component);
 
 void M7_TextureMap_Attach(ECS_Handle *self, ECS_Component(void) *component);
 void M7_TextureMap_Detach(ECS_Handle *self, ECS_Component(void) *component);
