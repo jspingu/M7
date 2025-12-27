@@ -62,18 +62,16 @@ sd_vec4 SD_VARIANT(M7_ShadeTextureMap)(ECS_Handle *self, sd_vec4 col, sd_vec3 vs
 
 #ifndef SD_SRC_VARIANT
 
-void M7_TextureMap_Attach(ECS_Handle *self) {
-    M7_TextureMap *texture_map = ECS_Entity_GetComponent(self, M7_Components.TextureMap);
+void M7_TextureMap_Attach(ECS_Handle *self, ECS_Component(void) *component) {
+    M7_TextureMap *texture_map = ECS_Entity_GetComponent(self, component);
     ECS_Handle *tb = ECS_Entity_AncestorWithComponent(self, M7_Components.TextureBank, true);
-    M7_ResourceBank(M7_Texture *) *c_tb = *ECS_Entity_GetComponent(tb, M7_Components.TextureBank);
-    texture_map->texture = M7_ResourceBank_Get(c_tb, texture_map->texture_path);
+    texture_map->texture = M7_ResourceBank_Get(tb, M7_Components.TextureBank, texture_map->texture_path);
 }
 
-void M7_TextureMap_Detach(ECS_Handle *self) {
-    M7_TextureMap *texture_map = ECS_Entity_GetComponent(self, M7_Components.TextureMap);
+void M7_TextureMap_Detach(ECS_Handle *self, ECS_Component(void) *component) {
+    M7_TextureMap *texture_map = ECS_Entity_GetComponent(self, component);
     ECS_Handle *tb = ECS_Entity_AncestorWithComponent(self, M7_Components.TextureBank, true);
-    M7_ResourceBank(M7_Texture *) *c_tb = *ECS_Entity_GetComponent(tb, M7_Components.TextureBank);
-    M7_ResourceBank_Release(c_tb, texture_map->texture_path);
+    M7_ResourceBank_Release(tb, M7_Components.TextureBank, texture_map->texture_path);
 }
 
 void M7_TextureMap_Init(void *component, void *args) {

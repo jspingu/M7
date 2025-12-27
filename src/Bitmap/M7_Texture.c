@@ -2,7 +2,6 @@
 #include <SDL3_image/SDL_image.h>
 #include <M7/M7_ECS.h>
 #include <M7/M7_Resource.h>
-#include <M7/Collections/Strmap.h>
 #include <M7/gamma.h>
 
 void *M7_TextureBank_LoadTexture(ECS_Handle *self, char *path) {
@@ -36,12 +35,6 @@ void M7_TextureBank_FreeTexture(ECS_Handle *self, void *data) {
     SDL_free(texture);
 }
 
-void M7_TextureBank_Attach(ECS_Handle *self) {
-    M7_ResourceBank(M7_Texture *) **tb = ECS_Entity_GetComponent(self, M7_Components.TextureBank);
-    *tb = M7_ResourceBank_Create(self, 64, M7_TextureBank_LoadTexture, M7_TextureBank_FreeTexture);
-}
-
-void M7_TextureBank_Detach(ECS_Handle *self) {
-    M7_ResourceBank(M7_Texture *) **tb = ECS_Entity_GetComponent(self, M7_Components.TextureBank);
-    M7_ResourceBank_Free(*tb);
+void M7_TextureBank_Attach(ECS_Handle *self, ECS_Component(void) *component) {
+    M7_ResourceBank_Attach(self, component, M7_TextureBank_LoadTexture, M7_TextureBank_FreeTexture);
 }

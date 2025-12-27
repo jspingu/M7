@@ -2,17 +2,30 @@
 #define M7_RESOURCE_H
 
 #include <M7/ECS.h>
+#include <M7/Collections/Strmap.h>
 
-#define M7_ResourceBank(type)                    type
-#define M7_ResourceBank_Get(resource_bank,path)  ( (typeof(*resource_bank))M7_ResourceBank_GetActual(resource_bank, path) )
+#define M7_ResourceBank(type)                     type
+#define M7_ResourceBank_Get(self,component,path)  ( (typeof(*component))M7_ResourceBank_GetActual(self, component, path) )
+
+#define M7_RESOURCE_PATHLEN  64
 
 typedef void *(*M7_ResourceLoad)(ECS_Handle *self, char *path);
 typedef void (*M7_ResourceFree)(ECS_Handle *self, void *data);
 
-void *M7_ResourceBank_GetActual(void *resource_bank, char *path);
-void M7_ResourceBank_Release(void *resource_bank, char *path);
-void *M7_ResourceBank_Create(ECS_Handle *self, size_t pathlen, M7_ResourceLoad load, M7_ResourceFree free);
-void M7_ResourceBank_Free(void *resource_bank);
-void M7_ResourceBankComponent_Free(void *component);
+typedef struct M7_Resource {
+    void *data;
+    size_t refcount;
+} M7_Resource;
+
+typedef struct M7_ResourceBank {
+    Strmap(M7_Resource) *map;
+    M7_ResourceLoad load;
+    M7_ResourceFree free;
+} M7_ResourceBank;
+
+void *M7_ResourceBank_GetActual(ECS_Handle *self, void *component, char *path);
+void M7_ResourceBank_Release(ECS_Handle *self, void *component, char *path);
+void M7_ResourceBank_Attach(ECS_Handle *self, ECS_Component(void) *component, M7_ResourceLoad load, M7_ResourceFree free);
+void M7_ResourceBank_Detach(ECS_Handle *self, ECS_Component(void) *component);
 
 #endif /* M7_RESOURCE_H */

@@ -63,8 +63,8 @@ typedef struct ECS_Handle ECS_Handle;
 typedef struct ECS_ComponentCallbacks {
     void (*init)(void *component, void *args);
     void (*free)(void *component);
-    void (*attach)(ECS_Handle *self);
-    void (*detach)(ECS_Handle *self);
+    void (*attach)(ECS_Handle *self, ECS_Component(void) *component);
+    void (*detach)(ECS_Handle *self, ECS_Component(void) *component);
 } ECS_ComponentCallbacks;
 
 typedef struct ECS_ComponentConstruction {

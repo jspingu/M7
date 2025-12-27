@@ -4,21 +4,9 @@
 
 #include <M7/M7_Resource.h>
 
-typedef struct M7_Resource {
-    void *data;
-    size_t refcount;
-} M7_Resource;
-
-typedef struct M7_ResourceBank {
-    ECS_Handle *self;
-    Strmap(M7_Resource) *map;
-    M7_ResourceLoad load;
-    M7_ResourceFree free;
-} M7_ResourceBank;
-
-void *M7_ResourceBank_GetActual(void *resource_bank, char *path) {
-    M7_ResourceBank *rb = resource_bank;
-    M7_Resource *resource = Strmap_GetAddress(rb->map, path);
+void *M7_ResourceBank_GetActual(ECS_Handle *self, ECS_Component(void) *component, char *path) {
+    M7_ResourceBank *bank = ECS_Entity_GetComponent(self, component);
+    M7_Resource *resource = Strmap_GetAddress(bank->map, path);
 
     if (resource) {
         resource->refcount += 1;
@@ -26,17 +14,17 @@ void *M7_ResourceBank_GetActual(void *resource_bank, char *path) {
     }
     
     M7_Resource new_resource = {
-        .data = rb->load(rb->self, path),
+        .data = bank->load(self, path),
         .refcount = 1
     };
 
-    Strmap_Set(rb->map, path, new_resource);
+    Strmap_Set(bank->map, path, new_resource);
     return new_resource.data;
 }
 
-void M7_ResourceBank_Release(void *resource_bank, char *path) {
-    M7_ResourceBank *rb = resource_bank;
-    M7_Resource *resource = Strmap_GetAddress(rb->map, path);
+void M7_ResourceBank_Release(ECS_Handle *self, ECS_Component(void) *component, char *path) {
+    M7_ResourceBank *bank = ECS_Entity_GetComponent(self, component);
+    M7_Resource *resource = Strmap_GetAddress(bank->map, path);
 
     if (!resource)
         return;
@@ -44,23 +32,21 @@ void M7_ResourceBank_Release(void *resource_bank, char *path) {
     resource->refcount -= 1;
 
     if (!resource->refcount) {
-        rb->free(rb->self, resource->data);
-        Strmap_Remove(rb->map, path);
+        bank->free(self, resource->data);
+        Strmap_Remove(bank->map, path);
     }
 }
 
-void *M7_ResourceBank_Create(ECS_Handle *self, size_t pathlen, M7_ResourceLoad load, M7_ResourceFree free) {
-    M7_ResourceBank *resource_bank = SDL_malloc(sizeof(M7_ResourceBank));
-    resource_bank->self = self;
-    resource_bank->map = Strmap_Create(M7_Resource, pathlen);
-    resource_bank->load = load;
-    resource_bank->free = free;
-    return resource_bank;
+void M7_ResourceBank_Attach(ECS_Handle *self, ECS_Component(void) *component, M7_ResourceLoad load, M7_ResourceFree free) {
+    M7_ResourceBank *bank = ECS_Entity_GetComponent(self, component);
+    bank->map = Strmap_Create(M7_Resource, M7_RESOURCE_PATHLEN);
+    bank->load = load;
+    bank->free = free;
 }
 
-void M7_ResourceBank_Free(void *resource_bank) {
-    M7_ResourceBank *rb = resource_bank;
-    Strmap_ForEach(rb->map, resource, rb->free(rb->self, resource.data); );
-    Strmap_Free(rb->map);
-    SDL_free(rb);
+void M7_ResourceBank_Detach(ECS_Handle *self, ECS_Component(void) *component) {
+    M7_ResourceBank *bank = ECS_Entity_GetComponent(self, component);
+    Strmap_ForEach(bank->map, resource, bank->free(self, resource.data); );
+    Strmap_Free(bank->map);
+    SDL_free(bank);
 }

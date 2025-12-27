@@ -464,8 +464,8 @@ void SD_VARIANT(M7_Rasterizer_Render)(ECS_Handle *self) {
 
 #ifndef SD_SRC_VARIANT
 
-void M7_Rasterizer_Attach(ECS_Handle *self) {
-    M7_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, M7_Components.Rasterizer);
+void M7_Rasterizer_Attach(ECS_Handle *self, ECS_Component(void) *component) {
+    M7_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, component);
     rasterizer->world = ECS_Entity_AncestorWithComponent(self, M7_Components.World, true);
     rasterizer->target = ECS_Entity_AncestorWithComponent(self, M7_Components.Canvas, true);
 }

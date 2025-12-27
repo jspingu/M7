@@ -44,7 +44,7 @@ struct M7_Components {
     /* Bitmap */
     ECS_Component(M7_Viewport) *Viewport;
     ECS_Component(M7_Canvas) *Canvas;
-    ECS_Component(M7_ResourceBank(M7_Texture *) *) *TextureBank;
+    ECS_Component(M7_ResourceBank(M7_Texture *)) *TextureBank;
 };
 
 struct M7_SystemGroups {

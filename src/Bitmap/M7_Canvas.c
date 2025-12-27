@@ -95,8 +95,8 @@ void SD_VARIANT(M7_Canvas_Present)(ECS_Handle *self) {
     SDL_RenderPresent(vp->renderer);
 }
 
-void SD_VARIANT(M7_Canvas_Attach)(ECS_Handle *self) {
-    M7_Canvas *canvas = ECS_Entity_GetComponent(self, M7_Components.Canvas);
+void SD_VARIANT(M7_Canvas_Attach)(ECS_Handle *self, ECS_Component(void) * component) {
+    M7_Canvas *canvas = ECS_Entity_GetComponent(self, component);
     canvas->vp = ECS_Entity_AncestorWithComponent(self, M7_Components.Viewport, true);
 }
 

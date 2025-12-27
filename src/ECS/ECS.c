@@ -198,9 +198,10 @@ void ECS_Update(ECS *ecs) {
 
         List_For(header.components_detach, 0, header.ncomponents_detach, component, {
             ECS_Column column = List_Get(ecs->columns, component->index);
+            void (*detach)(ECS_Handle *, ECS_Component(void) *) = column.component_callbacks.detach;
 
-            if (column.component_callbacks.detach)
-                column.component_callbacks.detach(header.self);
+            if (detach)
+                detach(header.self, component);
         });
     }
 
@@ -263,10 +264,10 @@ void ECS_Update(ECS *ecs) {
         List_For(header.components_attach, 0, header.ncomponents_attach, component_construction, {
             ECS_Handle *component = component_construction.component;
             ECS_Column column = List_Get(ecs->columns, component->index);
-            void (*attach)(ECS_Handle *) = column.component_callbacks.attach;
+            void (*attach)(ECS_Handle *, ECS_Component(void) *) = column.component_callbacks.attach;
 
             if (attach)
-                attach(header.self);
+                attach(header.self, component);
         });
 
         /* Dequeue component attachments */

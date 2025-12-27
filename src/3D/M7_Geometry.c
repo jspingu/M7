@@ -91,15 +91,15 @@ void M7_Model_OnXform(ECS_Handle *self, xform3 composed) {
     model->geometry->xform = composed;
 }
 
-void M7_Model_Attach(ECS_Handle *self) {
-    M7_Model *mdl = ECS_Entity_GetComponent(self, M7_Components.Model);
+void M7_Model_Attach(ECS_Handle *self, ECS_Component(void) *component) {
+    M7_Model *mdl = ECS_Entity_GetComponent(self, component);
     ECS_Handle *world = ECS_Entity_AncestorWithComponent(self, M7_Components.World, false);
     M7_Mesh *mesh = mdl->get_mesh(self);
     mdl->geometry = M7_World_RegisterGeometry(world, mesh);
 }
 
-void M7_ModelInstance_Attach(ECS_Handle *self) {
-    M7_ModelInstance *mdlinst = ECS_Entity_GetComponent(self, M7_Components.ModelInstance);
+void M7_ModelInstance_Attach(ECS_Handle *self, ECS_Component(void) *component) {
+    M7_ModelInstance *mdlinst = ECS_Entity_GetComponent(self, component);
     ECS_Handle *mdl = ECS_Entity_AncestorWithComponent(self, M7_Components.Model, false);
     M7_WorldGeometry *geometry = ECS_Entity_GetComponent(mdl, M7_Components.Model)->geometry;
 
@@ -113,13 +113,13 @@ void M7_ModelInstance_Attach(ECS_Handle *self) {
     );
 }
 
-void M7_Model_Detach(ECS_Handle *self) {
-    M7_Model *mdl = ECS_Entity_GetComponent(self, M7_Components.Model);
+void M7_Model_Detach(ECS_Handle *self, ECS_Component(void) *component) {
+    M7_Model *mdl = ECS_Entity_GetComponent(self, component);
     M7_WorldGeometry_Free(mdl->geometry);
 }
 
-void M7_ModelInstance_Detach(ECS_Handle *self) {
-    M7_ModelInstance *mdlinst = ECS_Entity_GetComponent(self, M7_Components.ModelInstance);
+void M7_ModelInstance_Detach(ECS_Handle *self, ECS_Component(void) *component) {
+    M7_ModelInstance *mdlinst = ECS_Entity_GetComponent(self, component);
     M7_RenderInstance_Free(mdlinst->instance);
 }
 
