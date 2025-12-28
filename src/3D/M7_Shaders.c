@@ -1,6 +1,7 @@
 #include <M7/ECS.h>
 #include <M7/M7_ECS.h>
 #include <M7/Math/stride.h>
+#include <M7/Math/linalg.h>
 
 sd_vec4 SD_VARIANT(M7_ShadeSolidColor)(void *state, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts) {
     (void)col, (void)vs, (void)nrml, (void)ts;
@@ -22,45 +23,63 @@ sd_vec4 SD_VARIANT(M7_ShadeCheckerboard)(void *state, sd_vec4 col, sd_vec3 vs, s
     );
 }
 
-sd_vec4 SD_VARIANT(M7_ShadeOriginLight)(void *state, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts) {
-    (void)state, (void)col, (void)ts;
-    sd_float ambient = sd_float_set(0.08);
-    sd_float energy = sd_float_set(10000);
-    sd_float reflectivity = sd_float_set(0.6);
-    sd_float specularity = sd_float_set(1);
-    int exp = 4;
-
-    sd_float sqrlen = sd_vec3_dot(vs, vs);
-    sd_float rcpsql = sd_float_rcp(sqrlen);
-    sd_float rcplen = sd_float_rsqrt(sqrlen);
-
-    sd_vec3 ray = sd_vec3_muls(vs, rcplen);
-    sd_float dp = sd_float_negate(sd_vec3_dot(ray, nrml));
-
-    sd_float rf_falloff = sd_float_sub(sd_float_one(), dp);
-             rf_falloff = sd_float_mul(rf_falloff, rf_falloff);
-             rf_falloff = sd_float_mul(rf_falloff, rf_falloff);
-
-    sd_float rf_coeff = sd_float_add(reflectivity, sd_float_mul(sd_float_sub(sd_float_one(), reflectivity), rf_falloff));
-    sd_float sp_coeff = sd_float_max(sd_float_mul(specularity, sd_float_negate(sd_vec3_dot(ray, sd_vec3_reflect(ray, nrml)))), sd_float_zero());
-
-    for (int i = 0; i < exp; ++i)
-        sp_coeff = sd_float_mul(sp_coeff, sp_coeff);
-
-    sd_vec3 lcol = sd_vec3_set(1.0, 1.0, 0.5);
-    sd_vec3 power_in = sd_vec3_muls(lcol, sd_float_mul(sd_float_mul(energy, rcpsql), dp));
-    sd_vec3 power_out = sd_vec3_muls(power_in, sd_float_add(rf_coeff, sp_coeff));
-    col.rgb = sd_vec3_mul(col.rgb, sd_vec3_adds(power_out, ambient));
-    return col;
-}
-
 sd_vec4 SD_VARIANT(M7_ShadeTextureMap)(void *state, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts) {
     (void)col, (void)vs, (void)nrml;
     M7_TextureMap *texture_map = state;
     return M7_SampleNearest(texture_map->texture, ts) ;
 }
 
+sd_vec4 SD_VARIANT(M7_ShadeLighting)(void *state, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts) {
+    (void)ts;
+    M7_OpticalMedium *medium = state;
+    sd_float specularity = sd_float_set(medium->specularity);
+    sd_float reflectivity = sd_float_set(medium->reflectivity);
+    sd_float ambient = sd_float_set(medium->environment->ambient);
+    sd_vec3 eye = sd_vec3_negate(sd_vec3_normalize(vs));
+
+    sd_vec4 out;
+    out.rgb = sd_vec3_muls(col.rgb, ambient);
+    out.a = col.a;
+
+    List_ForEach(medium->environment->lights, light, {
+        sd_vec3 light_vs = sd_vec3_set(light->pos.x, light->pos.y, light->pos.z);
+        sd_vec3 light_col = sd_vec3_set(light->col.x, light->col.y, light->col.z);
+        sd_float light_energy = sd_float_set(light->energy);
+
+        sd_vec3 incident = sd_vec3_sub(vs, light_vs);
+        sd_float sqrlen = sd_vec3_dot(incident, incident);
+        sd_float rcpsql = sd_float_rcp(sqrlen);
+        sd_float rcplen = sd_float_rsqrt(sqrlen);
+
+        sd_vec3 unit_incident = sd_vec3_muls(incident, rcplen);
+        sd_float dp = sd_float_max(sd_float_negate(sd_vec3_dot(unit_incident, nrml)), sd_float_zero());
+
+        sd_float rf_falloff = sd_float_sub(sd_float_one(), dp);
+                 rf_falloff = sd_float_mul(rf_falloff, rf_falloff);
+                 rf_falloff = sd_float_mul(rf_falloff, rf_falloff);
+
+        sd_float rf_coeff = sd_float_fmadd(sd_float_sub(sd_float_one(), reflectivity), rf_falloff, reflectivity);
+        sd_float sp_coeff = sd_float_negate(sd_vec3_dot(eye, sd_vec3_reflect(unit_incident, nrml)));
+
+        for (int i = 0; i < medium->exp; ++i)
+            sp_coeff = sd_float_mul(sp_coeff, sp_coeff);
+
+        sp_coeff = sd_float_mul(sp_coeff, specularity);
+
+        sd_vec3 power_in = sd_vec3_muls(light_col, sd_float_mul(sd_float_mul(light_energy, rcpsql), dp));
+        sd_vec3 power_out = sd_vec3_muls(power_in, rf_coeff);
+        out.rgb = sd_vec3_add(out.rgb, sd_vec3_mul(col.rgb, sd_vec3_fmadd(power_out, sp_coeff, power_out)));
+    });
+
+    return out;
+}
+
 #ifndef SD_SRC_VARIANT
+
+void M7_PointLight_OnXform(ECS_Handle *self, xform3 composed) {
+    M7_PointLight *light = ECS_Entity_GetComponent(self, M7_Components.PointLight);
+    light->active->pos = composed.translation;
+}
 
 void M7_TextureMap_Attach(ECS_Handle *self, ECS_Component(void) *component) {
     M7_ShaderComponent *shader_component = ECS_Entity_GetComponent(self, component);
@@ -69,11 +88,38 @@ void M7_TextureMap_Attach(ECS_Handle *self, ECS_Component(void) *component) {
     texture_map->texture = M7_ResourceBank_Get(tb, M7_Components.TextureBank, texture_map->texture_path);
 }
 
+void M7_Lighting_Attach(ECS_Handle *self, ECS_Component(void) *component) {
+    M7_ShaderComponent *shader_component = ECS_Entity_GetComponent(self, component);
+    M7_OpticalMedium *medium = shader_component->state;
+    ECS_Handle *env = ECS_Entity_AncestorWithComponent(self, M7_Components.LightEnvironment, false);
+    medium->environment = *ECS_Entity_GetComponent(env, M7_Components.LightEnvironment);
+}
+
+void M7_PointLight_Attach(ECS_Handle *self, ECS_Component(void) *component) {
+    M7_PointLight *light = ECS_Entity_GetComponent(self, component);
+    ECS_Handle *env = ECS_Entity_AncestorWithComponent(self, M7_Components.LightEnvironment, false);
+    light->environment = *ECS_Entity_GetComponent(env, M7_Components.LightEnvironment);
+
+    M7_ActiveLight *active = SDL_malloc(sizeof(M7_ActiveLight));
+    active->col = light->col;
+    active->energy = light->energy;
+    active->pos = vec3_zero;
+
+    light->active = active;
+    List_Push(light->environment->lights, active);
+}
+
 void M7_TextureMap_Detach(ECS_Handle *self, ECS_Component(void) *component) {
     M7_ShaderComponent *shader_component = ECS_Entity_GetComponent(self, component);
     M7_TextureMap *texture_map = shader_component->state;
     ECS_Handle *tb = ECS_Entity_AncestorWithComponent(self, M7_Components.TextureBank, false);
     M7_ResourceBank_Release(tb, M7_Components.TextureBank, texture_map->texture_path);
+}
+
+void M7_PointLight_Detach(ECS_Handle *self, ECS_Component(void) *component) {
+    M7_PointLight *light = ECS_Entity_GetComponent(self, component);
+    List_RemoveWhere(light->environment->lights, active, active == light->active);
+    SDL_free(light->active);
 }
 
 void M7_SolidColor_Init(void *component, void *args) {
@@ -102,9 +148,18 @@ void M7_TextureMap_Init(void *component, void *args) {
 }
 
 void M7_Lighting_Init(void *component, void *args) {
-    (void)args;
     M7_ShaderComponent *shader_component = component;
-    shader_component->callback = SD_SELECT(M7_ShadeOriginLight);
+    shader_component->callback = SD_SELECT(M7_ShadeLighting);
+    shader_component->state = SDL_malloc(sizeof(M7_OpticalMedium));
+    SDL_memcpy(shader_component->state, args, sizeof(M7_OpticalMedium));
+}
+
+void M7_LightEnvironment_Init(void *component, void *args) {
+    M7_LightEnvironment **env = component;
+    M7_LightEnvironment *env_args = args;
+    *env = SDL_malloc(sizeof(M7_LightEnvironment));
+    (*env)->lights = List_Create(M7_ActiveLight *);
+    (*env)->ambient = env_args->ambient;
 }
 
 void M7_TextureMap_Free(void *component) {
@@ -117,6 +172,12 @@ void M7_TextureMap_Free(void *component) {
 void M7_ShaderComponent_Free(void *component) {
     M7_ShaderComponent *shader_component = component;
     SDL_free(shader_component->state);
+}
+
+void M7_LightEnvironment_Free(void *component) {
+    M7_LightEnvironment **env = component;
+    List_Free((*env)->lights);
+    SDL_free(*env);
 }
 
 #endif /* SD_SRC_VARIANT */

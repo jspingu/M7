@@ -28,6 +28,9 @@ struct M7_Components {
     ECS_Component(M7_ParallelProjector) *ParallelProjector;
     ECS_Component(M7_PerspectiveFOV) *PerspectiveFOV;
 
+    ECS_Component(M7_LightEnvironment *) *LightEnvironment;
+    ECS_Component(M7_PointLight) *PointLight;
+
     /* Shader components */
     ECS_Component(M7_ShaderComponent) *SolidColor;
     ECS_Component(M7_ShaderComponent) *Checkerboard;

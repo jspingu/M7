@@ -41,6 +41,16 @@ void M7_3D_RegisterToECS(ECS *ecs) {
     M7_Components.Rect = ECS_RegisterComponent(ecs, M7_Rect, {});
     M7_Components.Cubemap = ECS_RegisterComponent(ecs, M7_Cubemap, {});
 
+    M7_Components.LightEnvironment = ECS_RegisterComponent(ecs, M7_LightEnvironment *, {
+        .init = M7_LightEnvironment_Init,
+        .free = M7_LightEnvironment_Free
+    });
+
+    M7_Components.PointLight = ECS_RegisterComponent(ecs, M7_PointLight, {
+        .attach = M7_PointLight_Attach,
+        .detach = M7_PointLight_Detach
+    });
+
     M7_Components.SolidColor = ECS_RegisterComponent(ecs, M7_ShaderComponent, {
         .init = M7_SolidColor_Init,
         .free = M7_ShaderComponent_Free
@@ -52,7 +62,9 @@ void M7_3D_RegisterToECS(ECS *ecs) {
     });
 
     M7_Components.Lighting = ECS_RegisterComponent(ecs, M7_ShaderComponent, {
-        .init = M7_Lighting_Init
+        .attach = M7_Lighting_Attach,
+        .init = M7_Lighting_Init,
+        .free = M7_ShaderComponent_Free
     });
 
     M7_Components.TextureMap = ECS_RegisterComponent(ecs, M7_ShaderComponent, {
@@ -64,4 +76,5 @@ void M7_3D_RegisterToECS(ECS *ecs) {
 
     ECS_SystemGroup_RegisterSystem(M7_SystemGroups.Render, SD_SELECT(M7_Rasterizer_Render), M7_Components.Rasterizer);
     ECS_SystemGroup_RegisterSystem(M7_SystemGroups.OnXform, M7_Model_OnXform, M7_Components.Model);
+    ECS_SystemGroup_RegisterSystem(M7_SystemGroups.OnXform, M7_PointLight_OnXform, M7_Components.PointLight);
 }

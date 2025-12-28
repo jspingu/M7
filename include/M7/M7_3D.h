@@ -123,10 +123,35 @@ typedef struct M7_TextureMap {
     float scale;
 } M7_TextureMap;
 
+typedef struct M7_ActiveLight {
+    float energy;
+    vec3 col;
+    vec3 pos;
+} M7_ActiveLight;
+
+typedef struct M7_LightEnvironment {
+    List(M7_ActiveLight *) *lights;
+    float ambient;
+} M7_LightEnvironment;
+
+typedef struct M7_PointLight {
+    M7_LightEnvironment *environment;
+    M7_ActiveLight *active;
+    vec3 col;
+    float energy;
+} M7_PointLight;
+
+typedef struct M7_OpticalMedium {
+    M7_LightEnvironment *environment;
+    float reflectivity;
+    float specularity;
+    int exp;
+} M7_OpticalMedium;
+
 M7_SHADER_DECLARE(M7_ShadeSolidColor)
 M7_SHADER_DECLARE(M7_ShadeCheckerboard)
-M7_SHADER_DECLARE(M7_ShadeOriginLight)
 M7_SHADER_DECLARE(M7_ShadeTextureMap)
+M7_SHADER_DECLARE(M7_ShadeLighting)
 
 M7_Mesh *M7_Teapot_GetMesh(ECS_Handle *self);
 M7_Mesh *M7_Torus_GetMesh(ECS_Handle *self);
