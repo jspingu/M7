@@ -48,5 +48,4 @@ void M7_ResourceBank_Detach(ECS_Handle *self, ECS_Component(void) *component) {
     M7_ResourceBank *bank = ECS_Entity_GetComponent(self, component);
     Strmap_ForEach(bank->map, resource, bank->free(self, resource.data); );
     Strmap_Free(bank->map);
-    SDL_free(bank);
 }
