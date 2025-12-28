@@ -86,7 +86,7 @@ static void ECS_ShiftRows(ECS *ecs, size_t start, size_t end, ptrdiff_t shift) {
     Bitset *component_union = Bitset_Create();
 
     for (size_t i = start; i < end; ++i) {
-        ecs->headers[start].self->index += shift;
+        ecs->headers[i].self->index += shift;
         component_union = Bitset_Union(component_union, ecs->headers[i].active_components);
     }
 
