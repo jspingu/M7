@@ -7,7 +7,7 @@
 #include <M7/Math/linalg.h>
 #include <M7/Math/stride.h>
 
-#define M7_SHADER_DECLARE(name)  SD_DECLARE(sd_vec4, name, void *, state, sd_vec4, col, sd_vec3, vs, sd_vec3, nrml, sd_vec2, ts)
+#define M7_SHADER_DECLARE(name)  SD_DECLARE(sd_vec4, name, void *, state, M7_ShaderParams, fragment)
 
 typedef enum M7_RasterizerFlags {
     M7_RASTERIZER_ALPHA_BLEND         = 1 << 0,
@@ -30,12 +30,19 @@ typedef struct M7_Model M7_Model;
 typedef struct M7_ModelInstance M7_ModelInstance;
 typedef struct M7_Rasterizer M7_Rasterizer;
 typedef struct M7_TriangleDraw M7_TriangleDraw;
+typedef struct M7_ShaderParams M7_ShaderParams;
 
 typedef xform3 (*M7_XformComposer)(ECS_Handle *self, xform3 lhs);
 
-typedef sd_vec4 (*M7_FragmentShader)(void *state, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts);
+typedef sd_vec4 (*M7_FragmentShader)(void *state, M7_ShaderParams fragment);
 typedef sd_vec2 (*M7_VertexProjector)(ECS_Handle *self, sd_vec3 pos, sd_vec2 midpoint);
 typedef void (*M7_RasterScanner)(ECS_Handle *self, M7_TriangleDraw triangle, M7_RasterizerFlags flags, int (*scanlines)[2], int range[2]);
+
+typedef struct M7_ShaderParams {
+    sd_vec4 col;
+    sd_vec3 vs, nrml;
+    sd_vec2 ts;
+} M7_ShaderParams;
 
 typedef struct M7_ShaderComponent {
     M7_FragmentShader callback;

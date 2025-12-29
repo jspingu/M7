@@ -3,16 +3,15 @@
 #include <M7/Math/stride.h>
 #include <M7/Math/linalg.h>
 
-sd_vec4 SD_VARIANT(M7_ShadeSolidColor)(void *state, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts) {
-    (void)col, (void)vs, (void)nrml, (void)ts;
+sd_vec4 SD_VARIANT(M7_ShadeSolidColor)(void *state, M7_ShaderParams fragment) {
+    (void)fragment;
     M7_SolidColor *solid_color = state;
     return sd_vec4_set(solid_color->r, solid_color->g, solid_color->b, 1);
 }
 
-sd_vec4 SD_VARIANT(M7_ShadeCheckerboard)(void *state, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts) {
-    (void)col, (void)vs, (void)nrml;
+sd_vec4 SD_VARIANT(M7_ShadeCheckerboard)(void *state, M7_ShaderParams fragment) {
     M7_Checkerboard *checkerboard = state;
-    sd_vec2 tile_coord = sd_vec2_muls(ts, sd_float_set(checkerboard->tiles));
+    sd_vec2 tile_coord = sd_vec2_muls(fragment.ts, sd_float_set(checkerboard->tiles));
     sd_int tile_idx = sd_int_add(sd_int_mul(sd_float_to_int(tile_coord.y), sd_int_set(checkerboard->tiles)), sd_float_to_int(tile_coord.x));
     sd_mask tile_mask = sd_int_gt(sd_int_and(tile_idx, sd_int_set(1)), sd_int_set(0));
 
@@ -23,43 +22,41 @@ sd_vec4 SD_VARIANT(M7_ShadeCheckerboard)(void *state, sd_vec4 col, sd_vec3 vs, s
     );
 }
 
-sd_vec4 SD_VARIANT(M7_ShadeTextureMap)(void *state, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts) {
-    (void)col, (void)vs, (void)nrml;
+sd_vec4 SD_VARIANT(M7_ShadeTextureMap)(void *state, M7_ShaderParams fragment) {
     M7_TextureMap *texture_map = state;
-    return M7_SampleNearest(texture_map->texture, ts) ;
+    return M7_SampleNearest(texture_map->texture, fragment.ts) ;
 }
 
-sd_vec4 SD_VARIANT(M7_ShadeLighting)(void *state, sd_vec4 col, sd_vec3 vs, sd_vec3 nrml, sd_vec2 ts) {
-    (void)ts;
+sd_vec4 SD_VARIANT(M7_ShadeLighting)(void *state, M7_ShaderParams fragment) {
     M7_OpticalMedium *medium = state;
     sd_float specularity = sd_float_set(medium->specularity);
     sd_float reflectivity = sd_float_set(medium->reflectivity);
     sd_float ambient = sd_float_set(medium->environment->ambient);
-    sd_vec3 eye = sd_vec3_negate(sd_vec3_normalize(vs));
+    sd_vec3 eye = sd_vec3_negate(sd_vec3_normalize(fragment.vs));
 
     sd_vec4 out;
-    out.rgb = sd_vec3_muls(col.rgb, ambient);
-    out.a = col.a;
+    out.rgb = sd_vec3_muls(fragment.col.rgb, ambient);
+    out.a = fragment.col.a;
 
     List_ForEach(medium->environment->lights, light, {
         sd_vec3 light_vs = sd_vec3_set(light->pos.x, light->pos.y, light->pos.z);
         sd_vec3 light_col = sd_vec3_set(light->col.x, light->col.y, light->col.z);
         sd_float light_energy = sd_float_set(light->energy);
 
-        sd_vec3 incident = sd_vec3_sub(vs, light_vs);
+        sd_vec3 incident = sd_vec3_sub(fragment.vs, light_vs);
         sd_float sqrlen = sd_vec3_dot(incident, incident);
         sd_float rcpsql = sd_float_rcp(sqrlen);
         sd_float rcplen = sd_float_rsqrt(sqrlen);
 
         sd_vec3 unit_incident = sd_vec3_muls(incident, rcplen);
-        sd_float dp = sd_float_max(sd_float_negate(sd_vec3_dot(unit_incident, nrml)), sd_float_zero());
+        sd_float dp = sd_float_max(sd_float_negate(sd_vec3_dot(unit_incident, fragment.nrml)), sd_float_zero());
 
         sd_float rf_falloff = sd_float_sub(sd_float_one(), dp);
                  rf_falloff = sd_float_mul(rf_falloff, rf_falloff);
                  rf_falloff = sd_float_mul(rf_falloff, rf_falloff);
 
         sd_float rf_coeff = sd_float_fmadd(sd_float_sub(sd_float_one(), reflectivity), rf_falloff, reflectivity);
-        sd_float sp_coeff = sd_float_negate(sd_vec3_dot(eye, sd_vec3_reflect(unit_incident, nrml)));
+        sd_float sp_coeff = sd_vec3_dot(eye, sd_vec3_reflect(unit_incident, fragment.nrml));
 
         for (int i = 0; i < medium->exp; ++i)
             sp_coeff = sd_float_mul(sp_coeff, sp_coeff);
@@ -68,7 +65,7 @@ sd_vec4 SD_VARIANT(M7_ShadeLighting)(void *state, sd_vec4 col, sd_vec3 vs, sd_ve
 
         sd_vec3 power_in = sd_vec3_muls(light_col, sd_float_mul(sd_float_mul(light_energy, rcpsql), dp));
         sd_vec3 power_out = sd_vec3_muls(power_in, rf_coeff);
-        out.rgb = sd_vec3_add(out.rgb, sd_vec3_mul(col.rgb, sd_vec3_fmadd(power_out, sp_coeff, power_out)));
+        out.rgb = sd_vec3_add(out.rgb, sd_vec3_mul(fragment.col.rgb, sd_vec3_fmadd(power_out, sp_coeff, power_out)));
     });
 
     return out;
