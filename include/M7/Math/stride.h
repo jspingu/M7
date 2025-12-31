@@ -343,6 +343,20 @@ static inline sd_mask sd_mask_not(sd_mask m) {
 #endif
 }
 
+static inline sd_mask sd_mask_andn(sd_mask lhs, sd_mask rhs) {
+#ifdef __AVX512F__
+    return _mm512_kandn(rhs, lhs);
+#elifdef __AVX2__
+    return _mm256_andnot_si256(rhs, lhs);
+#elifdef __SSE2__
+    return _mm_andnot_si128(rhs, lhs);
+#elifdef __ARM_NEON
+    return vbicq_u32(lhs, rhs);
+#else
+    return lhs && !rhs;
+#endif
+}
+
 static inline sd_mask sd_mask_set(bool b) {
 #ifdef __AVX512F__
     return _mm512_int2mask(-(b > 0));
@@ -491,6 +505,24 @@ static inline sd_int sd_int_shr(sd_int i, int shift) {
     return (sd_int){vshlq_s32(i.val, shiftv)};
 #else
     return (sd_int){i.val >> shift};
+#endif
+}
+
+static inline sd_int sd_int_mask_blend(sd_int bg, sd_int fg, sd_mask mask) {
+#ifdef __AVX512F__
+    return (sd_int){_mm512_mask_blend_epi32(mask, bg.val, fg.val)};
+#elifdef __AVX2__
+    __m256i select_bg = _mm256_andnot_si256(mask, bg.val);
+    __m256i select_fg = _mm256_and_si256(mask, fg.val);
+    return (sd_int){_mm256_or_si256(select_bg, select_fg)};
+#elifdef __SSE2__
+    __m128i select_bg = _mm_andnot_si128(mask, bg.val);
+    __m128i select_fg = _mm_and_si128(mask, fg.val);
+    return (sd_int){_mm_or_si128(select_bg, select_fg)};
+#elifdef __ARM_NEON
+    return (sd_int){vbslq_s32(mask, fg.val, bg.val)};
+#else
+    return mask ? fg : bg;
 #endif
 }
 
