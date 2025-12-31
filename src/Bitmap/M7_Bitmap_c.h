@@ -8,7 +8,6 @@ void M7_Viewport_Init(void *component, void *args);
 void M7_Viewport_Free(void *component);
 
 SD_DECLARE_VOID_RETURN(M7_Canvas_Present, ECS_Handle *, self)
-SD_DECLARE_VOID_RETURN(M7_Canvas_Attach, ECS_Handle *, self, ECS_Component(void) *, component)
 SD_DECLARE_VOID_RETURN(M7_Canvas_Init, void *, component, void *, args)
 void M7_Canvas_Free(void *component);
 

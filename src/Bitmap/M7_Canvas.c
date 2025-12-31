@@ -60,7 +60,7 @@ static int PresentThread(void *data) {
 
 void SD_VARIANT(M7_Canvas_Present)(ECS_Handle *self) {
     M7_Canvas *canvas = ECS_Entity_GetComponent(self, M7_Components.Canvas);
-    M7_Viewport *vp = ECS_Entity_GetComponent(canvas->vp, M7_Components.Viewport);
+    M7_Viewport *vp = ECS_Entity_GetComponent(self, M7_Components.Viewport);
 
     uint32_t *pixels;
     int pitch;
@@ -93,11 +93,6 @@ void SD_VARIANT(M7_Canvas_Present)(ECS_Handle *self) {
     SDL_UnlockTexture(vp->texture);
     SDL_RenderTexture(vp->renderer, vp->texture, nullptr, nullptr);
     SDL_RenderPresent(vp->renderer);
-}
-
-void SD_VARIANT(M7_Canvas_Attach)(ECS_Handle *self, ECS_Component(void) * component) {
-    M7_Canvas *canvas = ECS_Entity_GetComponent(self, component);
-    canvas->vp = ECS_Entity_AncestorWithComponent(self, M7_Components.Viewport, true);
 }
 
 void SD_VARIANT(M7_Canvas_Init)(void *component, void *args) {

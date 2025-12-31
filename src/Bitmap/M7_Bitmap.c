@@ -6,7 +6,6 @@
 
 void M7_Bitmap_RegisterToECS(ECS *ecs) {
     M7_Components.Canvas = ECS_RegisterComponent(ecs, M7_Canvas, {
-        .attach = SD_SELECT(M7_Canvas_Attach),
         .init = SD_SELECT(M7_Canvas_Init),
         .free = M7_Canvas_Free
     });
