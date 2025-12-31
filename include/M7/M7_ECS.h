@@ -36,6 +36,7 @@ struct M7_Components {
     ECS_Component(M7_ShaderComponent) *Checkerboard;
     ECS_Component(M7_ShaderComponent) *TextureMap;
     ECS_Component(M7_ShaderComponent) *Lighting;
+    ECS_Component(M7_ShaderComponent) *Sky;
 
     /* 3D primitives */
     ECS_Component(M7_Mesh *) *MeshPrimitive;

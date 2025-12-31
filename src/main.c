@@ -49,7 +49,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
             ECS_Components(
                 { M7_Components.World, nullptr },
                 { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault}},
-                { M7_Components.LightEnvironment, &(M7_LightEnvironment){ .ambient=0.08 } }
+                { M7_Components.LightEnvironment, &(M7_LightEnvironment){ .ambient=0.08, .sky_texture_path="assets/Nalovardo.png" } }
             ),
             ECS_Children(
                 { /* Camera */
@@ -75,13 +75,13 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
                         { M7_Components.Position, &(vec3){ .y=-150, .z=600 } },
                         { M7_Components.Basis, (mat3x3 []){mat3x3_identity} },
                         { M7_Components.MeshPrimitive, nullptr },
-                        { M7_Components.Teapot, &(M7_Teapot) { .scale = 50 } },
+                        { M7_Components.Teapot, &(M7_Teapot) { .scale=50 } },
                         { M7_Components.Model, &(M7_ModelArgs) { .get_mesh = M7_Teapot_GetMesh }},
                         { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault} }
                     ),
                     ECS_Children({ECS_Components(
-                        { M7_Components.SolidColor, &(M7_SolidColor) { .r=0.7, .g=0.7, .b=1.0 } },
-                        { M7_Components.Lighting, &(M7_OpticalMedium) { .reflectivity=1, .specularity=0.6, .exp=4 } },
+                        { M7_Components.SolidColor, &(M7_SolidColor) { .r=1.0, .g=1.0, .b=1.0 } },
+                        { M7_Components.Lighting, &(M7_OpticalMedium) { .reflectivity=0.1, .specularity=1.0, .exp=4 } },
                         { M7_Components.ModelInstance, &(M7_ModelInstanceArgs) {
                             .shader_components = (ECS_Component(M7_ShaderComponent) *[]) { M7_Components.SolidColor, M7_Components.Lighting },
                             .nshaders = 2,
@@ -108,7 +108,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
                             .r1 = 0.4, .g1 = 0.4, .b1 = 0.8,
                             .r2 = 1.0, .g2 = 1.0, .b2 = 1.0,
                         }},
-                        { M7_Components.Lighting, &(M7_OpticalMedium) { .reflectivity=0.5, .specularity=1, .exp=6 } },
+                        { M7_Components.Lighting, &(M7_OpticalMedium) { .reflectivity=0.4, .specularity=0.4, .exp=4 } },
                         { M7_Components.ModelInstance, &(M7_ModelInstanceArgs) {
                             .shader_components = (ECS_Component(M7_ShaderComponent) *[]) { M7_Components.Checkerboard, M7_Components.Lighting },
                             .nshaders = 2,
@@ -121,13 +121,13 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
                 },
                 { /* Light */
                     ECS_Components(
-                        { M7_Components.Position, &(vec3){ .x=-200, .y=-115, .z=400 } },
+                        { M7_Components.Position, &(vec3){ .x=-150, .y=-115, .z=400 } },
                         { M7_Components.Basis, (mat3x3 []){mat3x3_identity} },
                         { M7_Components.MeshPrimitive, nullptr },
                         { M7_Components.Sphere, &(M7_Sphere) { .radius=32, .nrings=16, .ring_precision=16 } },
                         { M7_Components.Model, &(M7_ModelArgs) { .get_mesh = M7_Sphere_GetMesh }},
                         { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault} },
-                        { M7_Components.PointLight, &(M7_PointLight) { .col={{ 1.0, 0.8, 0.2 }}, .energy=10000 } }
+                        { M7_Components.PointLight, &(M7_PointLight) { .col={{ 1.0, 0.8, 0.2 }}, .energy=20000 } }
                     ),
                     ECS_Children({ECS_Components(
                         { M7_Components.SolidColor, &(M7_SolidColor) { .r=1, .g=1, .b=1 }},
@@ -143,13 +143,13 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
                 },
                 { /* Light */
                     ECS_Components(
-                        { M7_Components.Position, &(vec3){ .x=200, .y=-115, .z=400 } },
+                        { M7_Components.Position, &(vec3){ .x=150, .y=-115, .z=400 } },
                         { M7_Components.Basis, (mat3x3 []){mat3x3_identity} },
                         { M7_Components.MeshPrimitive, nullptr },
                         { M7_Components.Sphere, &(M7_Sphere) { .radius=32, .nrings=16, .ring_precision=16 } },
                         { M7_Components.Model, &(M7_ModelArgs) { .get_mesh = M7_Sphere_GetMesh }},
                         { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault} },
-                        { M7_Components.PointLight, &(M7_PointLight) { .col={{ 0.2, 1.0, 0.5 }}, .energy=10000 } }
+                        { M7_Components.PointLight, &(M7_PointLight) { .col={{ 0.2, 1.0, 0.5 }}, .energy=20000 } }
                     ),
                     ECS_Children({ECS_Components(
                         { M7_Components.SolidColor, &(M7_SolidColor) { .r=1, .g=1, .b=1 }},
@@ -162,44 +162,65 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
                                    | M7_RASTERIZER_WRITE_DEPTH
                         }}
                     )})
-                }
-            )
-        },
-        { /* Skybox world */
-            ECS_Components(
-                { M7_Components.World, nullptr },
-                { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeCubemap} }
-            ),
-            ECS_Children(
-                { /* Camera */
+                },
+                { /* Light */
                     ECS_Components(
-                        { M7_Components.PerspectiveFOV, &(float) { SDL_PI_F / 2 } },
-                        { M7_Components.Rasterizer, &(M7_RasterizerArgs) {
-                            .project = SD_SELECT(M7_ProjectPerspective),
-                            .scan = SD_SELECT(M7_ScanPerspective),
-                            .near = 1,
-                            .parallelism = SDL_GetNumLogicalCPUCores()
-                        }},
-                        { M7_Components.Position, &(vec3){}},
-                        { M7_Components.Basis, (mat3x3 []){mat3x3_identity}},
-                        { Components.FreeCam, &(FreeCam){} }
-                    )
+                        { M7_Components.Position, &(vec3){ .x=-150, .y=-115, .z=800 } },
+                        { M7_Components.Basis, (mat3x3 []){mat3x3_identity} },
+                        { M7_Components.MeshPrimitive, nullptr },
+                        { M7_Components.Sphere, &(M7_Sphere) { .radius=32, .nrings=16, .ring_precision=16 } },
+                        { M7_Components.Model, &(M7_ModelArgs) { .get_mesh = M7_Sphere_GetMesh }},
+                        { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault} },
+                        { M7_Components.PointLight, &(M7_PointLight) { .col={{ 1.0, 0.2, 0.1 }}, .energy=20000 } }
+                    ),
+                    ECS_Children({ECS_Components(
+                        { M7_Components.SolidColor, &(M7_SolidColor) { .r=1, .g=1, .b=1 }},
+                        { M7_Components.ModelInstance, &(M7_ModelInstanceArgs) {
+                            .shader_components = (ECS_Component(M7_ShaderComponent) *[]) { M7_Components.SolidColor },
+                            .nshaders = 1,
+                            .render_batch = Opaque,
+                            .flags = M7_RASTERIZER_CULL_BACKFACE
+                                   | M7_RASTERIZER_TEST_DEPTH
+                                   | M7_RASTERIZER_WRITE_DEPTH
+                        }}
+                    )})
+                },
+                { /* Light */
+                    ECS_Components(
+                        { M7_Components.Position, &(vec3){ .x=150, .y=-115, .z=800 } },
+                        { M7_Components.Basis, (mat3x3 []){mat3x3_identity} },
+                        { M7_Components.MeshPrimitive, nullptr },
+                        { M7_Components.Sphere, &(M7_Sphere) { .radius=32, .nrings=16, .ring_precision=16 } },
+                        { M7_Components.Model, &(M7_ModelArgs) { .get_mesh = M7_Sphere_GetMesh }},
+                        { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault} },
+                        { M7_Components.PointLight, &(M7_PointLight) { .col={{ 0.9, 0.2, 1.0 }}, .energy=20000 } }
+                    ),
+                    ECS_Children({ECS_Components(
+                        { M7_Components.SolidColor, &(M7_SolidColor) { .r=1, .g=1, .b=1 }},
+                        { M7_Components.ModelInstance, &(M7_ModelInstanceArgs) {
+                            .shader_components = (ECS_Component(M7_ShaderComponent) *[]) { M7_Components.SolidColor },
+                            .nshaders = 1,
+                            .render_batch = Opaque,
+                            .flags = M7_RASTERIZER_CULL_BACKFACE
+                                   | M7_RASTERIZER_TEST_DEPTH
+                                   | M7_RASTERIZER_WRITE_DEPTH
+                        }}
+                    )})
                 },
                 { /* Skybox */
                     ECS_Components(
                         { M7_Components.MeshPrimitive, nullptr },
-                        { M7_Components.Cubemap, &(M7_Cubemap) { .scale = 1000 } },
-                        { M7_Components.Model, &(M7_ModelArgs) { .get_mesh = M7_Cubemap_GetMesh }},
-                        { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeCubemap} }
+                        { M7_Components.Cubemap, &(M7_Cubemap) { .scale=1000 } },
+                        { M7_Components.Model, &(M7_ModelArgs) { .get_mesh = M7_Cubemap_GetMesh } },
+                        { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeCubemap} },
                     ),
                     ECS_Children({ECS_Components(
-                        { M7_Components.TextureMap, "assets/Nalovardo.png" },
+                        { M7_Components.Sky, nullptr },
                         { M7_Components.ModelInstance, &(M7_ModelInstanceArgs) {
-                            .shader_components = (ECS_Component(M7_ShaderComponent) *[]) { M7_Components.TextureMap },
+                            .shader_components = (ECS_Component(M7_ShaderComponent) *[]) { M7_Components.Sky },
                             .nshaders = 1,
                             .render_batch = Sky,
-                            .flags = 0
-                        }},
+                        }}
                     )})
                 }
             )

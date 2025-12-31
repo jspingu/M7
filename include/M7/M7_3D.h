@@ -138,6 +138,8 @@ typedef struct M7_ActiveLight {
 } M7_ActiveLight;
 
 typedef struct M7_LightEnvironment {
+    char *sky_texture_path;
+    M7_Texture *sky;
     List(M7_ActiveLight *) *lights;
     float ambient;
 } M7_LightEnvironment;
@@ -160,6 +162,7 @@ M7_SHADER_DECLARE(M7_ShadeSolidColor)
 M7_SHADER_DECLARE(M7_ShadeCheckerboard)
 M7_SHADER_DECLARE(M7_ShadeTextureMap)
 M7_SHADER_DECLARE(M7_ShadeLighting)
+M7_SHADER_DECLARE(M7_ShadeSky)
 
 M7_Mesh *M7_Teapot_GetMesh(ECS_Handle *self);
 M7_Mesh *M7_Torus_GetMesh(ECS_Handle *self);

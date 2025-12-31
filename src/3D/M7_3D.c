@@ -42,6 +42,8 @@ void M7_3D_RegisterToECS(ECS *ecs) {
     M7_Components.Cubemap = ECS_RegisterComponent(ecs, M7_Cubemap, {});
 
     M7_Components.LightEnvironment = ECS_RegisterComponent(ecs, M7_LightEnvironment *, {
+        .attach = M7_LightEnvironment_Attach,
+        .detach = M7_LightEnvironment_Detach,
         .init = M7_LightEnvironment_Init,
         .free = M7_LightEnvironment_Free
     });
@@ -64,6 +66,12 @@ void M7_3D_RegisterToECS(ECS *ecs) {
     M7_Components.Lighting = ECS_RegisterComponent(ecs, M7_ShaderComponent, {
         .attach = M7_Lighting_Attach,
         .init = M7_Lighting_Init,
+        .free = M7_ShaderComponent_Free
+    });
+
+    M7_Components.Sky = ECS_RegisterComponent(ecs, M7_ShaderComponent, {
+        .attach = M7_Sky_Attach,
+        .init = M7_Sky_Init,
         .free = M7_ShaderComponent_Free
     });
 

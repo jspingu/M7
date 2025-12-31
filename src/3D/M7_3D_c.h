@@ -74,6 +74,8 @@ typedef struct M7_Rasterizer {
 
 void M7_3D_RegisterToECS(ECS *ecs);
 
+void M7_LightEnvironment_Attach(ECS_Handle *self, ECS_Component(void) *component);
+void M7_LightEnvironment_Detach(ECS_Handle *self, ECS_Component(void) *component);
 void M7_LightEnvironment_Init(void *component, void *args);
 void M7_LightEnvironment_Free(void *component);
 
@@ -83,6 +85,9 @@ void M7_PointLight_Detach(ECS_Handle *self, ECS_Component(void) *component);
 
 void M7_Lighting_Attach(ECS_Handle *self, ECS_Component(void) *component);
 void M7_Lighting_Init(void *component, void *args);
+
+void M7_Sky_Attach(ECS_Handle *self, ECS_Component(void) *component);
+void M7_Sky_Init(void *component, void *args);
 
 void M7_SolidColor_Init(void *component, void *args);
 void M7_Checkerboard_Init(void *component, void *args);
