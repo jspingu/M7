@@ -26,6 +26,13 @@ static inline vec3 intersect_near(vec3 from, vec3 to, float near) {
 void SD_VARIANT(M7_ScanLinear)(ECS_Handle *self, M7_TriangleDraw triangle, M7_RasterizerFlags flags, int (*scanlines)[2], int range[2]) {
     M7_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, M7_Components.Rasterizer);
     M7_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, M7_Components.Canvas);
+    xform3 scalar_vs2ws_xform = M7_Entity_GetXform(self);
+
+    sd_vec3 vs2ws_xform[3] = {
+        sd_vec3_set(scalar_vs2ws_xform.basis.x.x, scalar_vs2ws_xform.basis.x.y, scalar_vs2ws_xform.basis.x.z),
+        sd_vec3_set(scalar_vs2ws_xform.basis.y.x, scalar_vs2ws_xform.basis.y.y, scalar_vs2ws_xform.basis.y.z),
+        sd_vec3_set(scalar_vs2ws_xform.basis.z.x, scalar_vs2ws_xform.basis.z.y, scalar_vs2ws_xform.basis.z.z),
+    };
 
     sd_vec2 origin = sd_vec2_set(triangle.ss_verts[0].x ,triangle.ss_verts[0].y);
     sd_vec2 ab = sd_vec2_sub(sd_vec2_set(triangle.ss_verts[1].x, triangle.ss_verts[1].y), origin);
@@ -105,6 +112,8 @@ void SD_VARIANT(M7_ScanLinear)(ECS_Handle *self, M7_TriangleDraw triangle, M7_Ra
                 .ts = fragment_ts
             };
 
+            SDL_memcpy(fragment.vs2ws_xform, vs2ws_xform, sizeof(sd_vec3 [3]));
+
             for (size_t i = 0; i < triangle.nshaders; ++i)
                 fragment.col = triangle.shader_pipeline[i](triangle.shader_states[i], fragment);
 
@@ -127,6 +136,13 @@ void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw triangle, 
     M7_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, M7_Components.Rasterizer);
     M7_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, M7_Components.Canvas);
     M7_PerspectiveFOV *perspective_fov = ECS_Entity_GetComponent(self, M7_Components.PerspectiveFOV);
+    xform3 scalar_vs2ws_xform = M7_Entity_GetXform(self);
+
+    sd_vec3 vs2ws_xform[3] = {
+        sd_vec3_set(scalar_vs2ws_xform.basis.x.x, scalar_vs2ws_xform.basis.x.y, scalar_vs2ws_xform.basis.x.z),
+        sd_vec3_set(scalar_vs2ws_xform.basis.y.x, scalar_vs2ws_xform.basis.y.y, scalar_vs2ws_xform.basis.y.z),
+        sd_vec3_set(scalar_vs2ws_xform.basis.z.x, scalar_vs2ws_xform.basis.z.y, scalar_vs2ws_xform.basis.z.z),
+    };
 
     sd_vec3 origin = sd_vec3_set(triangle.vs_verts[0].x, triangle.vs_verts[0].y, triangle.vs_verts[0].z);
     sd_vec3 ab = sd_vec3_sub(sd_vec3_set(triangle.vs_verts[1].x, triangle.vs_verts[1].y, triangle.vs_verts[1].z), origin);
@@ -224,6 +240,8 @@ void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw triangle, 
                 .nrml = fragment_nrml,
                 .ts = fragment_ts
             };
+
+            SDL_memcpy(fragment.vs2ws_xform, vs2ws_xform, sizeof(sd_vec3 [3]));
 
             for (size_t i = 0; i < triangle.nshaders; ++i)
                 fragment.col = triangle.shader_pipeline[i](triangle.shader_states[i], fragment);

@@ -42,6 +42,7 @@ typedef struct M7_ShaderParams {
     sd_vec4 col;
     sd_vec3 vs, nrml;
     sd_vec2 ts;
+    sd_vec3 vs2ws_xform[3];
 } M7_ShaderParams;
 
 typedef struct M7_ShaderComponent {
