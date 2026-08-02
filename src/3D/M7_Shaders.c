@@ -84,7 +84,7 @@ sd_vec4 SD_VARIANT(M7_ShadeLighting)(void *state, M7_ShaderParams fragment) {
     sd_vec3 power_in = sd_vec3_muls(M7_SampleCubemap(medium->environment->sky, dir).rgb, dp);
     sd_vec3 power_out = sd_vec3_muls(power_in, rf_coeff);
 
-    out.rgb = sd_vec3_fmadd(power_out, specularity, out.rgb);
+    out.rgb = sd_vec3_fmadd(sd_vec3_mul(fragment.col.rgb, power_out), specularity, out.rgb);
     return out;
 }
 
