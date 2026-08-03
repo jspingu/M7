@@ -1,7 +1,7 @@
 #ifndef LOCALCOMPONENTS_H
 #define LOCALCOMPONENTS_H
 
-#include <M7/ECS.h>
+#include <TX/ECS.h>
 
 typedef struct FreeCam {
     float yaw, pitch;

@@ -1,11 +1,11 @@
 #include <SDL3/SDL.h>
-#include <M7/ECS.h>
-#include <M7/M7_ECS.h>
-#include <M7/Collections/List.h>
-#include <M7/Math/linalg.h>
-#include <M7/Math/stride.h>
+#include <TX/ECS.h>
+#include <TX/TX_ECS.h>
+#include <TX/Collections/List.h>
+#include <TX/Math/linalg.h>
+#include <TX/Math/stride.h>
 
-#include "M7_3D_c.h"
+#include "TX_3D_c.h"
 
 typedef struct SubCanvasRenderData {
     ECS_Handle *rasterizer;
@@ -23,10 +23,10 @@ static inline vec3 intersect_near(vec3 from, vec3 to, float near) {
     return vec3_add(from, vec3_mul(slope, near - from.z));
 }
 
-void SD_VARIANT(M7_ScanLinear)(ECS_Handle *self, M7_TriangleDraw triangle, M7_RasterizerFlags flags, int (*scanlines)[2], int range[2]) {
-    M7_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, M7_Components.Rasterizer);
-    M7_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, M7_Components.Canvas);
-    xform3 scalar_vs2ws_xform = M7_Entity_GetXform(self);
+void SD_VARIANT(TX_ScanLinear)(ECS_Handle *self, TX_TriangleDraw triangle, TX_RasterizerFlags flags, int (*scanlines)[2], int range[2]) {
+    TX_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, TX_Components.Rasterizer);
+    TX_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, TX_Components.Canvas);
+    xform3 scalar_vs2ws_xform = TX_Entity_GetXform(self);
 
     sd_vec3 vs2ws_xform[3] = {
         sd_vec3_set(scalar_vs2ws_xform.basis.x.x, scalar_vs2ws_xform.basis.x.y, scalar_vs2ws_xform.basis.x.z),
@@ -96,7 +96,7 @@ void SD_VARIANT(M7_ScanLinear)(ECS_Handle *self, M7_TriangleDraw triangle, M7_Ra
             sd_float inv_z = sd_float_rcp(fragment_vs.z);
             sd_vec3 fragment_nrml;
 
-            if (flags & M7_RASTERIZER_INTERPOLATE_NORMALS) {
+            if (flags & TX_RASTERIZER_INTERPOLATE_NORMALS) {
                 fragment_nrml = sd_vec3_fmadd(nrml_xform[0], relative.x, origin_nrml);
                 fragment_nrml = sd_vec3_fmadd(nrml_xform[1], relative.y, fragment_nrml);
             } else fragment_nrml = nrml;
@@ -106,7 +106,7 @@ void SD_VARIANT(M7_ScanLinear)(ECS_Handle *self, M7_TriangleDraw triangle, M7_Ra
             sd_vec2 fragment_ts = sd_vec2_fmadd(ts_xform[0], relative.x, origin_ts);
                     fragment_ts = sd_vec2_fmadd(ts_xform[1], relative.y, fragment_ts);
 
-            M7_ShaderParams fragment = {
+            TX_ShaderParams fragment = {
                 .vs = fragment_vs,
                 .nrml = fragment_nrml,
                 .ts = fragment_ts
@@ -121,10 +121,10 @@ void SD_VARIANT(M7_ScanLinear)(ECS_Handle *self, M7_TriangleDraw triangle, M7_Ra
             sd_float bg_z = canvas->depth[base + j];
             sd_mask mask = sd_float_clamp_mask(ss.x, scanlines[i][0], scanlines[i][1]);
 
-            if (flags & M7_RASTERIZER_TEST_DEPTH)
+            if (flags & TX_RASTERIZER_TEST_DEPTH)
                 mask = sd_mask_and(mask, sd_float_gt(inv_z, bg_z));
 
-            if (flags & M7_RASTERIZER_WRITE_DEPTH)
+            if (flags & TX_RASTERIZER_WRITE_DEPTH)
                 canvas->depth[base + j] = sd_float_mask_blend(bg_z, inv_z, mask);
 
             canvas->color[base + j] = sd_vec3_mask_blend(bg, fragment.col.rgb, mask);
@@ -132,11 +132,11 @@ void SD_VARIANT(M7_ScanLinear)(ECS_Handle *self, M7_TriangleDraw triangle, M7_Ra
     }
 }
 
-void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw triangle, M7_RasterizerFlags flags, int (*scanlines)[2], int range[2]) {
-    M7_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, M7_Components.Rasterizer);
-    M7_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, M7_Components.Canvas);
-    M7_PerspectiveFOV *perspective_fov = ECS_Entity_GetComponent(self, M7_Components.PerspectiveFOV);
-    xform3 scalar_vs2ws_xform = M7_Entity_GetXform(self);
+void SD_VARIANT(TX_ScanPerspective)(ECS_Handle *self, TX_TriangleDraw triangle, TX_RasterizerFlags flags, int (*scanlines)[2], int range[2]) {
+    TX_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, TX_Components.Rasterizer);
+    TX_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, TX_Components.Canvas);
+    TX_PerspectiveFOV *perspective_fov = ECS_Entity_GetComponent(self, TX_Components.PerspectiveFOV);
+    xform3 scalar_vs2ws_xform = TX_Entity_GetXform(self);
 
     sd_vec3 vs2ws_xform[3] = {
         sd_vec3_set(scalar_vs2ws_xform.basis.x.x, scalar_vs2ws_xform.basis.x.y, scalar_vs2ws_xform.basis.x.z),
@@ -223,7 +223,7 @@ void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw triangle, 
             sd_vec3 relative = sd_vec3_sub(fragment_vs, origin);
             sd_vec3 fragment_nrml;
 
-            if (flags & M7_RASTERIZER_INTERPOLATE_NORMALS) {
+            if (flags & TX_RASTERIZER_INTERPOLATE_NORMALS) {
                 fragment_nrml = sd_vec3_fmadd(nrml_xform[0], relative.x, origin_nrml);
                 fragment_nrml = sd_vec3_fmadd(nrml_xform[1], relative.y, fragment_nrml);
                 fragment_nrml = sd_vec3_fmadd(nrml_xform[2], relative.z, fragment_nrml);
@@ -235,7 +235,7 @@ void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw triangle, 
                     fragment_ts = sd_vec2_fmadd(ts_xform[1], relative.y, fragment_ts);
                     fragment_ts = sd_vec2_fmadd(ts_xform[2], relative.z, fragment_ts);
 
-            M7_ShaderParams fragment = {
+            TX_ShaderParams fragment = {
                 .vs = fragment_vs,
                 .nrml = fragment_nrml,
                 .ts = fragment_ts
@@ -250,10 +250,10 @@ void SD_VARIANT(M7_ScanPerspective)(ECS_Handle *self, M7_TriangleDraw triangle, 
             sd_float bg_z = canvas->depth[base + j];
             sd_mask mask = sd_float_clamp_mask(fragment_x, scanlines[i][0], scanlines[i][1]);
 
-            if (flags & M7_RASTERIZER_TEST_DEPTH)
+            if (flags & TX_RASTERIZER_TEST_DEPTH)
                 mask = sd_mask_and(mask, sd_float_gt(inv_z, bg_z));
 
-            if (flags & M7_RASTERIZER_WRITE_DEPTH)
+            if (flags & TX_RASTERIZER_WRITE_DEPTH)
                 canvas->depth[base + j] = sd_float_mask_blend(bg_z, inv_z, mask);
 
             canvas->color[base + j] = sd_vec3_mask_blend(bg, fragment.col.rgb, mask);
@@ -279,9 +279,9 @@ static void Trace(int width, int bounds[2], int (*scanlines)[2], vec2 line[2]) {
     }
 }
 
-static void M7_Rasterizer_DrawTriangle(ECS_Handle *self, M7_TriangleDraw triangle, M7_RasterizerFlags flags, int (*scanlines)[2], int bounds[2]) {
-    M7_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, M7_Components.Rasterizer);
-    M7_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, M7_Components.Canvas);
+static void TX_Rasterizer_DrawTriangle(ECS_Handle *self, TX_TriangleDraw triangle, TX_RasterizerFlags flags, int (*scanlines)[2], int bounds[2]) {
+    TX_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, TX_Components.Rasterizer);
+    TX_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, TX_Components.Canvas);
 
     float min_y = SDL_min(SDL_min(triangle.ss_verts[0].y, triangle.ss_verts[1].y), triangle.ss_verts[2].y);
     float max_y = SDL_max(SDL_max(triangle.ss_verts[0].y, triangle.ss_verts[1].y), triangle.ss_verts[2].y);
@@ -295,13 +295,13 @@ static void M7_Rasterizer_DrawTriangle(ECS_Handle *self, M7_TriangleDraw triangl
     rasterizer->scan(self, triangle, flags, scanlines, (int [2]) { high, low });
 }
 
-static void M7_Rasterizer_DrawBatch(ECS_Handle *self, List(M7_RenderInstance *) *batch, M7_RasterizerFlags flags, int (*scanlines)[2], int bounds[2]) {
-    M7_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, M7_Components.Rasterizer);
-    M7_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, M7_Components.Canvas);
+static void TX_Rasterizer_DrawBatch(ECS_Handle *self, List(TX_RenderInstance *) *batch, TX_RasterizerFlags flags, int (*scanlines)[2], int bounds[2]) {
+    TX_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, TX_Components.Rasterizer);
+    TX_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, TX_Components.Canvas);
 
     /* Draw triangles */
     List_ForEach(batch, instance, {
-        M7_MeshFace *faces = instance->geometry->mesh->faces;
+        TX_MeshFace *faces = instance->geometry->mesh->faces;
         size_t nfaces = instance->geometry->mesh->nfaces;
 
         for (size_t i = 0; i < nfaces; ++i) {
@@ -362,10 +362,10 @@ static void M7_Rasterizer_DrawBatch(ECS_Handle *self, List(M7_RenderInstance *) 
                     vec2_sub(clipped[j + 1], clipped[0])
                 ) > 0;
 
-                if (flags & M7_RASTERIZER_CULL_BACKFACE && !verts_cw)
+                if (flags & TX_RASTERIZER_CULL_BACKFACE && !verts_cw)
                     continue;;
 
-                M7_TriangleDraw triangle = {
+                TX_TriangleDraw triangle = {
                     .shader_pipeline = instance->shader_pipeline,
                     .shader_states = instance->shader_states,
                     .nshaders = instance->nshaders
@@ -388,7 +388,7 @@ static void M7_Rasterizer_DrawBatch(ECS_Handle *self, List(M7_RenderInstance *) 
                         instance->geometry->mesh->ts_verts[faces[i].idx_tverts[1 + verts_cw]]
                     }, sizeof(vec2 [3]));
 
-                M7_Rasterizer_DrawTriangle(self, triangle, flags, scanlines, bounds);
+                TX_Rasterizer_DrawTriangle(self, triangle, flags, scanlines, bounds);
             }
         }
     });
@@ -396,9 +396,9 @@ static void M7_Rasterizer_DrawBatch(ECS_Handle *self, List(M7_RenderInstance *) 
 
 static int RenderToSubCanvas(void *data) {
     SubCanvasRenderData *render = data;
-    M7_Rasterizer *rasterizer = ECS_Entity_GetComponent(render->rasterizer, M7_Components.Rasterizer);
-    M7_World *world = ECS_Entity_GetComponent(rasterizer->world, M7_Components.World);
-    M7_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, M7_Components.Canvas);
+    TX_Rasterizer *rasterizer = ECS_Entity_GetComponent(render->rasterizer, TX_Components.Rasterizer);
+    TX_World *world = ECS_Entity_GetComponent(rasterizer->world, TX_Components.World);
+    TX_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, TX_Components.Canvas);
     size_t sd_width = sd_bounding_size(canvas->width);
 
     /* Reset depth */
@@ -407,32 +407,32 @@ static int RenderToSubCanvas(void *data) {
 
     /* Draw geometry in batches, according to render order and rasterizer flags */
     for (size_t i = 0; i < List_Length(world->render_batches); ++i) {
-        for (int flags = 0; flags < M7_RASTERIZER_FLAG_COMBINATIONS; ++flags) {
-            List(M7_RenderInstance *) *flag_batch = List_Get(world->render_batches, i)[flags];
+        for (int flags = 0; flags < TX_RASTERIZER_FLAG_COMBINATIONS; ++flags) {
+            List(TX_RenderInstance *) *flag_batch = List_Get(world->render_batches, i)[flags];
 
             if (flag_batch)
-                M7_Rasterizer_DrawBatch(render->rasterizer, flag_batch, flags, render->scanlines, render->bounds);
+                TX_Rasterizer_DrawBatch(render->rasterizer, flag_batch, flags, render->scanlines, render->bounds);
         }
     }
 
     return 0;
 }
 
-void SD_VARIANT(M7_Rasterizer_Render)(ECS_Handle *self) {
-    M7_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, M7_Components.Rasterizer);
-    M7_World *world = ECS_Entity_GetComponent(rasterizer->world, M7_Components.World);
-    M7_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, M7_Components.Canvas);
+void SD_VARIANT(TX_Rasterizer_Render)(ECS_Handle *self) {
+    TX_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, TX_Components.Rasterizer);
+    TX_World *world = ECS_Entity_GetComponent(rasterizer->world, TX_Components.World);
+    TX_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, TX_Components.Canvas);
 
     /* Transform registered world geometry */
-    List(M7_WorldGeometry *) *geometry = world->geometry;
-    xform3 cam_xform = M7_Entity_GetXform(self);
+    List(TX_WorldGeometry *) *geometry = world->geometry;
+    xform3 cam_xform = TX_Entity_GetXform(self);
 
     xform3 ws2vs_xform = {
         mat3x3_xpose(cam_xform.basis),
         vec3_mul(mat3x3_mul(mat3x3_xpose(cam_xform.basis), cam_xform.translation), -1)
     };
 
-    M7_Entity_Xform(rasterizer->world, ws2vs_xform);
+    TX_Entity_Xform(rasterizer->world, ws2vs_xform);
 
     List_ForEach(geometry, wg, {
         size_t sd_count = sd_bounding_size(wg->mesh->nverts);
@@ -495,17 +495,17 @@ void SD_VARIANT(M7_Rasterizer_Render)(ECS_Handle *self) {
 
 #ifndef SD_SRC_VARIANT
 
-void M7_Rasterizer_Attach(ECS_Handle *self, ECS_Component(void) *component) {
-    M7_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, component);
-    rasterizer->world = ECS_Entity_AncestorWithComponent(self, M7_Components.World, true);
-    rasterizer->target = ECS_Entity_AncestorWithComponent(self, M7_Components.Canvas, true);
+void TX_Rasterizer_Attach(ECS_Handle *self, ECS_Component(void) *component) {
+    TX_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, component);
+    rasterizer->world = ECS_Entity_AncestorWithComponent(self, TX_Components.World, true);
+    rasterizer->target = ECS_Entity_AncestorWithComponent(self, TX_Components.Canvas, true);
 }
 
-void M7_Rasterizer_Init(void *component, void *args) {
-    M7_Rasterizer *rasterizer = component;
-    M7_RasterizerArgs *rasterizer_args = args;
+void TX_Rasterizer_Init(void *component, void *args) {
+    TX_Rasterizer *rasterizer = component;
+    TX_RasterizerArgs *rasterizer_args = args;
 
-    *rasterizer = (M7_Rasterizer) {
+    *rasterizer = (TX_Rasterizer) {
         .project = rasterizer_args->project,
         .scan = rasterizer_args->scan,
         .near = rasterizer_args->near,
@@ -513,14 +513,14 @@ void M7_Rasterizer_Init(void *component, void *args) {
     };
 }
 
-void M7_PerspectiveFOV_Set(ECS_Handle *self, float fov) {
-    M7_PerspectiveFOV *perspective_fov = ECS_Entity_GetComponent(self, M7_Components.PerspectiveFOV);
+void TX_PerspectiveFOV_Set(ECS_Handle *self, float fov) {
+    TX_PerspectiveFOV *perspective_fov = ECS_Entity_GetComponent(self, TX_Components.PerspectiveFOV);
     perspective_fov->fov = fov;
     perspective_fov->tan_half_fov = SDL_tanf(fov / 2);
 }
 
-void M7_PerspectiveFOV_Init(void *component, void *args) {
-    M7_PerspectiveFOV *perspective_fov = component;
+void TX_PerspectiveFOV_Init(void *component, void *args) {
+    TX_PerspectiveFOV *perspective_fov = component;
     float *fov = args;
 
     perspective_fov->fov = *fov;

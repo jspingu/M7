@@ -1,6 +1,6 @@
 #include <SDL3/SDL.h>
-#include <M7/ECS.h>
-#include <M7/M7_ECS.h>
+#include <TX/ECS.h>
+#include <TX/TX_ECS.h>
 #include <stdio.h>
 
 #define SDL_MAIN_USE_CALLBACKS
@@ -23,20 +23,20 @@ static Uint64 ticks_freq;
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
     (void)argc, (void)argv;
     ECS *ecs = ECS_Create();
-    M7_RegisterToECS(ecs);
+    TX_RegisterToECS(ecs);
     RegisterToECS(ecs);
 
     ECS_Handle *root = ECS_GetRoot(ecs);
 
     ECS_Entity_AttachComponents(root,
-        { M7_Components.Viewport, &(M7_ViewportArgs){
+        { TX_Components.Viewport, &(TX_ViewportArgs){
             .title = "Good morning!",
             .width = WIDTH,
             .height = HEIGHT
         }},
-        { M7_Components.InputState, nullptr },
-        { M7_Components.TextureBank, nullptr },
-        { M7_Components.Canvas, &(M7_Canvas){
+        { TX_Components.InputState, nullptr },
+        { TX_Components.TextureBank, nullptr },
+        { TX_Components.Canvas, &(TX_Canvas){
             .width = WIDTH,
             .height = HEIGHT,
             .parallelism = SDL_GetNumLogicalCPUCores()
@@ -47,177 +47,177 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
     ECS_Entity_AddChildren(root, 
         { /* Main world */
             ECS_Components(
-                { M7_Components.World, nullptr },
-                { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault}},
-                { M7_Components.LightEnvironment, &(M7_LightEnvironment){ .ambient=0.08, .sky_texture_path="assets/Nalovardo.png" } }
+                { TX_Components.World, nullptr },
+                { TX_Components.XformComposer, &(TX_XformComposer){TX_XformComposeDefault}},
+                { TX_Components.LightEnvironment, &(TX_LightEnvironment){ .ambient=0.08, .sky_texture_path="assets/Nalovardo.png" } }
             ),
             ECS_Children(
                 { /* Camera */
                     ECS_Components(
-                        { M7_Components.ParallelProjector, &(M7_ParallelProjector) {
+                        { TX_Components.ParallelProjector, &(TX_ParallelProjector) {
                             .slope = { .x=0, .y=0 },
                             .scale = { .x=0.5, .y=0.5 }
                         }},
-                        { M7_Components.PerspectiveFOV, &(float) { SDL_PI_F / 2 } },
-                        { M7_Components.Rasterizer, &(M7_RasterizerArgs) {
-                            .project = SD_SELECT(M7_ProjectPerspective),
-                            .scan = SD_SELECT(M7_ScanPerspective),
+                        { TX_Components.PerspectiveFOV, &(float) { SDL_PI_F / 2 } },
+                        { TX_Components.Rasterizer, &(TX_RasterizerArgs) {
+                            .project = SD_SELECT(TX_ProjectPerspective),
+                            .scan = SD_SELECT(TX_ScanPerspective),
                             .near = 1,
                             .parallelism = SDL_GetNumLogicalCPUCores()
                         }},
-                        { M7_Components.Position, &(vec3){} },
-                        { M7_Components.Basis, (mat3x3 []){mat3x3_identity} },
+                        { TX_Components.Position, &(vec3){} },
+                        { TX_Components.Basis, (mat3x3 []){mat3x3_identity} },
                         { Components.FreeCam, &(FreeCam){} }
                     )
                 },
                 { /* Teapot */
                     ECS_Components(
-                        { M7_Components.Position, &(vec3){ .y=-150, .z=600 } },
-                        { M7_Components.Basis, (mat3x3 []){mat3x3_identity} },
-                        { M7_Components.MeshPrimitive, nullptr },
-                        { M7_Components.Teapot, &(M7_Teapot) { .scale=50 } },
-                        { M7_Components.Model, &(M7_ModelArgs) { .get_mesh = M7_Teapot_GetMesh }},
-                        { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault} }
+                        { TX_Components.Position, &(vec3){ .y=-150, .z=600 } },
+                        { TX_Components.Basis, (mat3x3 []){mat3x3_identity} },
+                        { TX_Components.MeshPrimitive, nullptr },
+                        { TX_Components.Teapot, &(TX_Teapot) { .scale=50 } },
+                        { TX_Components.Model, &(TX_ModelArgs) { .get_mesh = TX_Teapot_GetMesh }},
+                        { TX_Components.XformComposer, &(TX_XformComposer){TX_XformComposeDefault} }
                     ),
                     ECS_Children({ECS_Components(
-                        { M7_Components.SolidColor, &(M7_SolidColor) { .r=1.0, .g=1.0, .b=1.0 } },
-                        { M7_Components.Lighting, &(M7_OpticalMedium) { .reflectivity=0.1, .specularity=1.0, .exp=4 } },
-                        { M7_Components.ModelInstance, &(M7_ModelInstanceArgs) {
-                            .shader_components = (ECS_Component(M7_ShaderComponent) *[]) { M7_Components.SolidColor, M7_Components.Lighting },
+                        { TX_Components.SolidColor, &(TX_SolidColor) { .r=1.0, .g=1.0, .b=1.0 } },
+                        { TX_Components.Lighting, &(TX_OpticalMedium) { .reflectivity=0.1, .specularity=1.0, .exp=4 } },
+                        { TX_Components.ModelInstance, &(TX_ModelInstanceArgs) {
+                            .shader_components = (ECS_Component(TX_ShaderComponent) *[]) { TX_Components.SolidColor, TX_Components.Lighting },
                             .nshaders = 2,
                             .render_batch = Opaque,
-                            .flags = M7_RASTERIZER_CULL_BACKFACE
-                                   | M7_RASTERIZER_TEST_DEPTH
-                                   | M7_RASTERIZER_WRITE_DEPTH
-                                   | M7_RASTERIZER_INTERPOLATE_NORMALS
+                            .flags = TX_RASTERIZER_CULL_BACKFACE
+                                   | TX_RASTERIZER_TEST_DEPTH
+                                   | TX_RASTERIZER_WRITE_DEPTH
+                                   | TX_RASTERIZER_INTERPOLATE_NORMALS
                         }}
                     )})
                 },
                 { /* Floor */
                     ECS_Components(
-                        { M7_Components.Position, &(vec3){ .y=-150, .z=600 } },
-                        { M7_Components.Basis, (mat3x3 []){mat3x3_rotate(mat3x3_identity, vec3_i, SDL_PI_F / 2)} },
-                        { M7_Components.MeshPrimitive, nullptr },
-                        { M7_Components.Rect, &(M7_Rect) { .width=2000, .height=2000 } },
-                        { M7_Components.Model, &(M7_ModelArgs) { .get_mesh = M7_Rect_GetMesh }},
-                        { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault} }
+                        { TX_Components.Position, &(vec3){ .y=-150, .z=600 } },
+                        { TX_Components.Basis, (mat3x3 []){mat3x3_rotate(mat3x3_identity, vec3_i, SDL_PI_F / 2)} },
+                        { TX_Components.MeshPrimitive, nullptr },
+                        { TX_Components.Rect, &(TX_Rect) { .width=2000, .height=2000 } },
+                        { TX_Components.Model, &(TX_ModelArgs) { .get_mesh = TX_Rect_GetMesh }},
+                        { TX_Components.XformComposer, &(TX_XformComposer){TX_XformComposeDefault} }
                     ),
                     ECS_Children({ECS_Components(
-                        { M7_Components.Checkerboard, &(M7_Checkerboard) {
+                        { TX_Components.Checkerboard, &(TX_Checkerboard) {
                             .tiles = 31,
                             .r1 = 0.4, .g1 = 0.4, .b1 = 0.8,
                             .r2 = 1.0, .g2 = 1.0, .b2 = 1.0,
                         }},
-                        { M7_Components.Lighting, &(M7_OpticalMedium) { .reflectivity=0.4, .specularity=0.4, .exp=4 } },
-                        { M7_Components.ModelInstance, &(M7_ModelInstanceArgs) {
-                            .shader_components = (ECS_Component(M7_ShaderComponent) *[]) { M7_Components.Checkerboard, M7_Components.Lighting },
+                        { TX_Components.Lighting, &(TX_OpticalMedium) { .reflectivity=0.4, .specularity=0.4, .exp=4 } },
+                        { TX_Components.ModelInstance, &(TX_ModelInstanceArgs) {
+                            .shader_components = (ECS_Component(TX_ShaderComponent) *[]) { TX_Components.Checkerboard, TX_Components.Lighting },
                             .nshaders = 2,
                             .render_batch = Opaque,
-                            .flags = M7_RASTERIZER_CULL_BACKFACE
-                                   | M7_RASTERIZER_TEST_DEPTH
-                                   | M7_RASTERIZER_WRITE_DEPTH
+                            .flags = TX_RASTERIZER_CULL_BACKFACE
+                                   | TX_RASTERIZER_TEST_DEPTH
+                                   | TX_RASTERIZER_WRITE_DEPTH
                         }}
                     )})
                 },
                 { /* Light */
                     ECS_Components(
-                        { M7_Components.Position, &(vec3){ .x=-150, .y=-115, .z=400 } },
-                        { M7_Components.Basis, (mat3x3 []){mat3x3_identity} },
-                        { M7_Components.MeshPrimitive, nullptr },
-                        { M7_Components.Sphere, &(M7_Sphere) { .radius=32, .nrings=16, .ring_precision=16 } },
-                        { M7_Components.Model, &(M7_ModelArgs) { .get_mesh = M7_Sphere_GetMesh }},
-                        { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault} },
-                        { M7_Components.PointLight, &(M7_PointLight) { .col={{ 1.0, 0.8, 0.2 }}, .energy=20000 } }
+                        { TX_Components.Position, &(vec3){ .x=-150, .y=-115, .z=400 } },
+                        { TX_Components.Basis, (mat3x3 []){mat3x3_identity} },
+                        { TX_Components.MeshPrimitive, nullptr },
+                        { TX_Components.Sphere, &(TX_Sphere) { .radius=32, .nrings=16, .ring_precision=16 } },
+                        { TX_Components.Model, &(TX_ModelArgs) { .get_mesh = TX_Sphere_GetMesh }},
+                        { TX_Components.XformComposer, &(TX_XformComposer){TX_XformComposeDefault} },
+                        { TX_Components.PointLight, &(TX_PointLight) { .col={{ 1.0, 0.8, 0.2 }}, .energy=20000 } }
                     ),
                     ECS_Children({ECS_Components(
-                        { M7_Components.SolidColor, &(M7_SolidColor) { .r=1, .g=1, .b=1 }},
-                        { M7_Components.ModelInstance, &(M7_ModelInstanceArgs) {
-                            .shader_components = (ECS_Component(M7_ShaderComponent) *[]) { M7_Components.SolidColor },
+                        { TX_Components.SolidColor, &(TX_SolidColor) { .r=1, .g=1, .b=1 }},
+                        { TX_Components.ModelInstance, &(TX_ModelInstanceArgs) {
+                            .shader_components = (ECS_Component(TX_ShaderComponent) *[]) { TX_Components.SolidColor },
                             .nshaders = 1,
                             .render_batch = Opaque,
-                            .flags = M7_RASTERIZER_CULL_BACKFACE
-                                   | M7_RASTERIZER_TEST_DEPTH
-                                   | M7_RASTERIZER_WRITE_DEPTH
+                            .flags = TX_RASTERIZER_CULL_BACKFACE
+                                   | TX_RASTERIZER_TEST_DEPTH
+                                   | TX_RASTERIZER_WRITE_DEPTH
                         }}
                     )})
                 },
                 { /* Light */
                     ECS_Components(
-                        { M7_Components.Position, &(vec3){ .x=150, .y=-115, .z=400 } },
-                        { M7_Components.Basis, (mat3x3 []){mat3x3_identity} },
-                        { M7_Components.MeshPrimitive, nullptr },
-                        { M7_Components.Sphere, &(M7_Sphere) { .radius=32, .nrings=16, .ring_precision=16 } },
-                        { M7_Components.Model, &(M7_ModelArgs) { .get_mesh = M7_Sphere_GetMesh }},
-                        { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault} },
-                        { M7_Components.PointLight, &(M7_PointLight) { .col={{ 0.2, 1.0, 0.5 }}, .energy=20000 } }
+                        { TX_Components.Position, &(vec3){ .x=150, .y=-115, .z=400 } },
+                        { TX_Components.Basis, (mat3x3 []){mat3x3_identity} },
+                        { TX_Components.MeshPrimitive, nullptr },
+                        { TX_Components.Sphere, &(TX_Sphere) { .radius=32, .nrings=16, .ring_precision=16 } },
+                        { TX_Components.Model, &(TX_ModelArgs) { .get_mesh = TX_Sphere_GetMesh }},
+                        { TX_Components.XformComposer, &(TX_XformComposer){TX_XformComposeDefault} },
+                        { TX_Components.PointLight, &(TX_PointLight) { .col={{ 0.2, 1.0, 0.5 }}, .energy=20000 } }
                     ),
                     ECS_Children({ECS_Components(
-                        { M7_Components.SolidColor, &(M7_SolidColor) { .r=1, .g=1, .b=1 }},
-                        { M7_Components.ModelInstance, &(M7_ModelInstanceArgs) {
-                            .shader_components = (ECS_Component(M7_ShaderComponent) *[]) { M7_Components.SolidColor },
+                        { TX_Components.SolidColor, &(TX_SolidColor) { .r=1, .g=1, .b=1 }},
+                        { TX_Components.ModelInstance, &(TX_ModelInstanceArgs) {
+                            .shader_components = (ECS_Component(TX_ShaderComponent) *[]) { TX_Components.SolidColor },
                             .nshaders = 1,
                             .render_batch = Opaque,
-                            .flags = M7_RASTERIZER_CULL_BACKFACE
-                                   | M7_RASTERIZER_TEST_DEPTH
-                                   | M7_RASTERIZER_WRITE_DEPTH
+                            .flags = TX_RASTERIZER_CULL_BACKFACE
+                                   | TX_RASTERIZER_TEST_DEPTH
+                                   | TX_RASTERIZER_WRITE_DEPTH
                         }}
                     )})
                 },
                 { /* Light */
                     ECS_Components(
-                        { M7_Components.Position, &(vec3){ .x=-150, .y=-115, .z=800 } },
-                        { M7_Components.Basis, (mat3x3 []){mat3x3_identity} },
-                        { M7_Components.MeshPrimitive, nullptr },
-                        { M7_Components.Sphere, &(M7_Sphere) { .radius=32, .nrings=16, .ring_precision=16 } },
-                        { M7_Components.Model, &(M7_ModelArgs) { .get_mesh = M7_Sphere_GetMesh }},
-                        { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault} },
-                        { M7_Components.PointLight, &(M7_PointLight) { .col={{ 1.0, 0.2, 0.1 }}, .energy=20000 } }
+                        { TX_Components.Position, &(vec3){ .x=-150, .y=-115, .z=800 } },
+                        { TX_Components.Basis, (mat3x3 []){mat3x3_identity} },
+                        { TX_Components.MeshPrimitive, nullptr },
+                        { TX_Components.Sphere, &(TX_Sphere) { .radius=32, .nrings=16, .ring_precision=16 } },
+                        { TX_Components.Model, &(TX_ModelArgs) { .get_mesh = TX_Sphere_GetMesh }},
+                        { TX_Components.XformComposer, &(TX_XformComposer){TX_XformComposeDefault} },
+                        { TX_Components.PointLight, &(TX_PointLight) { .col={{ 1.0, 0.2, 0.1 }}, .energy=20000 } }
                     ),
                     ECS_Children({ECS_Components(
-                        { M7_Components.SolidColor, &(M7_SolidColor) { .r=1, .g=1, .b=1 }},
-                        { M7_Components.ModelInstance, &(M7_ModelInstanceArgs) {
-                            .shader_components = (ECS_Component(M7_ShaderComponent) *[]) { M7_Components.SolidColor },
+                        { TX_Components.SolidColor, &(TX_SolidColor) { .r=1, .g=1, .b=1 }},
+                        { TX_Components.ModelInstance, &(TX_ModelInstanceArgs) {
+                            .shader_components = (ECS_Component(TX_ShaderComponent) *[]) { TX_Components.SolidColor },
                             .nshaders = 1,
                             .render_batch = Opaque,
-                            .flags = M7_RASTERIZER_CULL_BACKFACE
-                                   | M7_RASTERIZER_TEST_DEPTH
-                                   | M7_RASTERIZER_WRITE_DEPTH
+                            .flags = TX_RASTERIZER_CULL_BACKFACE
+                                   | TX_RASTERIZER_TEST_DEPTH
+                                   | TX_RASTERIZER_WRITE_DEPTH
                         }}
                     )})
                 },
                 { /* Light */
                     ECS_Components(
-                        { M7_Components.Position, &(vec3){ .x=150, .y=-115, .z=800 } },
-                        { M7_Components.Basis, (mat3x3 []){mat3x3_identity} },
-                        { M7_Components.MeshPrimitive, nullptr },
-                        { M7_Components.Sphere, &(M7_Sphere) { .radius=32, .nrings=16, .ring_precision=16 } },
-                        { M7_Components.Model, &(M7_ModelArgs) { .get_mesh = M7_Sphere_GetMesh }},
-                        { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeDefault} },
-                        { M7_Components.PointLight, &(M7_PointLight) { .col={{ 0.9, 0.2, 1.0 }}, .energy=20000 } }
+                        { TX_Components.Position, &(vec3){ .x=150, .y=-115, .z=800 } },
+                        { TX_Components.Basis, (mat3x3 []){mat3x3_identity} },
+                        { TX_Components.MeshPrimitive, nullptr },
+                        { TX_Components.Sphere, &(TX_Sphere) { .radius=32, .nrings=16, .ring_precision=16 } },
+                        { TX_Components.Model, &(TX_ModelArgs) { .get_mesh = TX_Sphere_GetMesh }},
+                        { TX_Components.XformComposer, &(TX_XformComposer){TX_XformComposeDefault} },
+                        { TX_Components.PointLight, &(TX_PointLight) { .col={{ 0.9, 0.2, 1.0 }}, .energy=20000 } }
                     ),
                     ECS_Children({ECS_Components(
-                        { M7_Components.SolidColor, &(M7_SolidColor) { .r=1, .g=1, .b=1 }},
-                        { M7_Components.ModelInstance, &(M7_ModelInstanceArgs) {
-                            .shader_components = (ECS_Component(M7_ShaderComponent) *[]) { M7_Components.SolidColor },
+                        { TX_Components.SolidColor, &(TX_SolidColor) { .r=1, .g=1, .b=1 }},
+                        { TX_Components.ModelInstance, &(TX_ModelInstanceArgs) {
+                            .shader_components = (ECS_Component(TX_ShaderComponent) *[]) { TX_Components.SolidColor },
                             .nshaders = 1,
                             .render_batch = Opaque,
-                            .flags = M7_RASTERIZER_CULL_BACKFACE
-                                   | M7_RASTERIZER_TEST_DEPTH
-                                   | M7_RASTERIZER_WRITE_DEPTH
+                            .flags = TX_RASTERIZER_CULL_BACKFACE
+                                   | TX_RASTERIZER_TEST_DEPTH
+                                   | TX_RASTERIZER_WRITE_DEPTH
                         }}
                     )})
                 },
                 { /* Skybox */
                     ECS_Components(
-                        { M7_Components.MeshPrimitive, nullptr },
-                        { M7_Components.Cubemap, &(M7_Cubemap) { .scale=1000 } },
-                        { M7_Components.Model, &(M7_ModelArgs) { .get_mesh = M7_Cubemap_GetMesh } },
-                        { M7_Components.XformComposer, &(M7_XformComposer){M7_XformComposeCubemap} },
+                        { TX_Components.MeshPrimitive, nullptr },
+                        { TX_Components.Cubemap, &(TX_Cubemap) { .scale=1000 } },
+                        { TX_Components.Model, &(TX_ModelArgs) { .get_mesh = TX_Cubemap_GetMesh } },
+                        { TX_Components.XformComposer, &(TX_XformComposer){TX_XformComposeCubemap} },
                     ),
                     ECS_Children({ECS_Components(
-                        { M7_Components.Sky, nullptr },
-                        { M7_Components.ModelInstance, &(M7_ModelInstanceArgs) {
-                            .shader_components = (ECS_Component(M7_ShaderComponent) *[]) { M7_Components.Sky },
+                        { TX_Components.Sky, nullptr },
+                        { TX_Components.ModelInstance, &(TX_ModelInstanceArgs) {
+                            .shader_components = (ECS_Component(TX_ShaderComponent) *[]) { TX_Components.Sky },
                             .nshaders = 1,
                             .render_batch = Sky,
                         }}
@@ -254,13 +254,13 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
     printf("FPS: %li              \n\x1b[F", SDL_lround(1/delta));
 
-    ECS_SystemGroup_Process(M7_SystemGroups.Update, delta);
+    ECS_SystemGroup_Process(TX_SystemGroups.Update, delta);
 
     ECS_Update(ecs);
 
-    ECS_SystemGroup_Process(M7_SystemGroups.PostUpdate);
-    ECS_SystemGroup_ProcessReverse(M7_SystemGroups.Render);
-    ECS_SystemGroup_Process(M7_SystemGroups.RenderPresent);
+    ECS_SystemGroup_Process(TX_SystemGroups.PostUpdate);
+    ECS_SystemGroup_ProcessReverse(TX_SystemGroups.Render);
+    ECS_SystemGroup_Process(TX_SystemGroups.RenderPresent);
 
     return SDL_APP_CONTINUE;
 }
@@ -273,7 +273,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
             return SDL_APP_SUCCESS;
 
         default:
-            ECS_SystemGroup_Process(M7_SystemGroups.OnSDLEvent, event);
+            ECS_SystemGroup_Process(TX_SystemGroups.OnSDLEvent, event);
             break;
     }
 

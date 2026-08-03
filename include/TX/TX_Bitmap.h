@@ -1,37 +1,37 @@
-#ifndef M7_BITMAP_H
-#define M7_BITMAP_H
+#ifndef TX_BITMAP_H
+#define TX_BITMAP_H
 
 #include <SDL3/SDL.h>
-#include <M7/ECS.h>
-#include <M7/Math/stride.h>
+#include <TX/ECS.h>
+#include <TX/Math/stride.h>
 
-typedef struct M7_Viewport {
+typedef struct TX_Viewport {
     SDL_Window *window;
     SDL_Renderer *renderer;
     SDL_Texture *texture;
     int width, height;
-} M7_Viewport;
+} TX_Viewport;
 
-typedef struct M7_ViewportArgs {
+typedef struct TX_ViewportArgs {
     char *title;
     int width, height;
-} M7_ViewportArgs;
+} TX_ViewportArgs;
 
-typedef struct M7_Canvas {
+typedef struct TX_Canvas {
     ECS_Handle *vp;
     sd_vec3 *color;
     sd_float *depth;
     int width, height;
     int parallelism;
-} M7_Canvas;
+} TX_Canvas;
 
-typedef struct M7_Texture {
+typedef struct TX_Texture {
     float *color;
     int width, height;
     int unit;
-} M7_Texture;
+} TX_Texture;
 
-static inline sd_vec4 M7_SampleNearest(M7_Texture *texture, sd_vec2 ts) {
+static inline sd_vec4 TX_SampleNearest(TX_Texture *texture, sd_vec2 ts) {
     sd_float unit = sd_float_set(texture->unit);
     sd_vec2 pixel_coord = sd_vec2_muls(ts, unit);
 
@@ -46,7 +46,7 @@ static inline sd_vec4 M7_SampleNearest(M7_Texture *texture, sd_vec2 ts) {
     return sd_vec4_gather(texture->color, pixel_index);
 }
 
-static inline sd_vec4 M7_SampleCubemap(M7_Texture *texture, sd_vec3 dir) {
+static inline sd_vec4 TX_SampleCubemap(TX_Texture *texture, sd_vec3 dir) {
     sd_float unit = sd_float_set(texture->width * 0.5f);
     sd_vec3 rcp = sd_vec3_rcp(dir);
 
@@ -89,4 +89,4 @@ static inline sd_vec4 M7_SampleCubemap(M7_Texture *texture, sd_vec3 dir) {
     return sd_vec4_gather(texture->color, pixel_index);
 }
 
-#endif /* M7_BITMAP_H */
+#endif /* TX_BITMAP_H */

@@ -1,7 +1,7 @@
 #include <SDL3/SDL.h>
-#include <M7/Collections/List.h>
-#include <M7/Collections/Bitset.h>
-#include <M7/ECS.h>
+#include <TX/Collections/List.h>
+#include <TX/Collections/Bitset.h>
+#include <TX/ECS.h>
 
 #include "ECS_c.h"
 

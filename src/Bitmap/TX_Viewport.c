@@ -1,10 +1,10 @@
 #include <SDL3/SDL.h>
-#include <M7/ECS.h>
-#include <M7/M7_ECS.h>
+#include <TX/ECS.h>
+#include <TX/TX_ECS.h>
 
-void M7_Viewport_Init(void *component, void *args) {
-    M7_Viewport *vp = component;
-    M7_ViewportArgs *vp_args = args;
+void TX_Viewport_Init(void *component, void *args) {
+    TX_Viewport *vp = component;
+    TX_ViewportArgs *vp_args = args;
 
     vp->width = vp_args->width;
     vp->height = vp_args->height;
@@ -29,8 +29,8 @@ void M7_Viewport_Init(void *component, void *args) {
     );
 }
 
-void M7_Viewport_Free(void *component) {
-    M7_Viewport *viewport = component;
+void TX_Viewport_Free(void *component) {
+    TX_Viewport *viewport = component;
     SDL_DestroyTexture(viewport->texture);
     SDL_DestroyRenderer(viewport->renderer);
     SDL_DestroyWindow(viewport->window);

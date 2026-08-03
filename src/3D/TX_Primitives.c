@@ -1,12 +1,12 @@
 #include <SDL3/SDL.h>
-#include <M7/ECS.h>
-#include <M7/M7_ECS.h>
-#include <M7/Collections/List.h>
-#include <M7/Math/linalg.h>
+#include <TX/ECS.h>
+#include <TX/TX_ECS.h>
+#include <TX/Collections/List.h>
+#include <TX/Math/linalg.h>
 
-M7_Mesh *M7_Teapot_GetMesh(ECS_Handle *self) {
-    M7_Mesh **mesh = ECS_Entity_GetComponent(self, M7_Components.MeshPrimitive);
-    M7_Teapot *teapot = ECS_Entity_GetComponent(self, M7_Components.Teapot);
+TX_Mesh *TX_Teapot_GetMesh(ECS_Handle *self) {
+    TX_Mesh **mesh = ECS_Entity_GetComponent(self, TX_Components.MeshPrimitive);
+    TX_Teapot *teapot = ECS_Entity_GetComponent(self, TX_Components.Teapot);
     if (*mesh) return *mesh;
 
     SDL_IOStream *teapot_data = SDL_IOFromFile("assets/teapot_surface0.norm", "r");
@@ -30,7 +30,7 @@ M7_Mesh *M7_Teapot_GetMesh(ECS_Handle *self) {
 
     vec3 *verts = List_Create(vec3);
     vec3 *nrmls = List_Create(vec3);
-    M7_MeshFace *faces = List_Create(M7_MeshFace);
+    TX_MeshFace *faces = List_Create(TX_MeshFace);
 
     /* Read vertex/normal data */
     float vals[18];
@@ -65,7 +65,7 @@ M7_Mesh *M7_Teapot_GetMesh(ECS_Handle *self) {
                         }));
                     }
 
-                    List_Push(faces, ((M7_MeshFace) {
+                    List_Push(faces, ((TX_MeshFace) {
                         .idx_verts = { offset + 0, offset + 1, offset + 2 }
                     }));
                 }
@@ -78,7 +78,7 @@ M7_Mesh *M7_Teapot_GetMesh(ECS_Handle *self) {
         }
     }
 
-    *mesh = M7_Mesh_Create(List_GetAddress(verts, 0), List_GetAddress(nrmls, 0), nullptr, List_GetAddress(faces, 0), nverts, 0, nfaces);
+    *mesh = TX_Mesh_Create(List_GetAddress(verts, 0), List_GetAddress(nrmls, 0), nullptr, List_GetAddress(faces, 0), nverts, 0, nfaces);
 
     List_Free(verts);
     List_Free(nrmls);
@@ -88,18 +88,18 @@ M7_Mesh *M7_Teapot_GetMesh(ECS_Handle *self) {
     return *mesh;
 }
 
-M7_Mesh *M7_Torus_GetMesh(ECS_Handle *self) {
-    M7_Mesh **mesh = ECS_Entity_GetComponent(self, M7_Components.MeshPrimitive);
-    M7_Torus *torus = ECS_Entity_GetComponent(self, M7_Components.Torus);
+TX_Mesh *TX_Torus_GetMesh(ECS_Handle *self) {
+    TX_Mesh **mesh = ECS_Entity_GetComponent(self, TX_Components.MeshPrimitive);
+    TX_Torus *torus = ECS_Entity_GetComponent(self, TX_Components.Torus);
     if (*mesh) return *mesh;
 
-    M7_Sculpture *torus_sculpt = M7_Sculpture_Create();
-    List(M7_PolyChain *) *rings = List_Create(M7_PolyChain *);
+    TX_Sculpture *torus_sculpt = TX_Sculpture_Create();
+    List(TX_PolyChain *) *rings = List_Create(TX_PolyChain *);
 
     for (size_t i = 0; i < torus->outer_precision; ++i) {
         vec3 outer_rot = vec3_rotate(vec3_i, vec3_k, 2 * SDL_PI_F / torus->outer_precision * i);
 
-        List_Push(rings, M7_Sculpture_Ellipse(
+        List_Push(rings, TX_Sculpture_Ellipse(
             torus_sculpt,
             vec3_mul(outer_rot, torus->outer_radius),
             vec3_mul(outer_rot, torus->inner_radius),
@@ -109,31 +109,31 @@ M7_Mesh *M7_Torus_GetMesh(ECS_Handle *self) {
     }
 
     for (size_t i = 0; i < List_Length(rings); ++i)
-        M7_Sculpture_JoinPolyChains(torus_sculpt, List_Get(rings, i), List_Get(rings, (i + 1) % List_Length(rings)));
+        TX_Sculpture_JoinPolyChains(torus_sculpt, List_Get(rings, i), List_Get(rings, (i + 1) % List_Length(rings)));
 
-    *mesh = M7_Sculpture_ToMesh(torus_sculpt);
+    *mesh = TX_Sculpture_ToMesh(torus_sculpt);
     List_Free(rings);
-    M7_Sculpture_Free(torus_sculpt);
+    TX_Sculpture_Free(torus_sculpt);
 
     return *mesh;
 }
 
-M7_Mesh *M7_Sphere_GetMesh(ECS_Handle *self) {
-    M7_Mesh **mesh = ECS_Entity_GetComponent(self, M7_Components.MeshPrimitive);
-    M7_Sphere *sphere = ECS_Entity_GetComponent(self, M7_Components.Sphere);
+TX_Mesh *TX_Sphere_GetMesh(ECS_Handle *self) {
+    TX_Mesh **mesh = ECS_Entity_GetComponent(self, TX_Components.MeshPrimitive);
+    TX_Sphere *sphere = ECS_Entity_GetComponent(self, TX_Components.Sphere);
     if (*mesh) return *mesh;
 
-    M7_Sculpture *sphere_sculpt = M7_Sculpture_Create();
-    List(M7_PolyChain *) *rings = List_Create(M7_PolyChain *);
+    TX_Sculpture *sphere_sculpt = TX_Sculpture_Create();
+    List(TX_PolyChain *) *rings = List_Create(TX_PolyChain *);
     float rot = SDL_PI_F / (sphere->nrings + 1);
 
-    M7_PolyChain *bottom = M7_Sculpture_Vertex(sphere_sculpt, vec3_mul(vec3_j, -sphere->radius));
+    TX_PolyChain *bottom = TX_Sculpture_Vertex(sphere_sculpt, vec3_mul(vec3_j, -sphere->radius));
 
     for (size_t i = 1; i < sphere->nrings + 1; ++i) {
         float y = -SDL_cosf(rot * i) * sphere->radius;
         float x = SDL_sinf(rot * i) * sphere->radius;
 
-        List_Push(rings, M7_Sculpture_Ellipse(
+        List_Push(rings, TX_Sculpture_Ellipse(
             sphere_sculpt,
             vec3_mul(vec3_j, y),
             vec3_mul(vec3_i, x),
@@ -142,24 +142,24 @@ M7_Mesh *M7_Sphere_GetMesh(ECS_Handle *self) {
         ));
     }
 
-    M7_PolyChain *top = M7_Sculpture_Vertex(sphere_sculpt, vec3_mul(vec3_j, sphere->radius));
+    TX_PolyChain *top = TX_Sculpture_Vertex(sphere_sculpt, vec3_mul(vec3_j, sphere->radius));
 
-    M7_Sculpture_JoinPolyChains(sphere_sculpt, bottom, List_Get(rings, 0));
-    M7_Sculpture_JoinPolyChains(sphere_sculpt, List_Get(rings, List_Length(rings) - 1), top);
+    TX_Sculpture_JoinPolyChains(sphere_sculpt, bottom, List_Get(rings, 0));
+    TX_Sculpture_JoinPolyChains(sphere_sculpt, List_Get(rings, List_Length(rings) - 1), top);
 
     for (size_t i = 0; i < sphere->nrings - 1; ++i)
-        M7_Sculpture_JoinPolyChains(sphere_sculpt, List_Get(rings, i), List_Get(rings, i + 1));
+        TX_Sculpture_JoinPolyChains(sphere_sculpt, List_Get(rings, i), List_Get(rings, i + 1));
 
-    *mesh = M7_Sculpture_ToMesh(sphere_sculpt);
+    *mesh = TX_Sculpture_ToMesh(sphere_sculpt);
     List_Free(rings);
-    M7_Sculpture_Free(sphere_sculpt);
+    TX_Sculpture_Free(sphere_sculpt);
 
     return *mesh;
 }
 
-M7_Mesh *M7_Rect_GetMesh(ECS_Handle *self) {
-    M7_Mesh **mesh = ECS_Entity_GetComponent(self, M7_Components.MeshPrimitive);
-    M7_Rect *rect = ECS_Entity_GetComponent(self, M7_Components.Rect);
+TX_Mesh *TX_Rect_GetMesh(ECS_Handle *self) {
+    TX_Mesh **mesh = ECS_Entity_GetComponent(self, TX_Components.MeshPrimitive);
+    TX_Rect *rect = ECS_Entity_GetComponent(self, TX_Components.Rect);
     if (*mesh) return *mesh;
 
     vec3 ws_verts[4] = {
@@ -178,18 +178,18 @@ M7_Mesh *M7_Rect_GetMesh(ECS_Handle *self) {
         { .x = rect->width / unit, .y = rect->height / unit },
     };
 
-    M7_MeshFace faces[2] = {
+    TX_MeshFace faces[2] = {
         { .idx_verts = { 0, 1, 2 }, .idx_tverts = { 0, 1, 2 } },
         { .idx_verts = { 1, 3, 2 }, .idx_tverts = { 1, 3, 2 } },
     };
 
-    *mesh = M7_Mesh_Create(ws_verts, nullptr, ts_verts, faces, 4, 4, 2);
+    *mesh = TX_Mesh_Create(ws_verts, nullptr, ts_verts, faces, 4, 4, 2);
     return *mesh;
 }
 
-M7_Mesh *M7_Cubemap_GetMesh(ECS_Handle *self) {
-    M7_Mesh **mesh = ECS_Entity_GetComponent(self, M7_Components.MeshPrimitive);
-    M7_Cubemap *cubemap = ECS_Entity_GetComponent(self, M7_Components.Cubemap);
+TX_Mesh *TX_Cubemap_GetMesh(ECS_Handle *self) {
+    TX_Mesh **mesh = ECS_Entity_GetComponent(self, TX_Components.MeshPrimitive);
+    TX_Cubemap *cubemap = ECS_Entity_GetComponent(self, TX_Components.Cubemap);
     if (*mesh) return *mesh;
 
     vec3 ws_verts[8] = {
@@ -209,7 +209,7 @@ M7_Mesh *M7_Cubemap_GetMesh(ECS_Handle *self) {
         { .x=1.0/4, .y=3.0/4 }, { .x=2.0/4, .y=3.0/4 },
     };
 
-    M7_MeshFace faces[12] = {
+    TX_MeshFace faces[12] = {
         { .idx_verts = { 0, 1, 3 }, .idx_tverts = { 0, 1, 4 } }, { .idx_verts = { 0, 3, 2 }, .idx_tverts = { 0, 4, 3 } },
         { .idx_verts = { 0, 4, 5 }, .idx_tverts = { 6, 11, 10 } }, { .idx_verts = { 0, 5, 1 }, .idx_tverts = { 6, 10, 5 } },
         { .idx_verts = { 0, 6, 4 }, .idx_tverts = { 2, 8, 7 } }, { .idx_verts = { 0, 2, 6 }, .idx_tverts = { 2, 3, 8 } },
@@ -218,17 +218,17 @@ M7_Mesh *M7_Cubemap_GetMesh(ECS_Handle *self) {
         { .idx_verts = { 4, 6, 7 }, .idx_tverts = { 12, 8, 9 } }, { .idx_verts = { 4, 7, 5 }, .idx_tverts = { 12, 9, 13 } },
     };
 
-    *mesh = M7_Mesh_Create(ws_verts, nullptr, ts_verts, faces, 8, 14, 12);
+    *mesh = TX_Mesh_Create(ws_verts, nullptr, ts_verts, faces, 8, 14, 12);
     return *mesh;
 }
 
-void M7_MeshPrimitive_Init(void *component, void *args) {
+void TX_MeshPrimitive_Init(void *component, void *args) {
     (void)args;
-    M7_Mesh **mesh = component;
+    TX_Mesh **mesh = component;
     *mesh = nullptr;
 }
 
-void M7_MeshPrimitive_Free(void *component) {
-    M7_Mesh **mesh = component;
-    if (*mesh) M7_Mesh_Free(*mesh);
+void TX_MeshPrimitive_Free(void *component) {
+    TX_Mesh **mesh = component;
+    if (*mesh) TX_Mesh_Free(*mesh);
 }

@@ -1,8 +1,8 @@
 #include <SDL3/SDL.h>
-#include <M7/ECS.h>
-#include <M7/M7_ECS.h>
-#include <M7/Math/stride.h>
-#include <M7/gamma.h>
+#include <TX/ECS.h>
+#include <TX/TX_ECS.h>
+#include <TX/Math/stride.h>
+#include <TX/gamma.h>
 
 typedef struct PresentData {
     ECS_Handle *canvas;
@@ -12,7 +12,7 @@ typedef struct PresentData {
 
 static int PresentThread(void *data) {
     PresentData *pd = data;
-    M7_Canvas *canvas = ECS_Entity_GetComponent(pd->canvas, M7_Components.Canvas);
+    TX_Canvas *canvas = ECS_Entity_GetComponent(pd->canvas, TX_Components.Canvas);
     int sd_qot = canvas->width / SD_LENGTH;
     int sd_rem = canvas->width % SD_LENGTH;
 
@@ -58,9 +58,9 @@ static int PresentThread(void *data) {
     return 0;
 }
 
-void SD_VARIANT(M7_Canvas_Present)(ECS_Handle *self) {
-    M7_Canvas *canvas = ECS_Entity_GetComponent(self, M7_Components.Canvas);
-    M7_Viewport *vp = ECS_Entity_GetComponent(self, M7_Components.Viewport);
+void SD_VARIANT(TX_Canvas_Present)(ECS_Handle *self) {
+    TX_Canvas *canvas = ECS_Entity_GetComponent(self, TX_Components.Canvas);
+    TX_Viewport *vp = ECS_Entity_GetComponent(self, TX_Components.Viewport);
 
     uint32_t *pixels;
     int pitch;
@@ -95,8 +95,8 @@ void SD_VARIANT(M7_Canvas_Present)(ECS_Handle *self) {
     SDL_RenderPresent(vp->renderer);
 }
 
-void SD_VARIANT(M7_Canvas_Init)(void *component, void *args) {
-    M7_Canvas *canvas = component, *cargs = args;
+void SD_VARIANT(TX_Canvas_Init)(void *component, void *args) {
+    TX_Canvas *canvas = component, *cargs = args;
 
     canvas->width = cargs->width;
     canvas->height = cargs->height;
@@ -109,8 +109,8 @@ void SD_VARIANT(M7_Canvas_Init)(void *component, void *args) {
 
 #ifndef SD_SRC_VARIANT
 
-void M7_Canvas_Free(void *component) {
-    M7_Canvas *canvas = component;
+void TX_Canvas_Free(void *component) {
+    TX_Canvas *canvas = component;
 
     SDL_aligned_free(canvas->color);
     SDL_aligned_free(canvas->depth);

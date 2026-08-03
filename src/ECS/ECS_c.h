@@ -1,9 +1,9 @@
 #ifndef ECS_C_H
 #define ECS_C_H
 
-#include <M7/Collections/List.h>
-#include <M7/Collections/Bitset.h>
-#include <M7/ECS.h>
+#include <TX/Collections/List.h>
+#include <TX/Collections/Bitset.h>
+#include <TX/ECS.h>
 
 typedef struct ECS_Handle {
     ECS *ecs;

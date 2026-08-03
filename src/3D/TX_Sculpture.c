@@ -1,14 +1,14 @@
 #include <SDL3/SDL.h>
-#include <M7/Collections/List.h>
-#include <M7/Math/linalg.h>
+#include <TX/Collections/List.h>
+#include <TX/Math/linalg.h>
 
-#include "M7_3D_c.h"
+#include "TX_3D_c.h"
 
-void M7_Sculpture_JoinPolyChains(M7_Sculpture *sculpture, M7_PolyChain *pc1, M7_PolyChain *pc2) {
+void TX_Sculpture_JoinPolyChains(TX_Sculpture *sculpture, TX_PolyChain *pc1, TX_PolyChain *pc2) {
     size_t pc1_segments = pc1->nindices - 1;
     size_t pc2_segments = pc2->nindices - 1;
 
-    M7_MeshFace *new_faces = List_PushSpace(sculpture->faces, pc1_segments + pc2_segments);
+    TX_MeshFace *new_faces = List_PushSpace(sculpture->faces, pc1_segments + pc2_segments);
 
     /* True: pc2 is the pivot. When triangle fanning, reverse the ordering of adjacent vertices in pc1 */
     bool reverse_winding = pc1_segments > pc2_segments;
@@ -61,8 +61,8 @@ void M7_Sculpture_JoinPolyChains(M7_Sculpture *sculpture, M7_PolyChain *pc1, M7_
     }
 }
 
-M7_PolyChain *M7_Sculpture_Vertex(M7_Sculpture *sculpture, vec3 pos) {
-    M7_PolyChain *chain = SDL_malloc(sizeof(M7_PolyChain));
+TX_PolyChain *TX_Sculpture_Vertex(TX_Sculpture *sculpture, vec3 pos) {
+    TX_PolyChain *chain = SDL_malloc(sizeof(TX_PolyChain));
     chain->indices = SDL_malloc(sizeof(size_t));
     chain->nindices = 1;
     *chain->indices = List_Length(sculpture->verts);
@@ -72,8 +72,8 @@ M7_PolyChain *M7_Sculpture_Vertex(M7_Sculpture *sculpture, vec3 pos) {
     return chain;
 }
 
-M7_PolyChain *M7_Sculpture_Ellipse(M7_Sculpture *sculpture, vec3 center, vec3 axis1, vec3 axis2, size_t precision) {
-    M7_PolyChain *chain = SDL_malloc(sizeof(M7_PolyChain));
+TX_PolyChain *TX_Sculpture_Ellipse(TX_Sculpture *sculpture, vec3 center, vec3 axis1, vec3 axis2, size_t precision) {
+    TX_PolyChain *chain = SDL_malloc(sizeof(TX_PolyChain));
     chain->indices = SDL_malloc(sizeof(size_t) * (precision + 1));
     chain->nindices = precision + 1;
     List_Push(sculpture->chains, chain);
@@ -93,7 +93,7 @@ M7_PolyChain *M7_Sculpture_Ellipse(M7_Sculpture *sculpture, vec3 center, vec3 ax
     return chain;
 }
 
-M7_Mesh *M7_Sculpture_ToMesh(M7_Sculpture *sculpture) {
+TX_Mesh *TX_Sculpture_ToMesh(TX_Sculpture *sculpture) {
     size_t nverts = List_Length(sculpture->verts);
     vec3 *nrmls = SDL_malloc(sizeof(vec3) * nverts);
 
@@ -111,7 +111,7 @@ M7_Mesh *M7_Sculpture_ToMesh(M7_Sculpture *sculpture) {
         nrmls[i] = vec3_normalize(nrml);
     }
 
-    M7_Mesh *mesh = M7_Mesh_Create(
+    TX_Mesh *mesh = TX_Mesh_Create(
         List_GetAddress(sculpture->verts, 0),
         nrmls,
         nullptr,
@@ -124,16 +124,16 @@ M7_Mesh *M7_Sculpture_ToMesh(M7_Sculpture *sculpture) {
     return mesh;
 }
 
-M7_Sculpture *M7_Sculpture_Create(void) {
-    M7_Sculpture *sculpture = SDL_malloc(sizeof(M7_Sculpture));
+TX_Sculpture *TX_Sculpture_Create(void) {
+    TX_Sculpture *sculpture = SDL_malloc(sizeof(TX_Sculpture));
     sculpture->verts = List_Create(vec3);
-    sculpture->faces = List_Create(M7_MeshFace);
-    sculpture->chains = List_Create(M7_PolyChain *);
+    sculpture->faces = List_Create(TX_MeshFace);
+    sculpture->chains = List_Create(TX_PolyChain *);
 
     return sculpture;
 }
 
-void M7_Sculpture_Free(M7_Sculpture *sculpture) {
+void TX_Sculpture_Free(TX_Sculpture *sculpture) {
     List_Free(sculpture->verts);
     List_Free(sculpture->faces);
     List_ForEach(sculpture->chains, chain, SDL_free(chain->indices); );
