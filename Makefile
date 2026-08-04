@@ -1,7 +1,8 @@
 rwildcard = $(foreach d,$1,$(wildcard $d/$2) $(call rwildcard,$(wildcard $d/*),$2))
 
 PREFIX ?= /usr/local
-CC ?= gcc
+# Must compile with clang for now to use __builtin_cpu_supports("sve")
+CC = clang
 CFLAGS += -Iinclude -Wall -Wextra -Wpedantic -std=c23
 OPTFLAGS += -O3 -ffast-math
 DEPFLAGS += -MMD -MP
@@ -24,15 +25,18 @@ SRCS_VECTORIZE += $(SRCDIR)/Bitmap/TX_Canvas.c
 OBJS_VECTORIZE_AVX512F = $(SRCS_VECTORIZE:%.c=$(BLDDIR)/%_avx512f.o)
 OBJS_VECTORIZE_AVX2 = $(SRCS_VECTORIZE:%.c=$(BLDDIR)/%_avx2.o)
 OBJS_VECTORIZE_SSE2 = $(SRCS_VECTORIZE:%.c=$(BLDDIR)/%_sse2.o)
+OBJS_VECTORIZE_SVE = $(SRCS_VECTORIZE:%.c=$(BLDDIR)/%_sve.o)
 OBJS_VECTORIZE_NEON = $(SRCS_VECTORIZE:%.c=$(BLDDIR)/%_neon.o)
 
 DEPS_VECTORIZE_AVX512F = $(SRCS_VECTORIZE:%.c=$(BLDDIR)/%_avx512f.d)
 DEPS_VECTORIZE_AVX2 = $(SRCS_VECTORIZE:%.c=$(BLDDIR)/%_avx2.d)
 DEPS_VECTORIZE_SSE2 = $(SRCS_VECTORIZE:%.c=$(BLDDIR)/%_sse2.d)
+DEPS_VECTORIZE_SVE = $(SRCS_VECTORIZE:%.c=$(BLDDIR)/%_sve.d)
 DEPS_VECTORIZE_NEON = $(SRCS_VECTORIZE:%.c=$(BLDDIR)/%_neon.d)
 
 VECTORIZATION ?= dynamic
 PREDEFINED_MACROS := $(shell $(CC) $(CFLAGS) -E -dM - < /dev/null)
+PREDEFINED_MACROS := $(filter-out #define __ARM_NEON_SVE_BRIDGE 1,$(PREDEFINED_MACROS))
 
 TARGET_ARCH = $(findstring x86_64,$(PREDEFINED_MACROS)) $(findstring i386,$(PREDEFINED_MACROS)) \
               $(findstring aarch64,$(PREDEFINED_MACROS)) $(findstring arm,$(PREDEFINED_MACROS))
@@ -45,6 +49,10 @@ ifeq ($(strip $(TARGET_ARCH)),i386)
 POSSIBLE_SIMD_EXTENSIONS = SSE2
 endif
 
+ifeq ($(strip $(TARGET_ARCH)),aarch64)
+POSSIBLE_SIMD_EXTENSIONS = SVE
+endif
+
 ifeq ($(strip $(TARGET_ARCH)),arm)
 POSSIBLE_SIMD_EXTENSIONS = NEON
 endif
@@ -52,6 +60,7 @@ endif
 AVAILABLE_SIMD_EXTENSIONS = $(findstring AVX512F,$(PREDEFINED_MACROS)) \
 							$(findstring AVX2,$(PREDEFINED_MACROS))    \
 							$(findstring SSE2,$(PREDEFINED_MACROS))    \
+							$(findstring SVE,$(PREDEFINED_MACROS))     \
 							$(findstring NEON,$(PREDEFINED_MACROS))
 
 BASE_SIMD_EXTENSION = $(firstword $(AVAILABLE_SIMD_EXTENSIONS))
@@ -86,7 +95,7 @@ endif
 endif
 
 $(BIN): $(OBJS_VECTORIZE) $(OBJS) $(BLDDIR)/gamma.o
-	$(CC) $(OBJS) $(OBJS_VECTORIZE) $(BLDDIR)/gamma.o $(LDFLAGS) -o $@
+	$(CC) $^ $(LDFLAGS) -o $@
 
 $(OBJS): $(BLDDIR)/%.o: %.c
 	@mkdir -p $(dir $@)
@@ -103,6 +112,10 @@ $(OBJS_VECTORIZE_AVX2): $(BLDDIR)/%_avx2.o: %.c
 $(OBJS_VECTORIZE_SSE2): $(BLDDIR)/%_sse2.o: %.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(OPTFLAGS) $(DEPFLAGS) -msse2 -DSD_DISPATCH_DYNAMIC -DSD_SRC_VARIANT -c $< -o $@
+
+$(OBJS_VECTORIZE_SVE): $(BLDDIR)/%_sve.o: %.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(OPTFLAGS) $(DEPFLAGS) -march=armv8-a+sve -DSD_DISPATCH_DYNAMIC -DSD_SRC_VARIANT -c $< -o $@
 
 $(OBJS_VECTORIZE_NEON): $(BLDDIR)/%_neon.o: %.c
 	@mkdir -p $(dir $@)

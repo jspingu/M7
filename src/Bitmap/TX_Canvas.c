@@ -13,45 +13,45 @@ typedef struct PresentData {
 static int PresentThread(void *data) {
     PresentData *pd = data;
     TX_Canvas *canvas = ECS_Entity_GetComponent(pd->canvas, TX_Components.Canvas);
-    int sd_qot = canvas->width / SD_LENGTH;
-    int sd_rem = canvas->width % SD_LENGTH;
+    int qot = sd_qot(canvas->width);
+    int rem = sd_rem(canvas->width);
 
     for (int i = pd->start; i < pd->end; ++i) {
-        sd_vec3 *base = canvas->color + i * sd_bounding_size(canvas->width);
+        int base = i * sd_bounding_length(canvas->width);
 
-        for (int j = 0; j < sd_qot; ++j) {
-            sd_vec3 col = base[j];
+        for (int j = 0; j < qot; ++j) {
+            sd_vec3 col = sd_vec3_load(canvas->color, base + j);
             col = sd_vec3_clamp(col, sd_float_zero(), sd_float_one());
             col = sd_vec3_muls(col, sd_float_set(0xFFFF));
 
             sd_int byte = sd_int_set(0xFF);
 
-            sd_int r = sd_float_to_int(col.r);
-                   r = sd_int_gather_i8((int8_t *)gamma_encode_lut, r);
+            sd_int r = sd_float_to_int(sd_vx(col));
+                   r = sd_int_gather_u8(gamma_encode_lut, r);
                    r = sd_int_shl(r, 16);
-            sd_int g = sd_float_to_int(col.g);
-                   g = sd_int_gather_i8((int8_t *)gamma_encode_lut, g);
+            sd_int g = sd_float_to_int(sd_vy(col));
+                   g = sd_int_gather_u8(gamma_encode_lut, g);
                    g = sd_int_and(g, byte);
                    g = sd_int_shl(g, 8);
-            sd_int b = sd_float_to_int(col.b);
-                   b = sd_int_gather_i8((int8_t *)gamma_encode_lut, b);
+            sd_int b = sd_float_to_int(sd_vz(col));
+                   b = sd_int_gather_u8(gamma_encode_lut, b);
                    b = sd_int_and(b, byte);
 
             sd_int out = sd_int_or(r, sd_int_or(g, b));
-            sd_int_store_unaligned((int32_t *)pd->pixels + i * canvas->width + j * SD_LENGTH, out);
+            sd_int_storeu((int32_t *)pd->pixels + i * canvas->width + j * sd_length(), out);
         }
 
-        for (int j = 0; j < sd_rem; ++j) {
-            sd_vec3_scalar col = sd_vec3_arr_get(base + sd_qot, j);
+        for (int j = 0; j < rem; ++j) {
+            sd_vec3_scalar col = sd_vec3_loads(canvas->color, qot * sd_length() + j);
 
-            uint16_t r = col.r.val * 0xFFFF;
+            uint16_t r = col.x * 0xFFFF;
                      r = gamma_encode_lut[r];
-            uint16_t g = col.g.val * 0xFFFF;
+            uint16_t g = col.y * 0xFFFF;
                      g = gamma_encode_lut[g];
-            uint16_t b = col.b.val * 0xFFFF;
+            uint16_t b = col.z * 0xFFFF;
                      b = gamma_encode_lut[b];
 
-            pd->pixels[i * canvas->width + sd_qot * SD_LENGTH + j] = (r << 16) | (g << 8) | b;
+            pd->pixels[i * canvas->width + qot * sd_length() + j] = (r << 16) | (g << 8) | b;
         }
     }
 
@@ -102,9 +102,9 @@ void SD_VARIANT(TX_Canvas_Init)(void *component, void *args) {
     canvas->height = cargs->height;
     canvas->parallelism = cargs->parallelism;
 
-    size_t sd_count = sd_bounding_size(canvas->width) * canvas->height;
-    canvas->color = SDL_aligned_alloc(SD_ALIGN, sizeof(sd_vec3) * sd_count);
-    canvas->depth = SDL_aligned_alloc(SD_ALIGN, sizeof(sd_float) * sd_count);
+    size_t sd_size = sd_bounding_size(canvas->width) * canvas->height;
+    canvas->color = SDL_aligned_alloc(SD_ALIGN, sd_size * 3);
+    canvas->depth = SDL_aligned_alloc(SD_ALIGN, sd_size);
 }
 
 #ifndef SD_SRC_VARIANT

@@ -9,15 +9,15 @@
 
 TX_Mesh *SD_VARIANT(TX_Mesh_Create)(vec3 *ws_verts, vec3 *ws_nrmls, vec2 *ts_verts, TX_MeshFace *faces, size_t nverts, size_t nts_verts, size_t nfaces) {
     TX_Mesh *mesh = SDL_malloc(sizeof(TX_Mesh));
-    sd_vec3 *vbuf = SDL_aligned_alloc(SD_ALIGN, sizeof(sd_vec3) * sd_bounding_size(nverts));
-    sd_vec3 *nbuf = ws_nrmls ? SDL_aligned_alloc(SD_ALIGN, sizeof(sd_vec3) * sd_bounding_size(nverts)) : nullptr;
+    sd_vec3 *vbuf = SDL_aligned_alloc(SD_ALIGN, sd_bounding_size(nverts) * 3);
+    sd_vec3 *nbuf = ws_nrmls ? SDL_aligned_alloc(SD_ALIGN, sd_bounding_size(nverts) * 3) : nullptr;
 
     for (size_t i = 0; i < nverts; ++i)
-        sd_vec3_arr_set(vbuf, i, ws_verts[i].x, ws_verts[i].y, ws_verts[i].z);
+        sd_vec3_stores(vbuf, i, ws_verts[i].x, ws_verts[i].y, ws_verts[i].z);
 
     if (nbuf)
         for (size_t i = 0; i < nverts; ++i)
-            sd_vec3_arr_set(nbuf, i, ws_nrmls[i].x, ws_nrmls[i].y, ws_nrmls[i].z);
+            sd_vec3_stores(nbuf, i, ws_nrmls[i].x, ws_nrmls[i].y, ws_nrmls[i].z);
 
     *mesh = (TX_Mesh) {
         .ws_verts = vbuf,
@@ -34,15 +34,15 @@ TX_Mesh *SD_VARIANT(TX_Mesh_Create)(vec3 *ws_verts, vec3 *ws_nrmls, vec2 *ts_ver
 TX_WorldGeometry *SD_VARIANT(TX_World_RegisterGeometry)(ECS_Handle *self, TX_Mesh *mesh) {
     TX_World *world = ECS_Entity_GetComponent(self, TX_Components.World);
     TX_WorldGeometry *geometry = SDL_malloc(sizeof(TX_WorldGeometry));
-    size_t sd_count = sd_bounding_size(mesh->nverts);
+    size_t sd_size = sd_bounding_size(mesh->nverts);
 
     *geometry = (TX_WorldGeometry) {
         .world = world,
         .instances = List_Create(TX_RenderInstance *),
         .mesh = mesh,
-        .vs_verts = SDL_aligned_alloc(SD_ALIGN, sizeof(sd_vec3) * sd_count),
-        .vs_nrmls = mesh->ws_nrmls ? SDL_aligned_alloc(SD_ALIGN, sizeof(sd_vec3) * sd_count) : nullptr,
-        .ss_verts = SDL_aligned_alloc(SD_ALIGN, sizeof(sd_vec2) * sd_count),
+        .vs_verts = SDL_aligned_alloc(SD_ALIGN, sd_size * 3),
+        .vs_nrmls = mesh->ws_nrmls ? SDL_aligned_alloc(SD_ALIGN, sd_size * 3) : nullptr,
+        .ss_verts = SDL_aligned_alloc(SD_ALIGN, sd_size * 2),
         .xform = { mat3x3_identity, vec3_zero }
     };
 

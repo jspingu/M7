@@ -5,17 +5,17 @@
 
 sd_vec2 SD_VARIANT(TX_ProjectParallel)(ECS_Handle *self, sd_vec3 pos, sd_vec2 midpoint) {
     TX_ParallelProjector *parallel_projector = ECS_Entity_GetComponent(self, TX_Components.ParallelProjector);
-    sd_vec2 projected = sd_vec2_fmadd(sd_vec2_set(parallel_projector->slope.x, parallel_projector->slope.y), pos.z, pos.xy);
+    sd_vec2 projected = sd_vec2_fsmadd(sd_vec2_set(parallel_projector->slope.x, parallel_projector->slope.y), sd_vz(pos), sd_vxy(pos));
     return sd_vec2_add(midpoint, sd_vec2_mul(projected, sd_vec2_set(parallel_projector->scale.x, -parallel_projector->scale.y)));
 }
 
 sd_vec2 SD_VARIANT(TX_ProjectPerspective)(ECS_Handle *self, sd_vec3 pos, sd_vec2 midpoint) {
     TX_PerspectiveFOV *perspective_fov = ECS_Entity_GetComponent(self, TX_Components.PerspectiveFOV);
 
-    sd_vec2 normalized = { .x = pos.x, .y = sd_float_negate(pos.y) };
-            normalized = sd_vec2_muls(normalized, sd_float_rcp(sd_float_mul(pos.z, sd_float_set(perspective_fov->tan_half_fov))));
+    sd_vec2 normalized = sd_vec2_create(sd_vx(pos), sd_float_negate(sd_vy(pos)));
+            normalized = sd_vec2_muls(normalized, sd_float_rcp(sd_float_mul(sd_vz(pos), sd_float_set(perspective_fov->tan_half_fov))));
 
-    return sd_vec2_fmadd(normalized, midpoint.x, midpoint);
+    return sd_vec2_fsmadd(normalized, sd_vx(midpoint), midpoint);
 }
 
 #ifndef SD_SRC_VARIANT
