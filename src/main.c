@@ -38,8 +38,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
         { TX_Components.TextureBank, nullptr },
         { TX_Components.Canvas, &(TX_Canvas){
             .width = WIDTH,
-            .height = HEIGHT,
-            .parallelism = SDL_GetNumLogicalCPUCores()
+            .height = HEIGHT
         }},
         { Components.GrabMouse, &(bool){} }
     );
@@ -62,8 +61,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
                         { TX_Components.Rasterizer, &(TX_RasterizerArgs) {
                             .project = SD_SELECT(TX_ProjectPerspective),
                             .scan = SD_SELECT(TX_ScanPerspective),
-                            .near = 1,
-                            .parallelism = SDL_GetNumLogicalCPUCores()
+                            .near = 1
                         }},
                         { TX_Components.Position, &(vec3){} },
                         { TX_Components.Basis, (mat3x3 []){mat3x3_identity} },
@@ -210,7 +208,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
                 { /* Skybox */
                     ECS_Components(
                         { TX_Components.MeshPrimitive, nullptr },
-                        { TX_Components.Cubemap, &(TX_Cubemap) { .scale=1000 } },
+                        { TX_Components.Cubemap, &(TX_Cubemap) { .scale=100 } },
                         { TX_Components.Model, &(TX_ModelArgs) { .get_mesh = TX_Cubemap_GetMesh } },
                         { TX_Components.XformComposer, &(TX_XformComposer){TX_XformComposeCubemap} },
                     ),

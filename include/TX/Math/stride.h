@@ -685,6 +685,26 @@ static inline sd_int sd_int_gather_u8(const uint8_t *buf, sd_int index) {
 #endif
 }
 
+static inline int32_t sd_int_loads(sd_int *src, size_t index) {
+    return ((int32_t *)src)[index];
+}
+
+static inline void sd_int_store(sd_int *dst, size_t index, sd_int i) {
+#ifdef __AVX512F__
+    _mm512_store_si512(dst + index, i);
+#elifdef __AVX2__
+    _mm256_store_si256(dst + index, i);
+#elifdef __SSE2__
+    _mm_store_si128(dst + index, i);
+#elifdef __ARM_FEATURE_SVE
+    svst1_vnum(svptrue_b32(), (int32_t *)dst, index, i);
+#elifdef __ARM_NEON
+    vst1q_s32((int32_t *)dst + index * sd_length(), i);
+#else
+    dst[index] = i;
+#endif
+}
+
 static inline void sd_int_storeu(int32_t *dst, sd_int i) {
 #ifdef __AVX512F__
     _mm512_storeu_epi32(dst, i);
@@ -1290,6 +1310,7 @@ static inline void sd_float_store(sd_float *dst, size_t index, sd_float f) {
     dst[index] = f;
 #endif
 }
+
 static inline void sd_vec2_store(sd_vec2 *src, size_t index, sd_vec2 v) {
     sd_float_store((sd_float *)src, index * 2 + 0, sd_vx(v));
     sd_float_store((sd_float *)src, index * 2 + 1, sd_vy(v));

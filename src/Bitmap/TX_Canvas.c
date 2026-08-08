@@ -67,13 +67,14 @@ void SD_VARIANT(TX_Canvas_Present)(ECS_Handle *self) {
 
     SDL_LockTexture(vp->texture, nullptr, (void **)&pixels, &pitch);
 
-    SDL_Thread **threads = SDL_malloc(sizeof(SDL_Thread *) * canvas->parallelism);
-    PresentData *present_data = SDL_malloc(sizeof(PresentData) * canvas->parallelism);
+    int parallelism = SDL_GetNumLogicalCPUCores();
+    SDL_Thread **threads = SDL_malloc(sizeof(SDL_Thread *) * parallelism);
+    PresentData *present_data = SDL_malloc(sizeof(PresentData) * parallelism);
 
-    int qot = canvas->height / canvas->parallelism;
-    int rem = canvas->height % canvas->parallelism;
+    int qot = canvas->height / parallelism;
+    int rem = canvas->height % parallelism;
 
-    for (int i = 0; i < canvas->parallelism; ++i) {
+    for (int i = 0; i < parallelism; ++i) {
         present_data[i] = (PresentData) {
             .canvas = self,
             .pixels = pixels,
@@ -84,7 +85,7 @@ void SD_VARIANT(TX_Canvas_Present)(ECS_Handle *self) {
         threads[i] = SDL_CreateThread(PresentThread, "present", present_data + i);
     }
 
-    for (int i = 0; i < canvas->parallelism; ++i)
+    for (int i = 0; i < parallelism; ++i)
         SDL_WaitThread(threads[i], nullptr);
 
     SDL_free(present_data);
@@ -97,14 +98,19 @@ void SD_VARIANT(TX_Canvas_Present)(ECS_Handle *self) {
 
 void SD_VARIANT(TX_Canvas_Init)(void *component, void *args) {
     TX_Canvas *canvas = component, *cargs = args;
-
     canvas->width = cargs->width;
     canvas->height = cargs->height;
-    canvas->parallelism = cargs->parallelism;
 
     size_t sd_size = sd_bounding_size(canvas->width) * canvas->height;
     canvas->color = SDL_aligned_alloc(SD_ALIGN, sd_size * 3);
     canvas->depth = SDL_aligned_alloc(SD_ALIGN, sd_size);
+    
+    int parallelism = SDL_GetNumLogicalCPUCores();
+    int qot = canvas->height / parallelism;
+    int rem = canvas->height % parallelism;
+    size_t sd_scanlines_size = sd_bounding_size(qot + 1) * rem + sd_bounding_size(qot) * (parallelism - rem);
+    canvas->scanlines[0] = SDL_aligned_alloc(SD_ALIGN, sd_scanlines_size);
+    canvas->scanlines[1] = SDL_aligned_alloc(SD_ALIGN, sd_scanlines_size);
 }
 
 #ifndef SD_SRC_VARIANT
@@ -114,6 +120,8 @@ void TX_Canvas_Free(void *component) {
 
     SDL_aligned_free(canvas->color);
     SDL_aligned_free(canvas->depth);
+    SDL_aligned_free(canvas->scanlines[0]);
+    SDL_aligned_free(canvas->scanlines[1]);
 }
 
 #endif /* SD_SRC_VARIANT */

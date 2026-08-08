@@ -69,7 +69,6 @@ typedef struct TX_Rasterizer {
     TX_VertexProjector project;
     TX_RasterScanner scan;
     float near;
-    int parallelism;
 } TX_Rasterizer;
 
 void TX_3D_RegisterToECS(ECS *ecs);

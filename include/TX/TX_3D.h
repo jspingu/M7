@@ -36,7 +36,7 @@ typedef xform3 (*TX_XformComposer)(ECS_Handle *self, xform3 lhs);
 
 typedef sd_vec4 (*TX_FragmentShader)(void *state, sd_vec4 col, TX_ShaderParams fragment);
 typedef sd_vec2 (*TX_VertexProjector)(ECS_Handle *self, sd_vec3 pos, sd_vec2 midpoint);
-typedef void (*TX_RasterScanner)(ECS_Handle *self, TX_TriangleDraw triangle, TX_RasterizerFlags flags, int (*scanlines)[2], int range[2]);
+typedef void (*TX_RasterScanner)(ECS_Handle *self, TX_TriangleDraw triangle, TX_RasterizerFlags flags, int triangle_bounds[2], int scanline_padding);
 
 typedef struct TX_ShaderParams {
     sd_vec3 *vs;
@@ -69,7 +69,6 @@ typedef struct TX_RasterizerArgs {
     TX_VertexProjector project;
     TX_RasterScanner scan;
     float near;
-    int parallelism;
 } TX_RasterizerArgs;
 
 typedef struct TX_ParallelProjector {
@@ -196,10 +195,10 @@ TX_RenderInstance *TX_WorldGeometry_Instance(TX_WorldGeometry *geometry, TX_Frag
 void TX_WorldGeometry_Free(TX_WorldGeometry *geometry);
 
 SD_DECLARE(sd_vec2, TX_ProjectParallel, ECS_Handle *, self, sd_vec3, point, sd_vec2, midpoint)
-SD_DECLARE_VOID_RETURN(TX_ScanLinear, ECS_Handle *, self, TX_TriangleDraw, triangle, TX_RasterizerFlags, flags, int (*)[2], scanlines, int [2], range)
+SD_DECLARE_VOID_RETURN(TX_ScanLinear, ECS_Handle *, self, TX_TriangleDraw, triangle, TX_RasterizerFlags, flags, int [2], triangle_bounds, int, scanline_padding)
 
 SD_DECLARE(sd_vec2, TX_ProjectPerspective, ECS_Handle *, self, sd_vec3, point, sd_vec2, midpoint)
-SD_DECLARE_VOID_RETURN(TX_ScanPerspective, ECS_Handle *, self, TX_TriangleDraw, triangle, TX_RasterizerFlags, flags, int (*)[2], scanlines, int [2], range)
+SD_DECLARE_VOID_RETURN(TX_ScanPerspective, ECS_Handle *, self, TX_TriangleDraw, triangle, TX_RasterizerFlags, flags, int [2], triangle_bounds, int, scanline_padding)
 
 void TX_PerspectiveFOV_Set(ECS_Handle *self, float fov);
 

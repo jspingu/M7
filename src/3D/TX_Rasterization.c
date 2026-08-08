@@ -9,13 +9,9 @@
 
 typedef struct SubCanvasRenderData {
     ECS_Handle *rasterizer;
-    int bounds[2];
-    int (*scanlines)[2];
+    int canvas_bounds[2];
+    int scanline_padding;
 } SubCanvasRenderData;
-
-static inline int roundtl(float f) {
-    return SDL_ceilf(f - 0.5f);
-}
 
 static inline vec3 intersect_near(vec3 from, vec3 to, float near) {
     vec3 path = vec3_sub(to, from);
@@ -23,7 +19,7 @@ static inline vec3 intersect_near(vec3 from, vec3 to, float near) {
     return vec3_add(from, vec3_mul(slope, near - from.z));
 }
 
-void SD_VARIANT(TX_ScanLinear)(ECS_Handle *self, TX_TriangleDraw triangle, TX_RasterizerFlags flags, int (*scanlines)[2], int range[2]) {
+void SD_VARIANT(TX_ScanLinear)(ECS_Handle *self, TX_TriangleDraw triangle, TX_RasterizerFlags flags, int triangle_bounds[2], int scanline_padding) {
     TX_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, TX_Components.Rasterizer);
     TX_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, TX_Components.Canvas);
     xform3 scalar_vs2ws_xform = TX_Entity_GetXform(self);
@@ -65,16 +61,17 @@ void SD_VARIANT(TX_ScanLinear)(ECS_Handle *self, TX_TriangleDraw triangle, TX_Ra
     vec3 scalar_nrml = vec3_cross(vec3_sub(triangle.vs_verts[1], triangle.vs_verts[0]), vec3_sub(triangle.vs_verts[2], triangle.vs_verts[0]));
     sd_vec3 nrml = sd_vec3_set(scalar_nrml.x, scalar_nrml.y, scalar_nrml.z);
 
-    for (int i = range[0]; i < range[1]; ++i) {
+    for (int i = triangle_bounds[0]; i < triangle_bounds[1]; ++i) {
         int base = i * sd_bounding_length(canvas->width);
-        int sd_left = sd_qot(scanlines[i][0]);
-        int sd_right = sd_bounding_length(scanlines[i][1]);
+
+        int32_t left = sd_int_loads(canvas->scanlines[0], scanline_padding + i);
+        int32_t right = sd_int_loads(canvas->scanlines[1], scanline_padding + i);
+        int sd_left = sd_qot(left);
+        int sd_right = sd_bounding_length(right);
 
         for (int j = sd_left; j < sd_right; ++j) {
-            int left = j * sd_length();
-
             sd_vec2 ss = sd_vec2_create(
-                sd_float_add(sd_float_set(left), sd_float_add(sd_float_range(), sd_float_set(0.5f))),
+                sd_float_add(sd_float_range(), sd_float_set(j * sd_length() + 0.5f)),
                 sd_float_add(sd_float_set(i), sd_float_set(0.5f))
             );
 
@@ -106,7 +103,7 @@ void SD_VARIANT(TX_ScanLinear)(ECS_Handle *self, TX_TriangleDraw triangle, TX_Ra
             sd_vec4 col;
             sd_vec3 bg = sd_vec3_load(canvas->color, base + j);
             sd_float bg_z = sd_float_load(canvas->depth, base + j);
-            sd_mask mask = sd_float_between(sd_vx(ss), scanlines[i][0], scanlines[i][1]);
+            sd_mask mask = sd_float_between(sd_vx(ss), left, right);
 
             if (flags & TX_RASTERIZER_TEST_DEPTH)
                 mask = sd_mask_and(mask, sd_float_gt(inv_z, bg_z));
@@ -122,7 +119,7 @@ void SD_VARIANT(TX_ScanLinear)(ECS_Handle *self, TX_TriangleDraw triangle, TX_Ra
     }
 }
 
-void SD_VARIANT(TX_ScanPerspective)(ECS_Handle *self, TX_TriangleDraw triangle, TX_RasterizerFlags flags, int (*scanlines)[2], int range[2]) {
+void SD_VARIANT(TX_ScanPerspective)(ECS_Handle *self, TX_TriangleDraw triangle, TX_RasterizerFlags flags, int triangle_bounds[2], int scanline_padding) {
     TX_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, TX_Components.Rasterizer);
     TX_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, TX_Components.Canvas);
     TX_PerspectiveFOV *perspective_fov = ECS_Entity_GetComponent(self, TX_Components.PerspectiveFOV);
@@ -167,17 +164,16 @@ void SD_VARIANT(TX_ScanPerspective)(ECS_Handle *self, TX_TriangleDraw triangle, 
     sd_vec2 midpoint = sd_vec2_set(canvas->width * 0.5f, canvas->height * 0.5f);
     sd_float normalize_ss = sd_float_mul(sd_float_set(perspective_fov->tan_half_fov), sd_float_rcp(sd_vx(midpoint)));
 
-    for (int i = range[0]; i < range[1]; ++i) {
+    for (int i = triangle_bounds[0]; i < triangle_bounds[1]; ++i) {
         int base = i * sd_bounding_length(canvas->width);
-        int sd_left = sd_qot(scanlines[i][0]);
-        int sd_right = sd_bounding_length(scanlines[i][1]);
+        
+        int32_t left = sd_int_loads(canvas->scanlines[0], scanline_padding + i);
+        int32_t right = sd_int_loads(canvas->scanlines[1], scanline_padding + i);
+        int sd_left = sd_qot(left);
+        int sd_right = sd_bounding_length(right);
 
         for (int j = sd_left; j < sd_right; ++j) {
-            int left = j * sd_length();
-
-            sd_float fragment_x = sd_float_add(sd_float_range(), sd_float_set(0.5));
-                     fragment_x = sd_float_add(fragment_x, sd_float_set(left));
-
+            sd_float fragment_x = sd_float_add(sd_float_range(), sd_float_set(j * sd_length() + 0.5));
             sd_float fragment_y = sd_float_add(sd_float_set(i), sd_float_set(0.5));
 
             sd_vec2 proj_plane = sd_vec2_muls(sd_vec2_sub(
@@ -224,7 +220,7 @@ void SD_VARIANT(TX_ScanPerspective)(ECS_Handle *self, TX_TriangleDraw triangle, 
             sd_vec4 col;
             sd_vec3 bg = sd_vec3_load(canvas->color, base + j);
             sd_float bg_z = sd_float_load(canvas->depth, base + j);
-            sd_mask mask = sd_float_between(fragment_x, scanlines[i][0], scanlines[i][1]);
+            sd_mask mask = sd_float_between(fragment_x, left, right);
 
             if (flags & TX_RASTERIZER_TEST_DEPTH)
                 mask = sd_mask_and(mask, sd_float_gt(inv_z, bg_z));
@@ -240,43 +236,62 @@ void SD_VARIANT(TX_ScanPerspective)(ECS_Handle *self, TX_TriangleDraw triangle, 
     }
 }
 
-static void Trace(int width, int bounds[2], int (*scanlines)[2], vec2 line[2]) {
-    vec2 path = vec2_sub(line[1], line[0]);
-
-    int trace_range[2] = {
-        SDL_clamp(roundtl(line[0].y), bounds[0], bounds[1]),
-        SDL_clamp(roundtl(line[1].y), bounds[0], bounds[1])
-    };
-
-    bool descending = path.y > 0;
-    float slope = path.x / path.y;
-    float offset = line[!descending].x + (trace_range[!descending] + 0.5f - line[!descending].y) * slope;
-
-    for (int i = trace_range[!descending]; i < trace_range[descending]; ++i) {
-        scanlines[i][descending] = SDL_clamp(roundtl(offset), 0, width);
-        offset += slope;
-    }
-
-    // TODO: Remove iterative algorithm & vectorize
+static void swap(int *a, int *b) {
+    int tmp = *a;
+    *a = *b;
+    *b = tmp;
 }
 
-static void TX_Rasterizer_DrawTriangle(ECS_Handle *self, TX_TriangleDraw triangle, TX_RasterizerFlags flags, int (*scanlines)[2], int bounds[2]) {
+static void Span(TX_Canvas *canvas, vec2 verts[3], int triangle_bounds[2], int scanline_padding) {
+    int idxs[] = { 0, 1, 2 };
+
+    /* Sort by ascending y */
+    if (verts[idxs[0]].y > verts[idxs[1]].y) swap(&idxs[0], &idxs[1]);
+    if (verts[idxs[1]].y > verts[idxs[2]].y) swap(&idxs[1], &idxs[2]);
+    if (verts[idxs[0]].y > verts[idxs[1]].y) swap(&idxs[0], &idxs[1]);
+
+    sd_float sd_grad01 = sd_float_set((verts[idxs[1]].x - verts[idxs[0]].x) / (verts[idxs[1]].y - verts[idxs[0]].y));
+    sd_float sd_grad12 = sd_float_set((verts[idxs[2]].x - verts[idxs[1]].x) / (verts[idxs[2]].y - verts[idxs[1]].y));
+    sd_float sd_grad02 = sd_float_set((verts[idxs[2]].x - verts[idxs[0]].x) / (verts[idxs[2]].y - verts[idxs[0]].y));
+
+    bool le_left = ((idxs[0] + 2) % 3 == idxs[2]);
+    size_t sd_top = sd_qot(scanline_padding + triangle_bounds[0]);
+    size_t sd_bottom = sd_bounding_length(scanline_padding + triangle_bounds[1]);
+
+    for (size_t i = sd_top; i < sd_bottom; ++i) {
+        sd_float y = sd_float_add(sd_float_range(), sd_float_set(i * sd_length() + 0.5f - scanline_padding));
+        sd_float offset0 = sd_float_sub(y, sd_float_set(verts[idxs[0]].y));
+        sd_float offset1 = sd_float_sub(y, sd_float_set(verts[idxs[1]].y));
+
+        sd_float x01 = sd_float_fmadd(sd_grad01, offset0, sd_float_set(verts[idxs[0]].x));
+        sd_float x12 = sd_float_fmadd(sd_grad12, offset1, sd_float_set(verts[idxs[1]].x));
+        sd_float x02 = sd_float_fmadd(sd_grad02, offset0, sd_float_set(verts[idxs[0]].x));
+
+        sd_int left = sd_float_to_int(sd_float_add(sd_float_clamp(le_left ? x02 : sd_float_max(x01, x12), sd_float_zero(), sd_float_set(canvas->width)), sd_float_set(0.5f)));
+        sd_int right = sd_float_to_int(sd_float_add(sd_float_clamp(le_left ? sd_float_min(x01, x12) : x02, sd_float_zero(), sd_float_set(canvas->width)), sd_float_set(0.5f)));
+
+        sd_int_store(canvas->scanlines[0], i, left);
+        sd_int_store(canvas->scanlines[1], i, right);
+    }
+}
+
+static void TX_Rasterizer_DrawTriangle(ECS_Handle *self, TX_TriangleDraw triangle, TX_RasterizerFlags flags, int canvas_bounds[2], int scanline_padding) {
     TX_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, TX_Components.Rasterizer);
     TX_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, TX_Components.Canvas);
 
     float min_y = SDL_min(SDL_min(triangle.ss_verts[0].y, triangle.ss_verts[1].y), triangle.ss_verts[2].y);
     float max_y = SDL_max(SDL_max(triangle.ss_verts[0].y, triangle.ss_verts[1].y), triangle.ss_verts[2].y);
 
-    int high = SDL_clamp(roundtl(min_y), bounds[0], bounds[1]);
-    int low = SDL_clamp(roundtl(max_y), bounds[0], bounds[1]);
+    int triangle_bounds[2] = {
+        SDL_clamp((int)(min_y + 0.5f), canvas_bounds[0], canvas_bounds[1]),
+        SDL_clamp((int)(max_y + 0.5f), canvas_bounds[0], canvas_bounds[1])
+    };
 
-    for (int i = 0; i < 3; ++i)
-        Trace(canvas->width, bounds, scanlines, (vec2 [2]) { triangle.ss_verts[i], triangle.ss_verts[(i + 1) % 3] });
-
-    rasterizer->scan(self, triangle, flags, scanlines, (int [2]) { high, low });
+    Span(canvas, triangle.ss_verts, triangle_bounds, scanline_padding);
+    rasterizer->scan(self, triangle, flags, triangle_bounds, scanline_padding);
 }
 
-static void TX_Rasterizer_DrawBatch(ECS_Handle *self, List(TX_RenderInstance *) *batch, TX_RasterizerFlags flags, int (*scanlines)[2], int bounds[2]) {
+static void TX_Rasterizer_DrawBatch(ECS_Handle *self, List(TX_RenderInstance *) *batch, TX_RasterizerFlags flags, int canvas_bounds[2], int scanline_padding) {
     TX_Rasterizer *rasterizer = ECS_Entity_GetComponent(self, TX_Components.Rasterizer);
     TX_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, TX_Components.Canvas);
 
@@ -335,7 +350,7 @@ static void TX_Rasterizer_DrawBatch(ECS_Handle *self, List(TX_RenderInstance *) 
 
                 /* Cull off-screen triangles */
                 if (min_x > canvas->width || max_x < 0 ||
-                    min_y > bounds[1] || max_y < bounds[0] 
+                    min_y > canvas_bounds[1] || max_y < canvas_bounds[0] 
                 ) continue;
 
                 bool verts_cw = vec2_dot(
@@ -369,7 +384,7 @@ static void TX_Rasterizer_DrawBatch(ECS_Handle *self, List(TX_RenderInstance *) 
                         instance->geometry->mesh->ts_verts[faces[i].idx_tverts[1 + verts_cw]]
                     }, sizeof(vec2 [3]));
 
-                TX_Rasterizer_DrawTriangle(self, triangle, flags, scanlines, bounds);
+                TX_Rasterizer_DrawTriangle(self, triangle, flags, canvas_bounds, scanline_padding);
             }
         }
     });
@@ -383,7 +398,7 @@ static int RenderToSubCanvas(void *data) {
     size_t sd_width = sd_bounding_length(canvas->width);
 
     /* Reset depth */
-    for (size_t i = sd_width * render->bounds[0]; i < sd_width * render->bounds[1]; ++i)
+    for (size_t i = sd_width * render->canvas_bounds[0]; i < sd_width * render->canvas_bounds[1]; ++i)
         sd_float_store(canvas->depth, i, sd_float_zero());
 
     /* Draw geometry in batches, according to render order and rasterizer flags */
@@ -392,7 +407,7 @@ static int RenderToSubCanvas(void *data) {
             List(TX_RenderInstance *) *flag_batch = List_Get(world->render_batches, i)[flags];
 
             if (flag_batch)
-                TX_Rasterizer_DrawBatch(render->rasterizer, flag_batch, flags, render->scanlines, render->bounds);
+                TX_Rasterizer_DrawBatch(render->rasterizer, flag_batch, flags, render->canvas_bounds, render->scanline_padding);
         }
     }
 
@@ -452,30 +467,30 @@ void SD_VARIANT(TX_Rasterizer_Render)(ECS_Handle *self) {
     });
 
     /* Render to sub-canvases in parallel */
-    SDL_Thread **threads = SDL_malloc(sizeof(SDL_Thread *) * rasterizer->parallelism);
-    SubCanvasRenderData *render_data = SDL_malloc(sizeof(SubCanvasRenderData) * rasterizer->parallelism);
-    int (*scanlines)[2] = SDL_malloc(sizeof(int [2]) * canvas->height);
+    int parallelism = SDL_GetNumLogicalCPUCores();
+    SDL_Thread **threads = SDL_malloc(sizeof(SDL_Thread *) * parallelism);
+    SubCanvasRenderData *render_data = SDL_malloc(sizeof(SubCanvasRenderData) * parallelism);
 
-    int qot = canvas->height / rasterizer->parallelism;
-    int rem = canvas->height % rasterizer->parallelism;
+    int qot = canvas->height / parallelism;
+    int rem = canvas->height % parallelism;
 
-    for (int i = 0; i < rasterizer->parallelism; ++i) {
+    for (int i = 0; i < parallelism; ++i) {
         render_data[i] = (SubCanvasRenderData) {
             .rasterizer = self,
-            .bounds = {
+            .canvas_bounds = {
                 i * qot + SDL_min(i, rem),
                 (i + 1) * qot + SDL_min(i + 1, rem)
             },
-            .scanlines = scanlines
+            .scanline_padding = SDL_min(i, rem) * ((sd_bounding_length(qot + 1) << sd_log_length()) - qot - 1) +
+                                SDL_max(i - rem, 0) * ((sd_bounding_length(qot) << sd_log_length()) - qot)
         };
 
         threads[i] = SDL_CreateThread(RenderToSubCanvas, "rendersc", render_data + i);
     }
 
-    for (int i = 0; i < rasterizer->parallelism; ++i)
+    for (int i = 0; i < parallelism; ++i)
         SDL_WaitThread(threads[i], nullptr);
 
-    SDL_free(scanlines);
     SDL_free(render_data);
     SDL_free(threads);
 }
@@ -495,8 +510,7 @@ void TX_Rasterizer_Init(void *component, void *args) {
     *rasterizer = (TX_Rasterizer) {
         .project = rasterizer_args->project,
         .scan = rasterizer_args->scan,
-        .near = rasterizer_args->near,
-        .parallelism = rasterizer_args->parallelism
+        .near = rasterizer_args->near
     };
 }
 

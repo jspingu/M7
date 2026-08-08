@@ -21,8 +21,8 @@ typedef struct TX_Canvas {
     ECS_Handle *vp;
     sd_vec3 *color;
     sd_float *depth;
+    sd_int *scanlines[2];
     int width, height;
-    int parallelism;
 } TX_Canvas;
 
 typedef struct TX_Texture {
