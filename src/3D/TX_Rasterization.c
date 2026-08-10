@@ -64,8 +64,8 @@ void SD_VARIANT(TX_ScanLinear)(ECS_Handle *self, TX_TriangleDraw triangle, TX_Ra
     for (int i = triangle_bounds[0]; i < triangle_bounds[1]; ++i) {
         int base = i * sd_bounding_length(canvas->width);
 
-        int32_t left = sd_int_loads(canvas->scanlines[0], scanline_padding + i);
-        int32_t right = sd_int_loads(canvas->scanlines[1], scanline_padding + i);
+        int left = sd_int_loads(canvas->scanlines[0], scanline_padding + i);
+        int right = sd_int_loads(canvas->scanlines[1], scanline_padding + i);
         int sd_left = sd_qot(left);
         int sd_right = sd_bounding_length(right);
 
@@ -167,8 +167,8 @@ void SD_VARIANT(TX_ScanPerspective)(ECS_Handle *self, TX_TriangleDraw triangle, 
     for (int i = triangle_bounds[0]; i < triangle_bounds[1]; ++i) {
         int base = i * sd_bounding_length(canvas->width);
         
-        int32_t left = sd_int_loads(canvas->scanlines[0], scanline_padding + i);
-        int32_t right = sd_int_loads(canvas->scanlines[1], scanline_padding + i);
+        int left = sd_int_loads(canvas->scanlines[0], scanline_padding + i);
+        int right = sd_int_loads(canvas->scanlines[1], scanline_padding + i);
         int sd_left = sd_qot(left);
         int sd_right = sd_bounding_length(right);
 
@@ -481,8 +481,7 @@ void SD_VARIANT(TX_Rasterizer_Render)(ECS_Handle *self) {
                 i * qot + SDL_min(i, rem),
                 (i + 1) * qot + SDL_min(i + 1, rem)
             },
-            .scanline_padding = SDL_min(i, rem) * ((sd_bounding_length(qot + 1) << sd_log_length()) - qot - 1) +
-                                SDL_max(i - rem, 0) * ((sd_bounding_length(qot) << sd_log_length()) - qot)
+            .scanline_padding = SDL_min(i, rem) * sd_rem(sd_length() - qot - 1) + SDL_max(i - rem, 0) * sd_rem(sd_length() - qot)
         };
 
         threads[i] = SDL_CreateThread(RenderToSubCanvas, "rendersc", render_data + i);

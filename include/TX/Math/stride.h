@@ -363,7 +363,7 @@ static inline size_t sd_bounding_length(size_t n) {
 }
 
 static inline size_t sd_bounding_size(size_t n) {
-    return (sd_bounding_length(n) << sd_log_length()) * sizeof(unsigned char [4]);
+    return sd_bounding_length(n) * sd_length() * sizeof(unsigned char [4]);
 }
 
 static inline sd_vec2 sd_vec2_create(sd_float x, sd_float y) {
