@@ -35,7 +35,7 @@ void SD_VARIANT(TX_ScanLinear)(ECS_Handle *self, TX_TriangleDraw triangle, TX_Ra
     sd_float inv_disc = sd_float_rcp(sd_float_sub(sd_float_mul(sd_vx(ab), sd_vy(ac)), sd_float_mul(sd_vy(ab), sd_vx(ac))));
 
     sd_vec2 inv_xform_i = sd_vec2_muls(sd_vec2_create(sd_vy(ac), sd_float_negate(sd_vy(ab))), inv_disc);
-    sd_vec2 inv_xform_j = sd_vec2_muls(sd_vec2_create(sd_vx(ac), sd_float_negate(sd_vx(ab))), inv_disc);
+    sd_vec2 inv_xform_j = sd_vec2_muls(sd_vec2_create(sd_float_negate(sd_vx(ac)), sd_vx(ab)), inv_disc);
 
     sd_vec3 origin_vs = sd_vec3_set(triangle.vs_verts[0].x, triangle.vs_verts[0].y, triangle.vs_verts[0].z);
     sd_vec3 ab_vs = sd_vec3_sub(sd_vec3_set(triangle.vs_verts[1].x, triangle.vs_verts[1].y, triangle.vs_verts[1].z), origin_vs);
