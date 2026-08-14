@@ -321,9 +321,9 @@ SD_DEFINE_TYPES_FIXED(scalar, float, int32_t, bool)
     }
 
 #ifdef __ARM_FEATURE_SVE
-static constexpr size_t SD_ALIGN = alignof(float);
+    static constexpr size_t SD_ALIGN = alignof(float);
 #else
-static constexpr size_t SD_ALIGN = alignof(sd_float);
+    static constexpr size_t SD_ALIGN = alignof(sd_float);
 #endif
 
 static inline size_t sd_length(void) {
@@ -1219,7 +1219,7 @@ static inline sd_float sd_float_gather(float *buf, sd_int index) {
         elems[i] = buf[idxs[i]];
 
     sd_float out;
-    SDL_memcpy(&out, elems, sizeof);
+    SDL_memcpy(&out, elems, sizeof(sd_float));
     return out;
 #elifdef __ARM_FEATURE_SVE
     return svld1_gather_index(svptrue_b32(), buf, index);
