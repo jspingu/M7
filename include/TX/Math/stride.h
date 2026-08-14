@@ -715,7 +715,7 @@ static inline void sd_int_storeu(int32_t *dst, sd_int i) {
 #elifdef __ARM_FEATURE_SVE
     svst1(svptrue_b32(), dst, i);
 #elifdef __ARM_NEON
-    *((int32x4_t *)dst) = i;
+    vst1q_s32(dst, i);
 #else
     *dst = i;
 #endif
