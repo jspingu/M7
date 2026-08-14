@@ -4,7 +4,7 @@ PREFIX ?= /usr/local
 # Must compile with clang for now to use __builtin_cpu_supports("sve")
 CC = clang
 CFLAGS += -Iinclude -Wall -Wextra -Wpedantic -std=c23
-OPTFLAGS += -O3 -ffast-math
+OPTFLAGS += -O3
 DEPFLAGS += -MMD -MP
 LDFLAGS += -lSDL3 -lSDL3_image
 
