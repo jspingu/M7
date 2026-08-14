@@ -6,7 +6,7 @@ CC = clang
 CFLAGS += -Iinclude -Wall -Wextra -Wpedantic -std=c23
 OPTFLAGS += -O3
 DEPFLAGS += -MMD -MP
-LDFLAGS += -lSDL3 -lSDL3_image
+LDFLAGS += -lSDL3
 
 SRCDIR = src
 BLDDIR = build

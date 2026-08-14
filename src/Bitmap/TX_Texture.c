@@ -1,12 +1,11 @@
 #include <SDL3/SDL.h>
-#include <SDL3_image/SDL_image.h>
 #include <TX/TX_ECS.h>
 #include <TX/TX_Resource.h>
 #include <TX/gamma.h>
 
 void *TX_TextureBank_LoadTexture(ECS_Handle *self, char *path) {
     (void)self;
-    SDL_Surface *img = IMG_Load(path);
+    SDL_Surface *img = SDL_LoadPNG(path);
     SDL_Surface *img_abgr = SDL_ConvertSurface(img, SDL_PIXELFORMAT_ABGR32);
 
     TX_Texture *texture = SDL_malloc(sizeof(TX_Texture));

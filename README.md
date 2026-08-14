@@ -3,7 +3,7 @@
 ### Requirements
 
 - C23 Clang
-- SDL3 & SDL3_image
+- SDL3
 
 ### Clone, Build, & Run
 
