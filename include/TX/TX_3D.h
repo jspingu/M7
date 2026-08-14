@@ -10,14 +10,13 @@
 #define TX_SHADER_DECLARE(name)  SD_DECLARE(sd_vec4, name, void *, state, sd_vec4, col, TX_ShaderParams, fragment)
 
 typedef enum TX_RasterizerFlags {
-    TX_RASTERIZER_ALPHA_BLEND         = 1 << 0,
-    TX_RASTERIZER_ALPHA_SCISSOR       = 1 << 1,
-    TX_RASTERIZER_WRITE_DEPTH         = 1 << 2,
-    TX_RASTERIZER_TEST_DEPTH          = 1 << 3,
-    TX_RASTERIZER_INTERPOLATE_NORMALS = 1 << 4,
-    TX_RASTERIZER_CULL_BACKFACE       = 1 << 5,
-    TX_RASTERIZER_SORT_TRIANGLES      = 1 << 6,
-    TX_RASTERIZER_FLAG_COMBINATIONS   = 1 << 7
+    TX_RASTERIZER_ALPHA_SCISSOR       = 1 << 0,  /* TODO: implement */
+    TX_RASTERIZER_CULL_BACKFACE       = 1 << 1,
+    TX_RASTERIZER_INTERPOLATE_NORMALS = 1 << 2,
+    TX_RASTERIZER_SORT_TRIANGLES      = 1 << 3,  /* TODO: implement */
+    TX_RASTERIZER_TEST_DEPTH          = 1 << 4,
+    TX_RASTERIZER_WRITE_DEPTH         = 1 << 5,
+    TX_RASTERIZER_FLAG_COMBINATIONS   = 1 << 6
 } TX_RasterizerFlags;
 
 typedef struct TX_Mesh TX_Mesh;
@@ -39,6 +38,7 @@ typedef sd_vec2 (*TX_VertexProjector)(ECS_Handle *self, sd_vec3 pos, sd_vec2 mid
 typedef void (*TX_RasterScanner)(ECS_Handle *self, TX_TriangleDraw triangle, TX_RasterizerFlags flags, int triangle_bounds[2], int scanline_padding);
 
 typedef struct TX_ShaderParams {
+    sd_vec3 *bg;
     sd_vec3 *vs;
     sd_vec3 *nrml;
     sd_vec2 *ts;

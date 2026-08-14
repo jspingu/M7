@@ -93,13 +93,6 @@ void SD_VARIANT(TX_ScanLinear)(ECS_Handle *self, TX_TriangleDraw triangle, TX_Ra
             sd_vec2 fragment_ts = sd_vec2_fsmadd(ts_xform_i, sd_vx(relative), origin_ts);
                     fragment_ts = sd_vec2_fsmadd(ts_xform_j, sd_vy(relative), fragment_ts);
 
-            TX_ShaderParams fragment = {
-                .vs = &fragment_vs,
-                .nrml = &fragment_nrml,
-                .ts = &fragment_ts,
-                .vs2ws_xform = { &vs2ws_xform_i, &vs2ws_xform_j, &vs2ws_xform_k }
-            };
-
             sd_vec4 col;
             sd_vec3 bg = sd_vec3_load(canvas->color, base + j);
             sd_float bg_z = sd_float_load(canvas->depth, base + j);
@@ -110,6 +103,14 @@ void SD_VARIANT(TX_ScanLinear)(ECS_Handle *self, TX_TriangleDraw triangle, TX_Ra
 
             if (flags & TX_RASTERIZER_WRITE_DEPTH)
                 sd_float_store(canvas->depth, base + j, sd_float_mask_blend(bg_z, inv_z, mask));
+
+            TX_ShaderParams fragment = {
+                .bg = &bg,
+                .vs = &fragment_vs,
+                .nrml = &fragment_nrml,
+                .ts = &fragment_ts,
+                .vs2ws_xform = { &vs2ws_xform_i, &vs2ws_xform_j, &vs2ws_xform_k }
+            };
 
             for (size_t i = 0; i < triangle.nshaders; ++i)
                 col = triangle.shader_pipeline[i](triangle.shader_states[i], col, fragment);
@@ -210,17 +211,18 @@ void SD_VARIANT(TX_ScanPerspective)(ECS_Handle *self, TX_TriangleDraw triangle, 
                     fragment_ts = sd_vec2_fsmadd(ts_xform_j, sd_vy(relative), fragment_ts);
                     fragment_ts = sd_vec2_fsmadd(ts_xform_k, sd_vz(relative), fragment_ts);
 
+            sd_vec4 col;
+            sd_vec3 bg = sd_vec3_load(canvas->color, base + j);
+            sd_float bg_z = sd_float_load(canvas->depth, base + j);
+            sd_mask mask = sd_float_between(fragment_x, left, right);
+
             TX_ShaderParams fragment = {
+                .bg = &bg,
                 .vs = &fragment_vs,
                 .nrml = &fragment_nrml,
                 .ts = &fragment_ts,
                 .vs2ws_xform = { &vs2ws_xform_i, &vs2ws_xform_j, &vs2ws_xform_k }
             };
-
-            sd_vec4 col;
-            sd_vec3 bg = sd_vec3_load(canvas->color, base + j);
-            sd_float bg_z = sd_float_load(canvas->depth, base + j);
-            sd_mask mask = sd_float_between(fragment_x, left, right);
 
             if (flags & TX_RASTERIZER_TEST_DEPTH)
                 mask = sd_mask_and(mask, sd_float_gt(inv_z, bg_z));
