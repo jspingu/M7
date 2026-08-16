@@ -330,7 +330,7 @@ static inline size_t sd_length(void) {
 #ifdef __ARM_FEATURE_SVE
     return svcntw();
 #else
-    return sizeof(sd_float) / sizeof(unsigned char [4]);
+    return sizeof(sd_float) / 4;
 #endif
 }
 
@@ -359,11 +359,11 @@ static inline size_t sd_rem(size_t n) {
 }
 
 static inline size_t sd_bounding_length(size_t n) {
-    return n ? sd_qot(n - 1) + 1 : 0;
+    return sd_qot(n + sd_length() - 1);
 }
 
 static inline size_t sd_bounding_size(size_t n) {
-    return sd_bounding_length(n) * sd_length() * sizeof(unsigned char [4]);
+    return (n + sd_length() - 1 & -sd_length()) * 4;
 }
 
 static inline sd_vec2 sd_vec2_create(sd_float x, sd_float y) {
