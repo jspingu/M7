@@ -9,7 +9,7 @@ TX_Mesh *TX_Teapot_GetMesh(ECS_Handle *self) {
     TX_Teapot *teapot = ECS_Entity_GetComponent(self, TX_Components.Teapot);
     if (*mesh) return *mesh;
 
-    SDL_IOStream *teapot_data = SDL_IOFromFile("assets/teapot_surface0.norm", "r");
+    SDL_IOStream *teapot_data = SDL_IOFromFile("assets/teapot_surface1.norm", "r");
     Uint8 chr;
     char chrs[64];
     int nchrs = 0;

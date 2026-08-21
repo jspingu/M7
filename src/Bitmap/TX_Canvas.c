@@ -67,6 +67,10 @@ void SD_VARIANT(TX_Canvas_Present)(ECS_Handle *self) {
 
     SDL_LockTexture(vp->texture, nullptr, (void **)&pixels, &pitch);
 
+    // Canvas present is broken on MSYS2 builds with odd window resolutions
+    // Maybe pitch is not always canvas->width * sizeof(uint32_t) on all platforms
+    // See https://github.com/libsdl-org/SDL/blob/main/src/render/SDL_render.c
+
     int parallelism = SDL_GetNumLogicalCPUCores();
     SDL_Thread **threads = SDL_malloc(sizeof(SDL_Thread *) * parallelism);
     PresentData *present_data = SDL_malloc(sizeof(PresentData) * parallelism);

@@ -399,6 +399,13 @@ static int RenderToSubCanvas(void *data) {
     TX_Canvas *canvas = ECS_Entity_GetComponent(rasterizer->target, TX_Components.Canvas);
     size_t sd_width = sd_bounding_length(canvas->width);
 
+    /*
+     * changes from kdr that make sorting more difficult
+     * kdr's geometry buffers stored all triangles from all meshes in a single buffer
+     * tx changed this design for easier vectorization and to allow the same mesh to be instanced multiple times with different shaders
+     * if a given call to DrawBatch needs to sort triangles, a temp list of all triangles from all instances in the batch will need to be created and sorted, then drawn
+     */
+
     /* Reset depth */
     for (size_t i = sd_width * render->canvas_bounds[0]; i < sd_width * render->canvas_bounds[1]; ++i)
         sd_float_store(canvas->depth, i, sd_float_zero());
@@ -475,6 +482,8 @@ void SD_VARIANT(TX_Rasterizer_Render)(ECS_Handle *self) {
 
     int qot = canvas->height / parallelism;
     int rem = canvas->height % parallelism;
+
+    // TODO: Use thread pooling to avoid per frame thread creation overhead
 
     for (int i = 0; i < parallelism; ++i) {
         render_data[i] = (SubCanvasRenderData) {

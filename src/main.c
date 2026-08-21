@@ -79,7 +79,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
                     ),
                     ECS_Children({ECS_Components(
                         { TX_Components.SolidColor, &(TX_SolidColor) { .r=1.0, .g=1.0, .b=1.0 } },
-                        { TX_Components.Lighting, &(TX_OpticalMedium) { .reflectivity=0.1, .specularity=1.0, .exp=4 } },
+                        { TX_Components.Lighting, &(TX_OpticalMedium) { .reflectivity=1.0, .specularity=1.0, .exp=4 } },
                         { TX_Components.ModelInstance, &(TX_ModelInstanceArgs) {
                             .shader_components = (ECS_Component(TX_ShaderComponent) *[]) { TX_Components.SolidColor, TX_Components.Lighting },
                             .nshaders = 2,
