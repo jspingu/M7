@@ -1,0 +1,60 @@
+name: Build
+on: [push]
+jobs:
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-26.04, ubuntu-26.04-arm, windows-latest, windows-11-arm, macos-26-intel, macos-26]
+        include:
+          - os: windows-latest
+            msystem: UCRT64
+          - os: windows-11-arm
+            msystem: CLANGARM64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Package installation (MSYS2)
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{ matrix.msystem }}
+          update: true
+          install: >-
+            make
+          pacboy: >-
+            pkg-config:p
+            clang:p
+            sdl3:p
+
+      - name: Package installation (brew)
+        if: runner.os == 'macOS'
+        run: |
+          brew update
+          brew install sdl3
+
+      - name: Package installation (apt)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsdl3-dev
+
+      - name: Build (${{ runner.arch }} Windows)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: |
+          make
+
+      - name: Build (${{ runner.arch }} MacOS)
+        if: runner.os == 'macOS'
+        run: |
+          make
+
+      - name: Build (${{ runner.arch }} Linux)
+        if: runner.os == 'Linux'
+        run: |
+          make
+
