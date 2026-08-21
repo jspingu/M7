@@ -3,10 +3,10 @@ rwildcard = $(foreach d,$1,$(wildcard $d/$2) $(call rwildcard,$(wildcard $d/*),$
 PREFIX ?= /usr/local
 # Must compile with clang for now to use __builtin_cpu_supports("sve")
 CC = clang
-CFLAGS += -Iinclude -Wall -Wextra -Wpedantic -std=c23
+CFLAGS += $(shell pkg-config --cflags sdl3) -Iinclude -Wall -Wextra -Wpedantic -std=c23
 OPTFLAGS += -O3
 DEPFLAGS += -MMD -MP
-LDFLAGS += -lSDL3
+LDFLAGS += $(shell pkg-config --libs sdl3)
 
 SRCDIR = src
 BLDDIR = build
