@@ -38,22 +38,23 @@ VECTORIZATION ?= dynamic
 PREDEFINED_MACROS := $(shell $(CC) $(CFLAGS) -E -dM - < /dev/null)
 PREDEFINED_MACROS := $(filter-out __ARM_NEON_SVE_BRIDGE,$(PREDEFINED_MACROS))
 
-TARGET_ARCH = $(findstring x86_64,$(PREDEFINED_MACROS)) $(findstring i386,$(PREDEFINED_MACROS)) \
-              $(findstring aarch64,$(PREDEFINED_MACROS)) $(findstring arm,$(PREDEFINED_MACROS))
+TARGET_ARCH := $(findstring x86_64,$(PREDEFINED_MACROS)) $(findstring i386,$(PREDEFINED_MACROS)) \
+               $(findstring aarch64,$(PREDEFINED_MACROS)) $(findstring arm,$(PREDEFINED_MACROS))
+TARGET_ARCH := $(firstword $(TARGET_ARCH))
 
-ifeq ($(strip $(TARGET_ARCH)),x86_64)
+ifeq ($(TARGET_ARCH),x86_64)
 POSSIBLE_SIMD_EXTENSIONS = AVX512F AVX2
 endif
 
-ifeq ($(strip $(TARGET_ARCH)),i386)
+ifeq ($(TARGET_ARCH),i386)
 POSSIBLE_SIMD_EXTENSIONS = SSE2
 endif
 
-ifeq ($(strip $(TARGET_ARCH)),aarch64)
+ifeq ($(TARGET_ARCH),aarch64)
 POSSIBLE_SIMD_EXTENSIONS = SVE
 endif
 
-ifeq ($(strip $(TARGET_ARCH)),arm)
+ifeq ($(TARGET_ARCH),arm)
 POSSIBLE_SIMD_EXTENSIONS = NEON
 endif
 
