@@ -10,9 +10,11 @@
 ```bash
 git clone https://github.com/jspingu/threefold.git
 cd threefold
-make -j$(nproc)
+make
 ./out
 ```
+
+Press `Esc` to toggle control. Look around with the mouse, move with WASD, Shift, and Space. Scroll the mouse wheel to change the field of view.
 
 ### Vectorization Options
 
@@ -21,7 +23,7 @@ By default, vectorized function variants are built for all supported SIMD extens
 To build a tailored binary with static dispatch instead:
 
 ```bash
-CFLAGS="-march=native" VECTORIZATION="static" make -j$(nproc)
+CFLAGS="-march=native" VECTORIZATION="static" make
 ```
 
 Supported extensions:
