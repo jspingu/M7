@@ -36,7 +36,7 @@ DEPS_VECTORIZE_NEON = $(SRCS_VECTORIZE:%.c=$(BLDDIR)/%_neon.d)
 
 VECTORIZATION ?= dynamic
 PREDEFINED_MACROS := $(shell $(CC) $(CFLAGS) -E -dM - < /dev/null)
-PREDEFINED_MACROS := $(filter-out #define __ARM_NEON_SVE_BRIDGE 1,$(PREDEFINED_MACROS))
+PREDEFINED_MACROS := $(filter-out __ARM_NEON_SVE_BRIDGE,$(PREDEFINED_MACROS))
 
 TARGET_ARCH = $(findstring x86_64,$(PREDEFINED_MACROS)) $(findstring i386,$(PREDEFINED_MACROS)) \
               $(findstring aarch64,$(PREDEFINED_MACROS)) $(findstring arm,$(PREDEFINED_MACROS))
